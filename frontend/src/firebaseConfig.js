@@ -8,13 +8,13 @@ import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
 
-  apiKey: "AIzaSyBSwVZ6kvj7C3JGFh2hyUPm_Q8eTqacTpY",
-  authDomain: "annular-climate-469215-m0.firebaseapp.com",
-  projectId: "annular-climate-469215-m0",
-  storageBucket: "annular-climate-469215-m0.firebasestorage.app",
-  messagingSenderId: "300490562064",
-  appId: "1:300490562064:web:27d3884877908749fc8895",
-  measurementId: "G-BFCXSB23YP"
+  apiKey: import.meta.env.VITE_API_KEY,
+  authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_APP_ID,
+  measurementId: import.meta.env.VITE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);

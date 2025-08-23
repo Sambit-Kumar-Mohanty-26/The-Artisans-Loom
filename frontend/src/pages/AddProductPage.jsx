@@ -51,16 +51,14 @@ const AddProductPage = () => {
 
     try {
       
-    console.log("Attempting to call createProduct...");
-    console.log("Current User UID:", currentUser.uid);
-    console.log("Current User Email:", currentUser.email);
+      console.log("Attempting to call createProduct...");
+      console.log("Current User UID:", currentUser.uid);
+      console.log("Current User Email:", currentUser.email);
 
-    
-    setMessage('Getting authentication token...');
-    const idToken = await currentUser.getIdToken(true); // Force refresh
+      setMessage('Getting authentication token...');
+      const idToken = await currentUser.getIdToken(true); // Force refresh
 
-    // Log the ID token
-    console.log("Successfully retrieved ID Token. Length:", idToken.length);
+      console.log("Successfully retrieved ID Token. Length:", idToken.length);
 
       setMessage('Uploading image...');
       const imageRef = ref(storage, `products/${currentUser.uid}/${Date.now()}_${imageFile.name}`);
@@ -73,7 +71,6 @@ const AddProductPage = () => {
         materials: product.materials.split(',').map(item => item.trim()).filter(Boolean),
         imageUrl
       };
-      
       
       await createProduct(newProductData);
 
@@ -93,9 +90,6 @@ const AddProductPage = () => {
     
     setLoading(false);
   };
-
-  // Log the ID token
-  console.log("Successfully retrieved ID Token. Length:", idToken.length);
 
   return (
     <div className="add-product-page">
