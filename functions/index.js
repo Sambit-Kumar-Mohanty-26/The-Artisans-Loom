@@ -10,6 +10,12 @@ const textToSpeechClient = new TextToSpeechClient();
 
 // --- LOGIC FOR createProduct RESTORED ---
 exports.createProduct = functions.https.onCall(async (data, context) => {
+     // --- CORRECTED DEBUGGING LINES ---
+  console.log("--- START OF REQUEST DEBUG ---");
+  console.log("Instance ID Token Received (should be a long string):", context.instanceIdToken);
+  console.log("Full Context Object:", JSON.stringify(context, null, 2));
+  console.log("--- END OF REQUEST DEBUG ---");
+  // --- END OF DEBUGGING LINES ---
   // 1. Authentication Check
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "You must be logged in to create a product.");

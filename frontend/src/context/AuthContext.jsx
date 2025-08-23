@@ -6,7 +6,9 @@ import {
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup // We are using the popup method
+  signInWithPopup,
+  signInWithRedirect,   
+  getRedirectResult     
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -15,6 +17,11 @@ const AuthContext = createContext();
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
@@ -28,33 +35,60 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result) {
+          const user = result.user;
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (!userDoc.exists()) {
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+              role: 'customer',
+              createdAt: new Date()
+            });
+          }
+        }
+      }).catch((error) => {
+        console.error("Error processing redirect result:", error);
+      });
+  }, []);
+
+
   async function loginWithGoogle(role) {
     const provider = new GoogleAuthProvider();
-    try {
-      const userCredential = await signInWithPopup(auth, provider);
-      const user = userCredential.user;
+    
+    if (isMobileDevice()) {
+      return signInWithRedirect(auth, provider);
+    } else {
+      try {
+        const userCredential = await signInWithPopup(auth, provider);
+        const user = userCredential.user;
 
-      const userDocRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
 
-      // If the user document doesn't exist, create it.
-      if (!userDoc.exists()) {
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          role: role, // Use the role selected on the UI
-          createdAt: new Date()
-        });
+        if (!userDoc.exists()) {
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            role: role, 
+            createdAt: new Date()
+          });
+        }
+        return userCredential;
+      } catch (error) {
+        console.error("Error during Google sign-in with popup:", error);
+        throw error;
       }
-      return userCredential;
-    } catch (error) {
-      console.error("Error during Google sign-in with popup:", error);
-      throw error;
     }
   }
 
-  // --- Other auth functions ---
   async function signup(email, password, role) {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
