@@ -1,0 +1,126 @@
+.add-product-page {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.add-product-page h2 {
+  text-align: center;
+  font-size: 2rem;
+  color: #3a3a58;
+  margin-bottom: 2rem;
+}
+
+.add-product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif; /* Ensure consistent font */
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #c85a2a;
+}
+
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Custom file input styling */
+.form-group input[type="file"] {
+  padding: 0;
+  border: none;
+}
+.form-group input[type="file"]::file-selector-button {
+  background-color: #f0ebe5;
+  color: #3a3a58;
+  border: 1px solid #ddd;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-right: 1rem;
+  transition: background-color 0.2s;
+}
+.form-group input[type="file"]::file-selector-button:hover {
+  background-color: #e6e0da;
+}
+
+.status-message {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f0ebe5;
+  color: #3a3a58;
+  font-weight: 500;
+}
+
+.submit-btn {
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #3a3a58;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover {
+  background-color: #2a2a48;
+}
+
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+
+/* Responsive styles for the form */
+@media (max-width: 768px) {
+  .add-product-page {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}

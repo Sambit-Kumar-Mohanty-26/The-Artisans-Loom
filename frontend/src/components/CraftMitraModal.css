@@ -1,0 +1,131 @@
+.mitra-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6); 
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.mitra-modal-content {
+  background-color: #f7f7fa; 
+  color: #3a3a58;
+  padding: 2.5rem;
+  border-radius: 16px;
+  text-align: center;
+  position: relative;
+  width: 90%;
+  max-width: 480px; /* Slightly wider for text */
+  transform: scale(0.9);
+  animation: scaleUp 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleUp {
+  to { transform: scale(1); }
+}
+
+.mitra-modal-content h2 {
+  margin-top: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.mitra-subtitle {
+  font-size: 1.1rem;
+  color: #6a6a8a;
+  margin-top: -1.2rem;
+  margin-bottom: 2rem;
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #aaa;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.mic-icon-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 1.5rem auto;
+  border-radius: 50%;
+  background-color: #f0ebe5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.mic-icon-container:hover {
+  background-color: #8a4fff;
+}
+
+.mic-icon-container.listening {
+  background-color: #1DB954; 
+  animation: pulse 1.5s infinite;
+}
+
+.mic-icon-container.listening:hover {
+  background-color: #1DB954; 
+}
+
+.mic-icon-container svg {
+  stroke: #3a3a58;
+  transition: stroke 0.3s ease;
+}
+
+.mic-icon-container:hover svg,
+.mic-icon-container.listening svg {
+  stroke: #ffffff;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7); }
+  70% { box-shadow: 0 0 0 20px rgba(29, 185, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
+}
+
+/* --- NEW and UPDATED Styles for Transcription --- */
+
+/* This is the container for the text output */
+.transcription-display {
+  min-height: 50px; /* Reserve space to prevent layout jumps */
+  padding: 10px;
+  font-size: 1.2rem;
+  color: #3a3a58;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* This is for the placeholder text like "Click to start" */
+.status-message {
+  font-size: 1.1rem;
+  color: #6a6a8a;
+}
+
+/* This is for the live text that is not yet final */
+.interim-text {
+  color: #999; 
+}

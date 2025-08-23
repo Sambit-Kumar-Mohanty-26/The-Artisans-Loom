@@ -1,0 +1,31 @@
+.featured-products-section {
+  padding: 4rem;
+  background-color: #fdfaf7;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+  .featured-products-section {
+    padding: 2rem;
+  }
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr); 
+  }
+}
+
+
+@media (max-width: 768px) {
+  .featured-products-section {
+    padding: 2rem 1rem;
+  }
+  .products-grid {
+    grid-template-columns: 1fr; 
+  }
+}

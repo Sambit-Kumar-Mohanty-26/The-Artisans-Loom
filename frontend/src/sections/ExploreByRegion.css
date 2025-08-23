@@ -1,0 +1,48 @@
+.explore-region-section {
+  padding: 4rem;
+  background-color: #fdfaf7;
+}
+
+.region-content-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  max-width: 1200px;
+  margin: 3rem auto 0 auto;
+}
+
+.map-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.map-container img {
+  width: 100%;
+  max-width: 450px;
+  border-radius: 12px;
+}
+
+.region-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .explore-region-section {
+    padding: 2rem;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .explore-region-section {
+    padding: 2rem 1rem;
+  }
+  .region-content-layout {
+    grid-template-columns: 1fr; 
+  }
+}

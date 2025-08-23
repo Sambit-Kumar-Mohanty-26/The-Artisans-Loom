@@ -1,12 +1,25 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+// The service this ruleset applies to
 service firebase.storage {
+
+  // This matches the bucket for your project
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if false;
+  
+    // Rule specifically for the 'products' folder
+    match /products/{userId}/{allPaths=**} {
+    
+      // Allow ANYONE to READ product images.
+      // This is necessary so that visitors to your shop can see the pictures.
+      allow read;
+      
+      // Allow a user to WRITE (upload, update, delete) an image, but ONLY IF:
+      // 1. They are logged in (request.auth is not null)
+      // 2. AND their own User ID (request.auth.uid) matches the {userId} folder
+      //    they are trying to write to. This prevents one artisan from
+      //    uploading images to another artisan's folder.
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
+    
   }
 }

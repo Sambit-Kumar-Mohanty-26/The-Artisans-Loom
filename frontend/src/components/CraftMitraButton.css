@@ -1,0 +1,23 @@
+.craft-mitra-button {
+  position: fixed; /* Keeps the button in place while scrolling */
+  bottom: 2rem;
+  right: 2rem;
+  width: 70px;
+  height: 70px;
+  background-color: #d96a3b;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  z-index: 1001; 
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.craft-mitra-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
+}

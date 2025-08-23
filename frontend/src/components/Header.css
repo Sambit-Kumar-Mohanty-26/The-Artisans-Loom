@@ -1,0 +1,146 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 4rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #f0ebe5;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+}
+
+.logo-image {
+  height: 55px;
+  width: auto;
+}
+
+.navigation a {
+  margin: 0 1.5rem;
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navigation a:hover {
+  color: #d96a3b;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  padding: 0.5rem;
+}
+
+.sign-in-button {
+  background-color: #f0ebe5;
+  border: 1px solid #ddd;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.sign-in-button:hover {
+  background-color: #e6e0da;
+}
+
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-email {
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 500;
+  /* Hide email on very small screens if it gets crowded */
+  display: none; 
+}
+@media (min-width: 480px) {
+  .user-email {
+    display: inline;
+  }
+}
+
+.sign-out-button {
+  background-color: #3a3a58;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.sign-out-button:hover {
+  background-color: #2a2a48;
+}
+
+
+/* --- RESPONSIVE STYLES --- */
+@media (max-width: 1024px) {
+  .header {
+    padding: 1rem 2rem;
+  }
+  .navigation a {
+    margin: 0 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .logo-image {
+    height: 45px;
+  }
+  .navigation {
+    border-top: 1px solid #f0ebe5;
+    border-bottom: 1px solid #f0ebe5;
+    padding: 0.75rem 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .navigation a {
+    margin: 0 0.75rem;
+    font-size: 0.9rem;
+  }
+}
+.nav-action-link {
+  font-weight: bold;
+  color: #c85a2a;
+  margin-left: 1rem; 
+  border: 1px solid #c85a2a;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.nav-action-link:hover {
+  background-color: #c85a2a;
+  color: #fff;
+  text-decoration: none;
+}

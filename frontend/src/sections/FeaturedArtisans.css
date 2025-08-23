@@ -1,0 +1,67 @@
+.featured-artisans-section {
+  padding: 4rem;
+  text-align: center;
+  background-color: #fff;
+}
+
+.section-header {
+  max-width: 700px;
+  margin: 0 auto 3rem auto;
+}
+
+.section-tag {
+  background-color: #f0ebe5;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #3a3a58;
+  margin: 0 0 1rem 0;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: #555;
+  line-height: 1.6;
+}
+
+.artisans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-footer {
+  margin-top: 3rem;
+}
+
+@media (max-width: 1024px) {
+  .featured-artisans-section {
+    padding: 2rem;
+  }
+  .artisans-grid {
+    grid-template-columns: repeat(2, 1fr); 
+  }
+}
+
+
+@media (max-width: 768px) {
+  .featured-artisans-section {
+    padding: 2rem 1rem;
+  }
+  .artisans-grid {
+    grid-template-columns: 1fr; 
+  }
+  .section-title {
+    font-size: 2rem;
+  }
+}

@@ -1,42 +1,32 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+/* 
+  This style rule targets the main wrapper div in App.jsx.
+  It is responsible for the overall page layout and appearance.
+*/
+.app-wrapper {
+  /* 
+    Sets a maximum width for your content. On very large monitors, this prevents
+    the website from stretching out too wide, which improves readability.
+  */
+  max-width: 1440px;
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+  /* 
+    These two properties are a standard CSS technique to horizontally center a
+    container that has a defined width.
+  */
+  margin-left: auto;
+  margin-right: auto;
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+  /* 
+    Sets the background color of the content area to white. This sits on top of
+    the light gray background of the <body> tag set in index.css.
+  */
+  background-color: #ffffff;
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  /* 
+    Adds a subtle shadow around the container. This creates a "card" effect,
+    giving the page a sense of depth and making it feel elevated from the background.
+  */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    width: 100%;
+  overflow-x: hidden;
 }

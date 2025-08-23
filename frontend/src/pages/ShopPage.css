@@ -1,0 +1,80 @@
+.shop-page {
+  display: flex;
+  padding: 2rem 4rem;
+  gap: 2rem;
+}
+
+.filter-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.filter-sidebar h3 {
+  font-size: 1.5rem;
+  color: #3a3a58;
+  border-bottom: 2px solid #f0ebe5;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  margin-bottom: 1.5rem;
+}
+
+.filter-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.filter-group select,
+.filter-group input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.apply-filters-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  background-color: #3a3a58;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.product-grid-container {
+  flex-grow: 1;
+}
+
+.shop-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.error-message {
+  color: #c00;
+}
+
+@media (max-width: 768px) {
+  .shop-page {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  .filter-sidebar {
+    width: 100%;
+  }
+}
