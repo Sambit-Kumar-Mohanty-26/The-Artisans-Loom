@@ -11,8 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      
+      # CORRECTED SECTION: 'working-directory' is now correctly aligned with 'run'
+      - name: Build Frontend
+        run: npm ci && npm run build
         working-directory: ./frontend
+        
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
