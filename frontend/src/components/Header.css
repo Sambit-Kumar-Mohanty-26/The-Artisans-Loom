@@ -1,4 +1,3 @@
-/* --- Main Header Styles --- */
 .header {
   display: flex;
   justify-content: space-between;
@@ -10,11 +9,11 @@
   position: sticky;
   top: 0;
   z-index: 1000;
-  gap: 2rem; /* Adds space between logo, nav, and actions */
+  gap: 2rem; 
 }
 
 .logo-link {
-  flex-shrink: 0; /* Prevents the logo from shrinking */
+  flex-shrink: 0; 
 }
 
 .logo-image {
@@ -22,7 +21,6 @@
   width: auto;
 }
 
-/* --- Unified Navigation & Action Styles --- */
 .navigation,
 .header-actions {
   display: flex;
@@ -30,14 +28,13 @@
   gap: 1rem;
 }
 
-/* Base style for ALL links and buttons in the header */
 .nav-link {
   font-size: 1rem;
   font-weight: 500;
   color: #333;
   text-decoration: none;
   background: none;
-  border: 1px solid transparent; /* Occupy space for border */
+  border: 1px solid transparent;
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
@@ -45,13 +42,13 @@
   transition: all 0.3s ease;
 }
 
-/* Underline effect for regular links */
+
 .nav-link::after {
   content: '';
   position: absolute;
   width: 0;
   height: 2px;
-  bottom: 5px; /* Position the line slightly above the bottom */
+  bottom: 5px; 
   left: 50%;
   transform: translateX(-50%);
   background-color: #a5805e;
@@ -63,29 +60,26 @@
 }
 
 .nav-link:hover::after {
-  width: 60%; /* Underline grows on hover */
+  width: 60%; 
 }
 
 
-/* Modifier for the PRIMARY action button */
+
 .nav-link--primary {
-  border-color: #d96a3b; /* Give it a border by default */
+  border-color: #d96a3b; 
   color: #d96a3b;
 }
 
-/* Primary button doesn't need the underline */
 .nav-link--primary::after {
   display: none;
 }
 
-/* Primary button fills with color on hover */
 .nav-link--primary:hover {
   background-color: #d96a3b;
   color: #fff;
 }
 
 
-/* --- User Info Styles --- */
 .user-info {
   display: flex;
   align-items: center;
@@ -99,7 +93,6 @@
 }
 
 
-/* --- Responsive Styles --- */
 @media (max-width: 1024px) {
   .header {
     padding: 1rem 2rem;
@@ -113,7 +106,7 @@
     padding: 1rem;
   }
   .navigation {
-    order: 3; /* Move nav to the bottom */
+    order: 3; 
     width: 100%;
     justify-content: center;
     padding-top: 1rem;
@@ -122,7 +115,7 @@
   .header-actions {
     order: 2;
   }
-  .logo-link {
-    order: 1;
+    .logo-link {
+      order: 1;
+    }
   }
-}
