@@ -1,19 +1,20 @@
+/* --- Main Header Styles --- */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem 4rem;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #f0ebe5;
   position: sticky;
   top: 0;
   z-index: 1000;
+  gap: 2rem; /* Adds space between logo, nav, and actions */
 }
 
 .logo-link {
-  display: flex;
-  align-items: center;
+  flex-shrink: 0; /* Prevents the logo from shrinking */
 }
 
 .logo-image {
@@ -21,47 +22,70 @@
   width: auto;
 }
 
-.navigation a {
-  margin: 0 1.5rem;
-  text-decoration: none;
-  color: #333;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.navigation a:hover {
-  color: #d96a3b;
-}
-
+/* --- Unified Navigation & Action Styles --- */
+.navigation,
 .header-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.icon-button {
-  background: none;
-  border: none;
-  cursor: pointer;
+/* Base style for ALL links and buttons in the header */
+.nav-link {
+  font-size: 1rem;
+  font-weight: 500;
   color: #333;
-  padding: 0.5rem;
-}
-
-.sign-in-button {
-  background-color: #f0ebe5;
-  border: 1px solid #ddd;
+  text-decoration: none;
+  background: none;
+  border: 1px solid transparent; /* Occupy space for border */
   padding: 0.6rem 1.2rem;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  position: relative;
+  transition: all 0.3s ease;
 }
 
-.sign-in-button:hover {
-  background-color: #e6e0da;
+/* Underline effect for regular links */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 5px; /* Position the line slightly above the bottom */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #a5805e;
+  transition: width 0.3s ease-in-out;
+}
+
+.nav-link:hover {
+  color: #a5805e;
+}
+
+.nav-link:hover::after {
+  width: 60%; /* Underline grows on hover */
 }
 
 
+/* Modifier for the PRIMARY action button */
+.nav-link--primary {
+  border-color: #d96a3b; /* Give it a border by default */
+  color: #d96a3b;
+}
+
+/* Primary button doesn't need the underline */
+.nav-link--primary::after {
+  display: none;
+}
+
+/* Primary button fills with color on hover */
+.nav-link--primary:hover {
+  background-color: #d96a3b;
+  color: #fff;
+}
+
+
+/* --- User Info Styles --- */
 .user-info {
   display: flex;
   align-items: center;
@@ -72,38 +96,14 @@
   font-size: 0.9rem;
   color: #555;
   font-weight: 500;
-  /* Hide email on very small screens if it gets crowded */
-  display: none; 
-}
-@media (min-width: 480px) {
-  .user-email {
-    display: inline;
-  }
-}
-
-.sign-out-button {
-  background-color: #3a3a58;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.sign-out-button:hover {
-  background-color: #2a2a48;
 }
 
 
-/* --- RESPONSIVE STYLES --- */
+/* --- Responsive Styles --- */
 @media (max-width: 1024px) {
   .header {
     padding: 1rem 2rem;
-  }
-  .navigation a {
-    margin: 0 1rem;
+    gap: 1rem;
   }
 }
 
@@ -111,36 +111,18 @@
   .header {
     flex-direction: column;
     padding: 1rem;
-    gap: 1rem;
-  }
-  .logo-image {
-    height: 45px;
   }
   .navigation {
-    border-top: 1px solid #f0ebe5;
-    border-bottom: 1px solid #f0ebe5;
-    padding: 0.75rem 0;
+    order: 3; /* Move nav to the bottom */
     width: 100%;
-    display: flex;
     justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid #f0ebe5;
   }
-  .navigation a {
-    margin: 0 0.75rem;
-    font-size: 0.9rem;
+  .header-actions {
+    order: 2;
   }
-}
-.nav-action-link {
-  font-weight: bold;
-  color: #c85a2a;
-  margin-left: 1rem; 
-  border: 1px solid #c85a2a;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.nav-action-link:hover {
-  background-color: #c85a2a;
-  color: #fff;
-  text-decoration: none;
+  .logo-link {
+    order: 1;
+  }
 }
