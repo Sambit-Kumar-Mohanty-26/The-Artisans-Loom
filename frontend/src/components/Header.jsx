@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import './Header.css';
 import logo from '../assets/images/logo.png';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig'; 
+import { doc, getDoc } from 'firebase/firestore'; 
 
-const Header = ({ onSignInClick, onNavigate }) => { 
+const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => { 
   const { currentUser, logout } = useAuth();
   const [userRole, setUserRole] = useState(null);
 
@@ -32,17 +31,23 @@ const Header = ({ onSignInClick, onNavigate }) => {
       </a>
 
       <nav className="navigation">
-        <button onClick={() => onNavigate('discover')} className="nav-link">Discover</button>
-        <button onClick={() => onNavigate('regions')} className="nav-link">Regions</button>
-        <button onClick={() => onNavigate('artisans')} className="nav-link">Artisans</button>
-        <button onClick={() => onNavigate('stories')} className="nav-link">Stories</button>
+        <button onClick={() => onNavigateAndScroll('discover')} className="nav-link">Discover</button>
+        <button onClick={() => onNavigateAndScroll('regions')} className="nav-link">Regions</button>
+        <button onClick={() => onNavigateAndScroll('artisans')} className="nav-link">Artisans</button>
+        <button onClick={() => onNavigateAndScroll('stories')} className="nav-link">Stories</button>
       </nav>
+      
       <div className="header-actions">
+        <button onClick={() => onNavigate('gifting-assistant')} className="nav-link">
+          🎁 Gifting Assistant
+        </button>
+
         {currentUser ? (
           <div className="user-info">
             <span className="user-email">{currentUser.email}</span>
+            
             {userRole === 'artisan' ? (
-              <button onClick={() => onNavigate('addProduct')} className="nav-link nav-link--primary">
+              <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
                 My Dashboard
               </button>
             ) : (
@@ -50,6 +55,7 @@ const Header = ({ onSignInClick, onNavigate }) => {
                 Shop
               </button>
             )}
+            
             <button onClick={logout} className="nav-link">Sign Out</button>
           </div>
         ) : (

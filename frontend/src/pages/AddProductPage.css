@@ -39,7 +39,7 @@
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 1rem;
-  font-family: 'Inter', sans-serif; /* Ensure consistent font */
+  font-family: 'Inter', sans-serif; 
   transition: border-color 0.2s;
 }
 
@@ -61,7 +61,6 @@
   gap: 1.5rem;
 }
 
-/* Custom file input styling */
 .form-group input[type="file"] {
   padding: 0;
   border: none;
@@ -112,8 +111,6 @@
   cursor: not-allowed;
 }
 
-
-/* Responsive styles for the form */
 @media (max-width: 768px) {
   .add-product-page {
     margin: 1rem;

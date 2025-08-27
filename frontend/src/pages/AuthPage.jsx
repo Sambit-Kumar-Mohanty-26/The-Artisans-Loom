@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import './AuthPage.css';
 
-// ... (GoogleIcon component can be kept here or moved to its own file)
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
     <path fill="#FFC107" d="M43.611,20.083h-18.3v7.834h10.5c-1.5,4.5-5.5,7.5-10.5,7.5c-6.083,0-11-4.917-11-11s4.917-11,11-11c2.667,0,5.083,1,7,2.5l5.833-5.833c-3.333-3-7.667-5-12.833-5c-10.5,0-19,8.5-19,19s8.5,19,19,19c10.5,0,18.833-8.5,18.833-19C43.611,22.25,43.611,21.167,43.611,20.083z" />
@@ -13,8 +12,8 @@ const GoogleIcon = () => (
 );
 
 const AuthPage = () => {
-  const [userType, setUserType] = useState('artisan'); // 'artisan' or 'customer'
-  const [isLoginMode, setIsLoginMode] = useState(true); // true for Sign In, false for Sign Up
+  const [userType, setUserType] = useState('artisan'); 
+  const [isLoginMode, setIsLoginMode] = useState(true); 
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,10 +31,10 @@ const AuthPage = () => {
       if (isLoginMode) {
         await login(email, password);
       } else {
-        // Pass the userType when signing up
+        
         await signup(email, password, userType);
       }
-      // Success is handled by the AuthProvider redirect
+      
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
       setLoading(false);
@@ -46,9 +45,9 @@ const AuthPage = () => {
     setError('');
     setLoading(true);
     try {
-      // Pass the currently selected userType to the login function
+     
       await loginWithGoogle(userType);
-      // Success is handled by the AuthProvider redirect, so we don't setLoading(false) here.
+      
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
       setLoading(false); 

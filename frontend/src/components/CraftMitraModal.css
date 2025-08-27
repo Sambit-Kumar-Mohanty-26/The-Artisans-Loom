@@ -26,7 +26,7 @@
   text-align: center;
   position: relative;
   width: 90%;
-  max-width: 480px; /* Slightly wider for text */
+  max-width: 480px; 
   transform: scale(0.9);
   animation: scaleUp 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -106,11 +106,9 @@
   100% { box-shadow: 0 0 0 0 rgba(29, 185, 84, 0); }
 }
 
-/* --- NEW and UPDATED Styles for Transcription --- */
 
-/* This is the container for the text output */
 .transcription-display {
-  min-height: 50px; /* Reserve space to prevent layout jumps */
+  min-height: 50px; 
   padding: 10px;
   font-size: 1.2rem;
   color: #3a3a58;
@@ -119,13 +117,12 @@
   justify-content: center;
 }
 
-/* This is for the placeholder text like "Click to start" */
 .status-message {
   font-size: 1.1rem;
   color: #6a6a8a;
 }
 
-/* This is for the live text that is not yet final */
+
 .interim-text {
   color: #999; 
 }

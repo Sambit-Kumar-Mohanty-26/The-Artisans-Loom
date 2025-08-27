@@ -3,7 +3,6 @@ import ProductCard from '../components/ProductCard';
 import './FeaturedProducts.css';
 import Button from '../components/Button';
 
-// Import product images
 import scarfImg from '../assets/images/product-scarf.jpg';
 import vaseImg from '../assets/images/product-vase.jpg';
 import runnerImg from '../assets/images/product-table-runner.jpg';
@@ -41,7 +40,7 @@ const productsData = [
   },
 ];
 
-const FeaturedProducts = () => {
+const FeaturedProducts = ({ onNavigate }) => {
   return (
     <section className="featured-products-section">
       <div className="products-grid">
@@ -50,7 +49,11 @@ const FeaturedProducts = () => {
         ))}
       </div>
       <div className="section-footer">
-        <Button text="Browse All Products" type="dark" />
+        <Button 
+          text="Browse All Products" 
+          type="dark" 
+          onClick={() => onNavigate('shop')} 
+        />
       </div>
     </section>
   );

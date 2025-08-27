@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artisan's Loom - Interactive Craft Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+        }
+        .state {
+            stroke: #A5805E;
+            stroke-width: 0.5px;
+            fill: #EFEAE4;
+            transition: fill 0.3s ease;
+        }
+        .state:hover {
+            fill: #D9C6B4;
+        }
+        .state.active {
+            fill: #C8A88A;
+        }
+        .sidebar-title {
+            font-family: 'Playfair Display', serif;
+        }
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+    <a href="/" class="absolute top-4 left-4 bg-white/80 backdrop-blur-sm text-amber-900 font-bold py-2 px-4 rounded-full shadow-md hover:bg-white transition-colors duration-300 z-10">
+      &larr; Back to Home
+    </a>
+
+    <div class="flex flex-col lg:flex-row w-full h-screen">
+        
+        <aside id="sidebar" class="w-full h-2/5 lg:h-full lg:w-1/3 xl:w-1/4 bg-white shadow-lg p-6 lg:p-8 overflow-y-auto">
+            <h1 class="sidebar-title text-3xl font-bold text-gray-900 mb-2">The Artisan's Loom</h1>
+            <p class="text-gray-600 mb-6">Select a state on the map to discover its unique craft heritage.</p>
+            
+            <div id="sidebar-content">
+                <div class="text-center py-10">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Explore India's Crafts</h3>
+                    <p class="mt-1 text-sm text-gray-500">Hover over a region for its name, and click to see its treasures.</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="w-full h-3/5 lg:h-full flex-grow bg-FDFBF8 flex items-center justify-center p-4">
+            <div id="map" class="w-full h-full"></div>
+        </main>
+    </div>
+
+    <div id="storyModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 lg:p-8 transform scale-95">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="storyModalTitle" class="sidebar-title text-2xl font-bold">A Story from the Loom</h2>
+                <button onclick="closeStoryModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <div id="storyModalBody" class="prose max-w-none text-gray-700"></div>
+        </div>
+    </div>
+
+    <script>
+        async function callGemini(prompt) {
+            const proxyUrl = "https://getgeminiresponseproxy-kl46rrctoq-uc.a.run.app"; 
+
+            if (proxyUrl.includes("YOUR_PROXY_FUNCTION_URL_HERE")) {
+                return "Error: The proxy function URL has not been set in map.html.";
+            }
+
+            try {
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+                if (!response.ok) {
+                    throw new Error(`Proxy call failed with status: ${response.status}`);
+                }
+                const result = await response.json();
+                return result.response;
+            } catch (error) {
+                console.error("Proxy function call error:", error);
+                return "An error occurred while contacting the AI.";
+            }
+        }
+        
+        const storyModal = document.getElementById('storyModal');
+        const storyModalTitle = document.getElementById('storyModalTitle');
+        const storyModalBody = document.getElementById('storyModalBody');
+
+        function openStoryModal(title, content) {
+            storyModalTitle.textContent = title;
+            storyModalBody.innerHTML = content.replace(/\n/g, '<br>');
+            storyModal.classList.remove('hidden');
+            setTimeout(() => storyModal.classList.remove('opacity-0'), 10);
+            setTimeout(() => storyModal.querySelector('.modal-content').classList.remove('scale-95'), 10);
+        }
+
+        function closeStoryModal() {
+            storyModal.querySelector('.modal-content').classList.add('scale-95');
+            storyModal.classList.add('opacity-0');
+            setTimeout(() => storyModal.classList.add('hidden'), 300);
+        }
+
+        async function generateStory(stateName, craftName) {
+            openStoryModal(`A Story from ${stateName}`, '<p>Weaving a tale for you... please wait.</p>');
+            const prompt = `Tell me a short, engaging folk tale or story (around 150 words) related to the traditional craft of ${craftName} from the Indian state of ${stateName}.`;
+            const story = await callGemini(prompt);
+            openStoryModal(`A Story of ${craftName}`, story);
+        }
+        
+        async function generateDescription(craftName, stateName, elementId) {
+            const button = document.querySelector(`[onclick="generateDescription('${craftName}', '${stateName}', '${elementId}')"]`);
+            const targetElement = document.getElementById(elementId);
+            if (!button || !targetElement) return;
+
+            button.textContent = '...';
+            const prompt = `Write a vivid and evocative 2-sentence marketing description for a handmade ${craftName} from ${stateName}, perfect for an e-commerce site.`;
+            const description = await callGemini(prompt);
+            targetElement.innerHTML = `<p class="mt-2 text-sm text-amber-800 bg-amber-50 p-2 rounded">${description}</p>`;
+            button.style.display = 'none';
+        }
+
+        const craftData = {
+            "Orissa": {
+                name: "Orissa",
+                description: "Home to ancient temples and a vibrant artistic tradition, Orissa is renowned for its intricate Pattachitra paintings and delicate silver filigree work.",
+                crafts: [
+                    { name: "Pattachitra Painting", description: "A traditional, cloth-based scroll painting known for its mythological narratives and rich colors.", image: "https://placehold.co/400x300/A5805E/FFFFFF?text=Pattachitra" },
+                    { name: "Silver Filigree (Tarakasi)", description: "Delicate and artistic jewellery and decorative items made from fine silver wires.", image: "https://placehold.co/400x300/C8A88A/FFFFFF?text=Tarakasi" }
+                ]
+            },
+            "Rajasthan": {
+                name: "Rajasthan",
+                description: "The land of kings, deserts, and forts. Rajasthan's crafts are as vibrant as its culture, from the iconic Blue Pottery to intricate miniature paintings.",
+                crafts: [
+                    { name: "Blue Pottery", description: "A unique form of pottery made without clay, using quartz stone powder, and decorated in striking blue and white.", image: "https://placehold.co/400x300/3B82F6/FFFFFF?text=Blue+Pottery" },
+                    { name: "Miniature Painting", description: "Highly detailed, colorful paintings that often depict royal court scenes, battles, and legends.", image: "https://placehold.co/400x300/EF4444/FFFFFF?text=Miniature" }
+                ]
+            },
+            "Bihar": {
+                name: "Bihar",
+                description: "A state with deep historical roots, Bihar is the birthplace of Madhubani painting, a folk art style practiced by women in the Mithila region.",
+                crafts: [
+                    { name: "Madhubani Painting", description: "Characterized by its eye-catching geometrical patterns, this folk art is done with fingers, twigs, and brushes.", image: "https://placehold.co/400x300/10B981/FFFFFF?text=Madhubani" }
+                ]
+            },
+            "Gujarat": {
+                name: "Gujarat",
+                description: "Known for its rich textile heritage, Gujarat is a hub for intricate embroidery, bandhani tie-dye, and the famous Kutch mirror work.",
+                crafts: [
+                    { name: "Kutchi Embroidery", description: "Vibrant and intricate mirror work embroidery, a hallmark of the Kutch region's nomadic communities.", image: "https://placehold.co/400x300/F59E0B/FFFFFF?text=Kutch+Work" },
+                    { name: "Bandhani (Tie-Dye)", description: "A traditional tie-dye technique resulting in intricate patterns on fabrics like cotton and silk.", image: "https://placehold.co/400x300/8B5CF6/FFFFFF?text=Bandhani" }
+                ]
+            },
+            "Uttar Pradesh": {
+                name: "Uttar Pradesh",
+                description: "A land of confluence, its crafts include the delicate Chikankari embroidery of Lucknow and the opulent Zardozi metal embroidery.",
+                crafts: [
+                    { name: "Chikankari Embroidery", description: "A delicate and artfully done hand-embroidery on a variety of textile fabrics like muslin, silk, chiffon, etc.", image: "https://placehold.co/400x300/7C3AED/FFFFFF?text=Chikankari" },
+                ]
+            },
+            "West Bengal": {
+                name: "West Bengal",
+                description: "A hub of culture and art, famous for its Kantha stitch textiles and the rustic beauty of its Terracotta pottery and sculptures.",
+                crafts: [
+                    { name: "Kantha Stitch", description: "A traditional embroidery style of Bengal, characterized by a simple running stitch to create beautiful motifs.", image: "https://placehold.co/400x300/D97706/FFFFFF?text=Kantha" },
+                    { name: "Terracotta Pottery", description: "Earthy and rustic pottery and sculptures, a signature craft of the Bishnupur region.", image: "https://placehold.co/400x300/9A3412/FFFFFF?text=Terracotta" }
+                ]
+            },
+            "Kerala": {
+                name: "Kerala",
+                description: "God's Own Country, known for its eco-friendly crafts made from coir and coconut shells, and the vibrant masks used in Kathakali dance.",
+                crafts: [
+                    { name: "Coir Products", description: "Eco-friendly mats, hangings, and other articles made from the fiber of coconut husks.", image: "https://placehold.co/400x300/059669/FFFFFF?text=Coir" }
+                ]
+            },
+            "Tamil Nadu": {
+                name: "Tamil Nadu",
+                description: "A state of towering temples and rich traditions, renowned for its opulent Kanchipuram silk sarees and intricate Tanjore paintings.",
+                crafts: [
+                    { name: "Tanjore Painting", description: "A classical South Indian painting style, characterized by its rich colors, gold foil, and inlay of glass beads.", image: "https://placehold.co/400x300/DC2626/FFFFFF?text=Tanjore" },
+                    { name: "Kanchipuram Silk", description: "Luxurious silk sarees woven with heavy silk and gold cloth, known for their vibrant colors and intricate designs.", image: "https://placehold.co/400x300/DB2777/FFFFFF?text=Kanchipuram" }
+                ]
+            },
+            "Assam": {
+                name: "Assam",
+                description: "Known for its tea gardens and rich culture, Assam is celebrated for its silk weaving and bamboo crafts.",
+                crafts: [
+                    { name: "Assam Silk (Muga, Eri, Pat)", description: "Traditional handwoven silk, especially Muga silk known for its golden luster.", image: "https://placehold.co/400x300/FFD700/FFFFFF?text=Assam+Silk" },
+                    { name: "Bamboo & Cane Crafts", description: "Eco-friendly household and decorative items made from bamboo and cane.", image: "https://placehold.co/400x300/228B22/FFFFFF?text=Bamboo+Cane" }
+                ]
+            },
+            "Arunachal Pradesh": {
+                name: "Arunachal Pradesh",
+                description: "Land of the dawn-lit mountains, famous for its intricate weaving and tribal handicrafts.",
+                crafts: [
+                    { name: "Apatani Weaving", description: "Distinctive weaving patterns by the Apatani tribe using bold designs and geometric motifs.", image: "https://placehold.co/400x300/8B0000/FFFFFF?text=Apatani+Weaving" },
+                    { name: "Wood Carving", description: "Traditional carvings on masks, figurines, and household objects reflecting tribal culture.", image: "https://placehold.co/400x300/654321/FFFFFF?text=Wood+Carving" }
+                ]
+            },
+            "Meghalaya": {
+                name: "Meghalaya",
+                description: "A lush green land of hills and waterfalls, known for bamboo, cane, and weaving crafts.",
+                crafts: [
+                    { name: "Bamboo & Cane Products", description: "Handwoven baskets, mats, furniture, and household goods from bamboo and cane.", image: "https://placehold.co/400x300/556B2F/FFFFFF?text=Bamboo+Crafts" },
+                    { name: "Eri Silk Weaving", description: "Weaving of warm, eco-friendly Eri silk, also called 'peace silk'.", image: "https://placehold.co/400x300/FF8C00/FFFFFF?text=Eri+Silk" }
+                ]
+            },
+            "Nagaland": {
+                name: "Nagaland",
+                description: "A land of vibrant tribes, Nagaland is rich in weaving, wood carving, and jewelry making.",
+                crafts: [
+                    { name: "Naga Shawls", description: "Colorful handwoven shawls that represent the identity of different Naga tribes.", image: "https://placehold.co/400x300/800000/FFFFFF?text=Naga+Shawl" },
+                    { name: "Bead Jewellery", description: "Intricate beadwork used in traditional necklaces and ornaments.", image: "https://placehold.co/400x300/9932CC/FFFFFF?text=Bead+Jewelry" }
+                ]
+            },
+            "Manipur": {
+                name: "Manipur",
+                description: "Known as the 'Jewel of India', Manipur is famous for its handlooms, bamboo crafts, and dance costumes.",
+                crafts: [
+                    { name: "Manipuri Handloom (Phanek, Innaphi)", description: "Traditional textiles woven with fine designs and bright colors.", image: "https://placehold.co/400x300/DA70D6/FFFFFF?text=Manipuri+Textile" },
+                    { name: "Kauna Craft", description: "Unique mats and baskets made from Kauna grass (water reed).", image: "https://placehold.co/400x300/2E8B57/FFFFFF?text=Kauna+Craft" }
+                ]
+            },
+            "Mizoram": {
+                name: "Mizoram",
+                description: "A hilly state known for its vibrant tribal culture, colorful handlooms, and bamboo-based handicrafts.",
+                crafts: [
+                    { name: "Mizo Puan (Traditional Shawl)", description: "Handwoven shawls with intricate patterns and vibrant colors, worn during festivals and ceremonies.", image: "https://placehold.co/400x300/DC143C/FFFFFF?text=Mizo+Puan" },
+                    { name: "Bamboo Handicrafts", description: "Household and decorative products made of bamboo, reflecting eco-friendly craftsmanship.", image: "https://placehold.co/400x300/006400/FFFFFF?text=Bamboo+Crafts" }
+                ]
+            },
+            "Tripura": {
+                name: "Tripura",
+                description: "Known for its lush greenery and tribal culture, Tripura excels in bamboo, cane, and handloom weaving.",
+                crafts: [
+                    { name: "Handloom Weaving", description: "Traditional tribal handlooms producing elegant and colorful Risa and Rignai cloth.", image: "https://placehold.co/400x300/800080/FFFFFF?text=Tripura+Weaving" },
+                    { name: "Bamboo & Cane Crafts", description: "Decorative furniture, mats, and baskets made from bamboo and cane.", image: "https://placehold.co/400x300/2F4F4F/FFFFFF?text=Tripura+Bamboo" }
+                ]
+            },
+            "Sikkim": {
+                name: "Sikkim",
+                description: "Nestled in the Himalayas, Sikkim is known for its Buddhist-inspired crafts and fine handlooms.",
+                crafts: [
+                    { name: "Thangka Painting", description: "Buddhist scroll paintings depicting deities, mandalas, and spiritual themes.", image: "https://placehold.co/400x300/4682B4/FFFFFF?text=Thangka" },
+                    { name: "Carpet Weaving", description: "Traditional handwoven woolen carpets with dragon, floral, and geometric motifs.", image: "https://placehold.co/400x300/B22222/FFFFFF?text=Sikkim+Carpet" }
+                ]
+            },
+            "Jharkhand": {
+                name: "Jharkhand",
+                description: "A state rich in tribal culture, Jharkhand is famous for its stone carving, bamboo crafts, and Sohrai paintings.",
+                crafts: [
+                    { name: "Sohrai & Kohbar Painting", description: "Traditional tribal wall paintings using natural colors, depicting animals, plants, and rituals.", image: "https://placehold.co/400x300/CD853F/FFFFFF?text=Sohrai+Art" },
+                    { name: "Dokra Craft", description: "Metal craft made using the lost-wax casting technique by tribal artisans.", image: "https://placehold.co/400x300/8B4513/FFFFFF?text=Dokra" }
+                ]
+            },
+            "Chhattisgarh": {
+                name: "Chhattisgarh",
+                description: "Known as the 'Rice Bowl of India', Chhattisgarh is culturally rich with bell-metal craft and tribal art.",
+                crafts: [
+                    { name: "Bell Metal (Dhokra)", description: "Intricate metal figurines and jewelry crafted using the lost-wax process.", image: "https://placehold.co/400x300/DAA520/FFFFFF?text=Bell+Metal" },
+                    { name: "Bamboo Work", description: "Traditional bamboo crafts including baskets, mats, and household items.", image: "https://placehold.co/400x300/228B22/FFFFFF?text=Bamboo+Work" }
+                ]
+            },
+            "Madhya Pradesh": {
+                name: "Madhya Pradesh",
+                description: "Known as the 'Heart of India', Madhya Pradesh is famous for its tribal art, textiles, and stone crafts.",
+                crafts: [
+                    { name: "Gond Painting", description: "Tribal folk art using dots and lines to depict animals, nature, and deities.", image: "https://placehold.co/400x300/006400/FFFFFF?text=Gond+Painting" },
+                    { name: "Maheshwari & Chanderi Sarees", description: "Elegant handwoven sarees with fine texture and zari borders.", image: "https://placehold.co/400x300/DA70D6/FFFFFF?text=Chanderi+Saree" }
+                ]
+            },
+            "Maharashtra": {
+                name: "Maharashtra",
+                description: "A state with diverse culture, known for its Paithani sarees, Warli art, and leather crafts.",
+                crafts: [
+                    { name: "Warli Painting", description: "Tribal paintings using simple white motifs on mud walls, depicting daily life and rituals.", image: "https://placehold.co/400x300/8B0000/FFFFFF?text=Warli+Art" },
+                    { name: "Paithani Saree", description: "Luxurious silk sarees with intricate zari work, originating from Paithan.", image: "https://placehold.co/400x300/FFD700/FFFFFF?text=Paithani" }
+                ]
+            },
+            "Goa": {
+                name: "Goa",
+                description: "A coastal paradise known for its Portuguese influence, Goa is rich in bamboo crafts, pottery, and crochet work.",
+                crafts: [
+                    { name: "Bamboo Craft", description: "Handmade baskets, mats, and decorative bamboo products.", image: "https://placehold.co/400x300/2E8B57/FFFFFF?text=Bamboo+Craft" },
+                    { name: "Crochet & Embroidery", description: "Delicate lace, crochet, and embroidery reflecting Portuguese heritage.", image: "https://placehold.co/400x300/FF69B4/FFFFFF?text=Crochet" }
+                ]
+            },
+            "Karnataka": {
+                name: "Karnataka",
+                description: "Land of heritage temples and silk, Karnataka is famed for Mysore silk, sandalwood carving, and Bidriware.",
+                crafts: [
+                    { name: "Mysore Silk Sarees", description: "Rich silk sarees with pure zari work, known for their durability and elegance.", image: "https://placehold.co/400x300/BA55D3/FFFFFF?text=Mysore+Silk" },
+                    { name: "Bidriware", description: "Unique metal craft with silver inlay work on blackened alloy surfaces.", image: "https://placehold.co/400x300/000000/FFFFFF?text=Bidriware" }
+                ]
+            },
+            "Andhra Pradesh": {
+                name: "Andhra Pradesh",
+                description: "A coastal state with a deep artistic tradition, famous for its Kalamkari art and Kondapalli toys.",
+                crafts: [
+                    { name: "Kalamkari Painting", description: "Hand-painted or block-printed textile art, depicting mythological themes.", image: "https://placehold.co/400x300/FF4500/FFFFFF?text=Kalamkari" },
+                    { name: "Kondapalli Toys", description: "Wooden toys made from softwood, painted with natural colors.", image: "https://placehold.co/400x300/CD853F/FFFFFF?text=Kondapalli" }
+                ]
+            },
+            "Telangana": {
+                name: "Telangana",
+                description: "A young state with a rich cultural past, Telangana is famous for its handlooms and metal crafts.",
+                crafts: [
+                    { name: "Pochampally Ikat", description: "Handwoven ikat sarees and fabrics known for their geometric designs.", image: "https://placehold.co/400x300/FF6347/FFFFFF?text=Pochampally" },
+                    { name: "Nirmal Paintings", description: "Traditional paintings featuring mythological and floral themes.", image: "https://placehold.co/400x300/FFD700/FFFFFF?text=Nirmal+Art" }
+                ]
+            },
+            "Himachal Pradesh": {
+                name: "Himachal Pradesh",
+                description: "A land of snowy mountains, Himachal is known for woolen crafts, woodwork, and metalwork.",
+                crafts: [
+                    { name: "Kullu Shawls", description: "Warm handwoven woolen shawls with bright geometric patterns.", image: "https://placehold.co/400x300/708090/FFFFFF?text=Kullu+Shawl" },
+                    { name: "Chamba Rumal", description: "Handkerchief-like embroidered cloth with miniature-style motifs.", image: "https://placehold.co/400x300/FF69B4/FFFFFF?text=Chamba+Rumal" }
+                ]
+            },
+            "Punjab": {
+                name: "Punjab",
+                description: "The land of five rivers, Punjab is rich in phulkari embroidery and woodwork.",
+                crafts: [
+                    { name: "Phulkari Embroidery", description: "Traditional embroidery with floral patterns, usually on dupattas.", image: "https://placehold.co/400x300/FF4500/FFFFFF?text=Phulkari" },
+                    { name: "Punjabi Jutti", description: "Handcrafted leather footwear, often embroidered with gold and silver threads.", image: "https://placehold.co/400x300/8B4513/FFFFFF?text=Jutti" }
+                ]
+            },
+            "Haryana": {
+                name: "Haryana",
+                description: "Known for its rural culture, Haryana is famous for weaving, pottery, and embroidery.",
+                crafts: [
+                    { name: "Phulkari (shared with Punjab)", description: "Bright floral embroidery often done by village women.", image: "https://placehold.co/400x300/DC143C/FFFFFF?text=Phulkari" },
+                    { name: "Clay Pottery", description: "Decorative and utilitarian clay pottery with folk motifs.", image: "https://placehold.co/400x300/8B0000/FFFFFF?text=Pottery" }
+                ]
+            },
+            "Uttarakhand": {
+                name: "Uttarakhand",
+                description: "A Himalayan state rich in wood carving, woolen crafts, and paintings.",
+                crafts: [
+                    { name: "Aipan Art", description: "Traditional ritualistic floor art made with red and white natural colors.", image: "https://placehold.co/400x300/B22222/FFFFFF?text=Aipan" },
+                    { name: "Ringaal Craft", description: "Bamboo weaving craft by hill tribes.", image: "https://placehold.co/400x300/006400/FFFFFF?text=Ringaal" }
+                ]
+            },
+            "Jammu and Kashmir": {
+                name: "Jammu and Kashmir",
+                description: "A paradise on earth, J&K is renowned for its Pashmina, carpets, and papier-mâché.",
+                crafts: [
+                    { name: "Pashmina Shawls", description: "Luxurious handwoven shawls made from fine cashmere wool.", image: "https://placehold.co/400x300/DAA520/FFFFFF?text=Pashmina" },
+                    { name: "Papier-mâché", description: "Colorful decorative objects made from paper pulp and painted with intricate designs.", image: "https://placehold.co/400x300/1E90FF/FFFFFF?text=Papier+Mache" }
+                ]
+            },
+            "Ladakh": {
+                name: "Ladakh",
+                description: "A cold desert region known for its wool products, thangka paintings, and metal crafts.",
+                crafts: [
+                    { name: "Thangka Painting", description: "Buddhist scroll paintings depicting deities and mandalas.", image: "https://placehold.co/400x300/483D8B/FFFFFF?text=Thangka" },
+                    { name: "Wool Products", description: "Handwoven woolen garments and carpets made from yak and sheep wool.", image: "https://placehold.co/400x300/696969/FFFFFF?text=Wool" }
+                ]
+            },
+            "Delhi": {
+                name: "Delhi",
+                description: "The capital city blends Mughal heritage with modern art, known for zari, meenakari, and ivory carving.",
+                crafts: [
+                    { name: "Zari Embroidery", description: "Gold and silver thread embroidery used in garments and decor.", image: "https://placehold.co/400x300/FFD700/FFFFFF?text=Zari" },
+                    { name: "Meenakari", description: "Colorful enamel work on metal, often used in jewelry.", image: "https://placehold.co/400x300/FF1493/FFFFFF?text=Meenakari" }
+                ]
+            },
+            "Union Territories": {
+                name: "Union Territories",
+                description: "The diverse UTs of India each have their own unique crafts and traditions.",
+                crafts: [
+                    { name: "Puducherry – French Lace Work", description: "Delicate lace and embroidery influenced by French culture.", image: "https://placehold.co/400x300/FFB6C1/FFFFFF?text=Pondy+Lace" },
+                    { name: "Lakshadweep – Coir Craft", description: "Eco-friendly mats and baskets made from coconut coir.", image: "https://placehold.co/400x300/20B2AA/FFFFFF?text=Coir" },
+                    { name: "Andaman & Nicobar – Shell Craft", description: "Decorative items made from sea shells.", image: "https://placehold.co/400x300/87CEEB/FFFFFF?text=Shell+Craft" },
+                    { name: "Chandigarh – Phulkari", description: "Continues Punjab’s tradition of phulkari embroidery.", image: "https://placehold.co/400x300/FF6347/FFFFFF?text=Phulkari" },
+                    { name: "Dadra & Nagar Haveli and Daman & Diu – Warli Art", description: "Tribal paintings similar to Maharashtra’s Warli style.", image: "https://placehold.co/400x300/8B0000/FFFFFF?text=Warli" }
+                ]
+            }
+                    
+
+
+
+        };
+
+        const mapContainer = d3.select("#map");
+        const sidebarContent = d3.select("#sidebar-content");
+
+        const width = mapContainer.node().getBoundingClientRect().width;
+        const height = mapContainer.node().getBoundingClientRect().height;
+
+        const svg = mapContainer.append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
+
+        const projection = d3.geoMercator()
+            .scale(width * 1.2)
+            .center([83, 23])
+            .translate([width / 2, height / 2]);
+        
+        const path = d3.geoPath().projection(projection);
+
+        const indiaGeoJSONUrl = "https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson";
+
+        d3.json(indiaGeoJSONUrl).then(function(geojson) {
+            svg.selectAll("path")
+                .data(geojson.features)
+                .enter().append("path")
+                .attr("d", path)
+                .attr("class", "state")
+                .attr("data-name", d => d.properties.NAME_1)
+                .on("mouseover", handleMouseOver)
+                .on("mouseout", handleMouseOut)
+                .on("click", handleClick);
+        });
+
+        let activeState = null;
+
+        function handleMouseOver(event, d) {
+            if (activeState !== this) {
+                d3.select(this).style("fill", "#D9C6B4");
+            }
+        }
+
+        function handleMouseOut(event, d) {
+            if (activeState !== this) {
+                d3.select(this).style("fill", "#EFEAE4");
+            }
+        }
+
+        function handleClick(event, d) {
+            const stateElement = d3.select(this);
+            const stateName = d.properties.NAME_1;
+
+            if (activeState) {
+                d3.select(activeState).classed("active", false).style("fill", "#EFEAE4");
+            }
+
+            activeState = this;
+            stateElement.classed("active", true).style("fill", "#C8A88A");
+
+            updateSidebar(stateName);
+        }
+
+        function updateSidebar(stateName) {
+            const data = craftData[stateName];
+            sidebarContent.html(""); 
+
+            if (data) {
+                let content = `
+                    <h2 class="sidebar-title text-2xl font-bold text-gray-800 mb-2">${data.name}</h2>
+                    <p class="text-gray-600 mb-6">${data.description}</p>
+                    <div class="space-y-6">
+                `;
+                
+                data.crafts.forEach((craft, index) => {
+                    const elementId = `desc-${stateName.replace(/\s+/g, '-')}-${index}`;
+                    content += `
+                        <div class="rounded-lg overflow-hidden shadow-md bg-gray-50">
+                            <img src="${craft.image}" alt="${craft.name}" class="w-full h-40 object-cover">
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-semibold text-lg text-gray-900">${craft.name}</h3>
+                                    <button onclick="generateDescription('${craft.name}', '${data.name}', '${elementId}')" class="text-xl px-2 py-1 rounded-full hover:bg-amber-100 transition-colors">✨</button>
+                                </div>
+                                <p class="text-gray-600 text-sm mt-1">${craft.description}</p>
+                                <div id="${elementId}"></div>
+                                <button onclick="generateStory('${data.name}', '${craft.name}')" class="w-full mt-4 text-sm bg-white border border-amber-900 text-amber-900 font-semibold py-2 px-3 rounded-lg hover:bg-amber-50 transition-colors duration-300">
+                                    Tell me its story
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                content += `
+                    </div>
+                    <button class="w-full mt-8 bg-amber-900 text-white font-bold py-3 px-4 rounded-lg hover:bg-amber-800 transition-colors duration-300">
+                        Buy from this Region
+                    </button>
+                `;
+                sidebarContent.html(content);
+            } else {
+                sidebarContent.html(`
+                    <h2 class="sidebar-title text-2xl font-bold text-gray-800 mb-2">${stateName}</h2>
+                    <p class="text-gray-600">No craft information available for this region yet. Stay tuned as we expand our artisan network!</p>
+                `);
+            }
+        }
+        
+        window.addEventListener('resize', () => {
+            const newWidth = mapContainer.node().getBoundingClientRect().width;
+            const newHeight = mapContainer.node().getBoundingClientRect().height;
+            svg.attr("viewBox", `0 0 ${newWidth} ${newHeight}`);
+            projection.scale(newWidth * 1.2).translate([newWidth / 2, newHeight / 2]);
+            svg.selectAll("path").attr("d", path);
+        });
+
+    </script>
+
+</body>
+</html>

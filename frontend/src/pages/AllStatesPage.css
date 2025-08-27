@@ -1,0 +1,100 @@
+.all-states-page {
+  padding: 2rem 4rem;
+  background-color: #FDFBF8;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.page-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.page-header p {
+  font-size: 1.1rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.search-container {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 500px;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid #ddd;
+  border-radius: 9999px;
+  font-size: 1rem;
+  transition: box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(217, 106, 59, 0.3);
+  border-color: #d96a3b;
+}
+
+.states-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.state-card {
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.state-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.state-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.state-info {
+  padding: 1rem;
+}
+
+.state-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #04f03b;
+  margin: 0 0 0.5rem 0;
+}
+
+.craft-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.craft-tag {
+  background-color: #f0ebe5;
+  color: #a5805e;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+.craft-tag:hover {
+  background-color: #d96a3b;
+  color: #fff;
+}

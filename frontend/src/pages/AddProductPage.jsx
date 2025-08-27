@@ -56,7 +56,7 @@ const AddProductPage = () => {
       console.log("Current User Email:", currentUser.email);
 
       setMessage('Getting authentication token...');
-      const idToken = await currentUser.getIdToken(true); // Force refresh
+      const idToken = await currentUser.getIdToken(true); 
 
       console.log("Successfully retrieved ID Token. Length:", idToken.length);
 

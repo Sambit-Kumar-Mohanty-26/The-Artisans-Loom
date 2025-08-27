@@ -3,7 +3,7 @@ import './Hero.css';
 import artisanHero from '../assets/images/artisan-hero.jpg';
 import Button from '../components/Button';
 
-const Hero = () => {
+const Hero = ({ onNavigate }) => {
   return (
     <section className="hero-section">
       <div className="hero-content">
@@ -21,8 +21,12 @@ const Hero = () => {
           <div className="feature-item">♡ Multilingual support</div>
         </div>
         <div className="hero-buttons">
-          <Button text="Discover Authentic Crafts" type="primary" />
-          <Button text="Join as Artisan" type="dark" />
+          <Button 
+            text="Discover Authentic Crafts" 
+            type="primary" 
+            onClick={() => onNavigate('shop')} 
+          />
+          <Button text="Join as Artisan" type="dark" onClick={() => onNavigate('auth')} />
         </div>
         <div className="stats">
           <div className="stat-item">

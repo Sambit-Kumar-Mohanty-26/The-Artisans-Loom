@@ -1,0 +1,70 @@
+.all-artisans-page {
+  padding: 2rem 4rem;
+  background-color: #FDFBF8;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.page-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.page-header p {
+  font-size: 1.1rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.artisans-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.artisan-grid-card {
+    background-color: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.artisan-grid-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.artisan-grid-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.artisan-grid-info {
+    padding: 1rem;
+}
+
+.artisan-grid-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.artisan-grid-specialty {
+    font-size: 0.9rem;
+    color: #a5805e;
+    margin-top: 0.25rem;
+}
+.artisan-grid-location {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.5rem;
+}

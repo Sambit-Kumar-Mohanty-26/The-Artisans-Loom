@@ -2,7 +2,7 @@ import React from 'react';
 import './ArtisanCard.css';
 import Button from './Button'; 
 
-const ArtisanCard = ({ artisan }) => {
+const ArtisanCard = ({ artisan, onNavigate }) => {
   return (
     <div className="artisan-card">
       <div className="artisan-card-header">
@@ -21,9 +21,18 @@ const ArtisanCard = ({ artisan }) => {
         <span className="artisan-rating">⭐ {artisan.rating}</span>
         <span className="artisan-products">👥 {artisan.products} products</span>
       </div>
-      <div className="artisan-card-actions">
-        <Button text="View Profile" type="primary" />
-        <Button text="Shop Now" type="secondary" />
+       <div className="artisan-card-actions">
+        
+        <Button 
+            text="View Profile" 
+            type="primary" 
+            onClick={() => onNavigate(`artisan/${artisan.id}`)} 
+        />
+        <Button 
+            text="Shop Now" 
+            type="secondary" 
+            onClick={() => onNavigate(`shop?artisan=${artisan.id}`)} 
+        />
       </div>
     </div>
   );

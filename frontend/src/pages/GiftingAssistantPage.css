@@ -1,0 +1,118 @@
+.gifting-assistant-page {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #333;
+}
+
+.page-header p {
+  font-size: 1.1rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.assistant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.submit-button {
+  background-color: #d96a3b;
+  color: #fff;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+  background-color: #c85a2a;
+}
+
+.submit-button:disabled {
+  background-color: #e6e0da;
+  cursor: not-allowed;
+}
+
+.suggestions-container {
+  margin-top: 3rem;
+  border-top: 1px solid #f0ebe5;
+  padding-top: 2rem;
+}
+
+.suggestions-container h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.suggestions-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.suggestion-card {
+  background-color: #FDFBF8;
+  border: 1px solid #f0ebe5;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.suggestion-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.suggestion-card .suggestion-region {
+  font-style: italic;
+  color: #a5805e;
+  margin-bottom: 1rem;
+}
+
+.suggestion-card .suggestion-reason {
+  color: #555;
+  line-height: 1.6;
+}
+@media (min-width: 600px) {
+  .suggestions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
