@@ -24,6 +24,15 @@
         { "fieldPath": "region", "order": "ASCENDING" },
         { "fieldPath": "price", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "artisanId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
-  ]
+  ],
+  "fieldOverrides": []
 }

@@ -111,7 +111,7 @@ exports.createProduct = onCall(async (request) => {
   const userId = request.auth.uid;
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
 
-  if (!userDoc.exists() || userDoc.data().role !== "artisan") {
+  if (!userDoc.exists || userDoc.data().role !== "artisan") {
     throw new HttpsError("permission-denied", "You must be an artisan to create a product.");
   }
 
@@ -171,7 +171,7 @@ exports.getDashboardSummary = onCall(async (request) => {
   const userId = request.auth.uid;
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
 
-  if (!userDoc.exists() || userDoc.data().role !== "artisan") {
+  if (!userDoc.exists || userDoc.data().role !== "artisan") {
     throw new HttpsError("permission-denied", "You do not have permission to view this dashboard.");
   }
 
