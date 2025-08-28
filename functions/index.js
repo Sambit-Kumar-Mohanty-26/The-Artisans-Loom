@@ -53,12 +53,14 @@ exports.getCraftMitraResponse = onCall(async (request) => {
   }
 
   const audioBase64 = request.data.audioData;
+  const history = request.data.history || []; // Get conversation history from request
+
   if (!audioBase64) {
     throw new HttpsError("invalid-argument", "Missing audio data.");
   }
 
   // 1. Transcribe Audio to Text
-  let userTranscript = "";
+let userTranscript = "";
   try {
     const transcriptionRequest = {
       audio: { content: audioBase64 },
@@ -66,7 +68,24 @@ exports.getCraftMitraResponse = onCall(async (request) => {
     };
     const [resp] = await speechClient.recognize(transcriptionRequest);
     userTranscript = resp.results.map((r) => r.alternatives[0].transcript).join("\n");
-    if (!userTranscript) userTranscript = "I didn't hear anything.";
+    
+    // ADDED: Check for empty transcript after transcription
+    if (!userTranscript || userTranscript.trim() === "") {
+      userTranscript = "I didn't hear anything.";
+      logger.info("Transcription was empty, skipping AI call.");
+      // Jump directly to synthesizing a response without calling the AI
+      const speechRequest = {
+        input: { text: "I didn't quite catch that, could you please say it again?" },
+        voice: { languageCode: "en-US", name: "en-US-Wavenet-D" },
+        audioConfig: { audioEncoding: "MP3" },
+      };
+      const [ttsResponse] = await textToSpeechClient.synthesizeSpeech(speechRequest);
+      return {
+        transcript: userTranscript,
+        responseText: "I didn't quite catch that, could you please say it again?",
+        responseAudio: ttsResponse.audioContent.toString("base64"),
+      };
+    }
   } catch (error) {
     logger.error("ERROR during transcription:", error);
     throw new HttpsError("internal", "Error during transcription.");
@@ -75,13 +94,18 @@ exports.getCraftMitraResponse = onCall(async (request) => {
   // 2. Get AI Response from Text
   let aiResponseText = "Sorry, I couldn't think of a response.";
   try {
-    const chat = generativeModel.startChat({});
+    const chat = generativeModel.startChat({ history });
     const result = await chat.sendMessage(userTranscript);
     if (result.response.candidates[0].content.parts[0].text) {
         aiResponseText = result.response.candidates[0].content.parts[0].text;
     }
   } catch (error) {
+    // MODIFIED: Improved logging to get more details on the crash
     logger.error("ERROR during Vertex AI call:", error);
+    // Log the specific response from the AI if available, which might contain the reason (e.g., safety filters)
+    if (error.response) {
+      logger.error("Vertex AI response details:", JSON.stringify(error.response));
+    }
     throw new HttpsError("internal", "Error getting response from AI model.");
   }
 
@@ -95,6 +119,7 @@ exports.getCraftMitraResponse = onCall(async (request) => {
     const [resp] = await textToSpeechClient.synthesizeSpeech(speechRequest);
     return {
       transcript: userTranscript,
+      responseText: aiResponseText,
       responseAudio: resp.audioContent.toString("base64"),
     };
   } catch (error) {
@@ -102,6 +127,37 @@ exports.getCraftMitraResponse = onCall(async (request) => {
     throw new HttpsError("internal", "Error during speech synthesis.");
   }
 });
+
+// ------------------ Save Conversation (Gen 2) ------------------
+exports.saveConversation = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to save a conversation.");
+  }
+  const userId = request.auth.uid;
+  const { history } = request.data;
+  
+  if (!history || !Array.isArray(history) || history.length === 0) {
+    logger.info("Skipping save for empty history.");
+    return { success: true, message: "No history to save." };
+  }
+
+  try {
+    const conversationCollection = admin.firestore()
+      .collection('users').doc(userId)
+      .collection('conversations');
+      
+    await conversationCollection.add({
+      history,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    
+    return { success: true };
+  } catch (error) {
+    logger.error("Error saving conversation:", error);
+    throw new HttpsError("internal", "Failed to save conversation.");
+  }
+});
+
 
 // ------------------ Product Creation (Gen 2) ------------------
 exports.createProduct = onCall(async (request) => {
@@ -240,5 +296,111 @@ exports.submitReview = onCall(async (request) => {
   } catch (error) {
     logger.error("Error submitting review:", error);
     throw new HttpsError("internal", "Failed to submit review.");
+  }
+});
+
+exports.generateMarketingCopy = onCall(async (request) => {
+  // 1. Authenticate and authorize the user as an artisan
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
+  }
+  const userId = request.auth.uid;
+  const userDoc = await admin.firestore().collection("users").doc(userId).get();
+  if (!userDoc.exists() || userDoc.data().role !== "artisan") {
+    throw new HttpsError("permission-denied", "Only artisans can generate marketing copy.");
+  }
+
+  const { productId } = request.data;
+  if (!productId) {
+    throw new HttpsError("invalid-argument", "Missing productId.");
+  }
+
+  try {
+    // 2. Fetch the product and artisan data from Firestore
+    const productRef = admin.firestore().collection("products").doc(productId);
+    const productDoc = await productRef.get();
+
+    if (!productDoc.exists) {
+      throw new HttpsError("not-found", "Product not found.");
+    }
+    // Security check: ensure the product belongs to the logged-in artisan
+    if (productDoc.data().artisanId !== userId) {
+        throw new HttpsError("permission-denied", "You can only generate copy for your own products.");
+    }
+
+    const product = productDoc.data();
+    const artisan = userDoc.data();
+
+    // 3. Create a detailed prompt for the Gemini AI
+    const prompt = `
+      You are a marketing expert for an e-commerce platform selling authentic Indian handicrafts.
+      Generate marketing copy for the following product. The tone should be evocative, respectful, and focused on storytelling and craftsmanship.
+
+      Product Details:
+      - Name: ${product.name}
+      - Description: ${product.description}
+      - Category: ${product.category}
+      - Materials: ${product.materials.join(", ")}
+      - Region: ${product.region}
+      
+      Artisan Details:
+      - Name: ${artisan.displayName}
+      - Bio: (You can add an artisan bio field to your user data for a richer prompt)
+
+      Generate the following content, formatted as a single JSON object with three keys: "productDescription", "socialMediaPost", and "emailSubject":
+      1. "productDescription": A compelling 2-paragraph product description for an e-commerce website.
+      2. "socialMediaPost": A short, engaging post for Instagram or Facebook, including 3-5 relevant hashtags.
+      3. "emailSubject": Three creative and enticing subject line options for an email marketing campaign.
+    `;
+
+    // 4. Call the AI and parse the response
+    const chat = generativeModel.startChat({});
+    const result = await chat.sendMessage(prompt);
+    
+    let responseText = "{}"; // Default to an empty object string
+    if (result.response.candidates[0].content.parts[0].text) {
+      responseText = result.response.candidates[0].content.parts[0].text;
+    }
+    
+    const jsonResponse = JSON.parse(responseText.replace(/```json/g, '').replace(/```/g, '').trim());
+    return jsonResponse;
+
+  } catch (error) {
+    logger.error("Error generating marketing copy:", error);
+    throw new HttpsError("internal", "Failed to generate marketing copy.");
+  }
+});
+
+exports.getArtisanProducts = onCall(async (request) => {
+  // 1. Authenticate and authorize the user as an artisan
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to view your products.");
+  }
+  const userId = request.auth.uid;
+  const userDoc = await admin.firestore().collection("users").doc(userId).get();
+  if (!userDoc.exists() || userDoc.data().role !== "artisan") {
+    throw new HttpsError("permission-denied", "Only artisans can view their products.");
+  }
+
+  try {
+    // 2. Query the products collection for this artisan's products
+    const productsRef = admin.firestore().collection("products");
+    const q = productsRef.where("artisanId", "==", userId).orderBy("createdAt", "desc");
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+      return { products: [] }; // Return an empty array if no products are found
+    }
+
+    const products = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return { products: products };
+
+  } catch (error) {
+    logger.error("Error fetching artisan products:", error);
+    throw new HttpsError("internal", "Failed to fetch products.");
   }
 });

@@ -1,19 +1,38 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 9, 16);
+    // Products are public for anyone to read.
+    // All changes (create, update, delete) must be done through your backend Cloud Functions.
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    // Orders are private.
+    // A user can only read their own orders, assuming an order document has a 'customerId' field.
+    match /orders/{orderId} {
+      allow read: if request.auth.uid == resource.data.customerId;
+      allow create, update, delete: if false; // All order creation must be done via backend.
+    }
+
+    match /users/{userId} {
+      // A user can read and write their own user document.
+      allow read, write: if request.auth.uid == userId;
+
+      // Anyone can read the reviews for an artisan.
+      // Reviews can only be created via your 'submitReview' Cloud Function.
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create, update, delete: if false;
+      }
+
+      // A user can create and read their own conversation history.
+      // We prevent them from editing or deleting past conversations from the client.
+      match /conversations/{conversationId} {
+        allow create, read: if request.auth.uid == userId;
+        allow update, delete: if false;
+      }
     }
   }
 }
