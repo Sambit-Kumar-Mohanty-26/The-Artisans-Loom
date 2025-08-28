@@ -3,12 +3,57 @@
   background-color: #f9f9f9;
 }
 
+/* --- NEW: Header styles for title and buttons --- */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
 .dashboard-page h1 {
   font-size: 2rem;
   font-weight: 600;
-  margin-bottom: 2rem;
   color: #333;
+  margin: 0; /* Removed default margin */
 }
+
+.dashboard-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* --- NEW: Button styles --- */
+.dashboard-btn, .dashboard-btn-secondary {
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.dashboard-btn {
+  background-color: #3a3a58;
+  color: #fff;
+}
+
+.dashboard-btn:hover {
+  background-color: #2a2a48;
+}
+
+.dashboard-btn-secondary {
+  background-color: #fff;
+  color: #555;
+  border-color: #ddd;
+}
+
+.dashboard-btn-secondary:hover {
+  background-color: #f7f7f7;
+  border-color: #ccc;
+}
+
 
 .stats-grid {
   display: grid;
@@ -61,4 +106,12 @@
   .dashboard-main-content {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
 }

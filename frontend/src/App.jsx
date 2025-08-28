@@ -107,7 +107,7 @@ function App() {
       case 'shop':
         return <ShopPage />;
       case 'dashboard':
-        return userRole === 'artisan' ? <DashboardPage data={dashboardData} /> : renderHomepage();
+        return userRole === 'artisan' ? <DashboardPage data={dashboardData}  onNavigate={setCurrentPage}/> : renderHomepage();
       case 'all-states':
         return <AllStatesPage onNavigate={setCurrentPage} />;
       case 'all-artisans':

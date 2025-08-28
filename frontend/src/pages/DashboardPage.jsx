@@ -2,19 +2,30 @@ import React from 'react';
 import StatCard from '../components/StatCard';
 import './DashboardPage.css';
 
-const DashboardPage = ({ data }) => {
+// --- UPDATED: The component now receives the onNavigate function ---
+const DashboardPage = ({ data, onNavigate }) => {
   if (!data) {
     return <div>Loading Dashboard Data...</div>;
   }
 
-  
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
   }
 
   return (
     <div className="dashboard-page">
-      <h1>Dashboard</h1>
+      <div className="dashboard-header">
+        <h1>Dashboard</h1>
+        {/* --- NEW: A dedicated container for the action buttons --- */}
+        <div className="dashboard-actions">
+          <button onClick={() => onNavigate('addProduct')} className="dashboard-btn">
+            + Add New Product
+          </button>
+          <button onClick={() => onNavigate('home')} className="dashboard-btn-secondary">
+            Back to Home
+          </button>
+        </div>
+      </div>
       
       <div className="stats-grid">
         <StatCard title="Total Sales" value={formatCurrency(data.summaryStats.totalSales)} />
