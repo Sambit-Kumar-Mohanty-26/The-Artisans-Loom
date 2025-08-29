@@ -3,7 +3,6 @@
   background-color: #f9f9f9;
 }
 
-/* --- NEW: Header styles for title and buttons --- */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -15,7 +14,7 @@
   font-size: 2rem;
   font-weight: 600;
   color: #333;
-  margin: 0; /* Removed default margin */
+  margin: 0; 
 }
 
 .dashboard-actions {
@@ -23,7 +22,6 @@
   gap: 1rem;
 }
 
-/* --- NEW: Button styles --- */
 .dashboard-btn, .dashboard-btn-secondary {
   padding: 0.75rem 1.25rem;
   border-radius: 8px;
@@ -114,4 +112,78 @@
         align-items: flex-start;
         gap: 1rem;
     }
+}
+
+
+.artisan-products-section {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.artisan-products-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.products-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.product-card {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  grid-template-areas: 
+    "image info"
+    "image marketing";
+  gap: 1rem 1.5rem;
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  align-items: center;
+}
+
+.product-image {
+  grid-area: image;
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.product-info {
+  grid-area: info;
+}
+
+.product-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.product-info p {
+  margin: 0.25rem 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.product-marketing-tool {
+  grid-area: marketing;
+  grid-column: 1 / -1; 
+}
+
+
+@media (min-width: 768px) {
+  .product-card {
+    grid-template-columns: 120px 2fr 1.5fr;
+    grid-template-areas: "image info marketing";
+    align-items: flex-start;
+  }
+  .product-marketing-tool {
+    grid-area: marketing;
+    grid-column: auto; 
+  }
 }

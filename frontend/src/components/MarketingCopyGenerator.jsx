@@ -3,7 +3,6 @@ import { functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import './MarketingCopyGenerator.css';
 
-// Initialize the callable function
 const generateMarketingCopy = httpsCallable(functions, 'generateMarketingCopy');
 
 const MarketingCopyGenerator = ({ productId }) => {
@@ -20,7 +19,7 @@ const MarketingCopyGenerator = ({ productId }) => {
       setCopy(result.data);
     } catch (err) {
       console.error("Error generating marketing copy:", err);
-      setError(err.message);
+      setError(err.message || 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
     }
@@ -32,21 +31,28 @@ const MarketingCopyGenerator = ({ productId }) => {
         {isLoading ? 'Generating...' : '✨ Generate Marketing Copy'}
       </button>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && <p className="error-message">Failed to generate marketing copy.</p>}
 
       {copy && (
         <div className="copy-results">
           <div className="copy-section">
-            <h3>Product Description</h3>
-            <textarea readOnly value={copy.productDescription} />
+            <h3>Product Title</h3>
+            <textarea readOnly value={copy.title || ''} />
           </div>
+
+          <div className="copy-section">
+            <h3>Product Description</h3>
+            <textarea readOnly value={copy.productDescription || ''} />
+          </div>
+          
           <div className="copy-section">
             <h3>Social Media Post</h3>
-            <textarea readOnly value={copy.socialMediaPost} />
+            <textarea readOnly value={copy.socialMediaPost || ''} />
           </div>
+          
           <div className="copy-section">
             <h3>Email Subject Lines</h3>
-            <textarea readOnly value={copy.emailSubject.join('\n')} />
+            <textarea readOnly value={Array.isArray(copy.emailSubject) ? copy.emailSubject.join('\n') : ''} />
           </div>
         </div>
       )}
