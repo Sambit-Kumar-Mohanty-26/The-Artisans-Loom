@@ -17,6 +17,18 @@ const CraftMitraModal = ({ isOpen, onClose }) => {
   const [conversationHistory, setConversationHistory] = useState([]);
   const { currentUser } = useAuth();
 
+  // Define supported Indian languages and voices
+  const supportedLanguages = [
+    { code: 'en-IN', name: 'English (India)', voice: 'en-IN-Wavenet-C' },
+    { code: 'hi-IN', name: 'Hindi (India)', voice: 'hi-IN-Wavenet-B' },
+    { code: 'bn-IN', name: 'Bengali (India)', voice: 'bn-IN-Wavenet-B' },
+    { code: 'ta-IN', name: 'Tamil (India)', voice: 'ta-IN-Wavenet-D' },
+    { code: 'mr-IN', name: 'Marathi (India)', voice: 'mr-IN-Wavenet-B' },
+  ];
+
+  const [selectedLanguageCode, setSelectedLanguageCode] = useState(supportedLanguages[0].code);
+  const [selectedVoiceName, setSelectedVoiceName] = useState(supportedLanguages[0].voice);
+
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const chatDisplayRef = useRef(null);
@@ -31,8 +43,25 @@ const CraftMitraModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       setConversationHistory([]);
       setStatusText('Click the mic to start speaking...');
+      // Reset language and voice to default on modal open
+      setSelectedLanguageCode(supportedLanguages[0].code);
+      setSelectedVoiceName(supportedLanguages[0].voice);
     }
   }, [isOpen]);
+
+  // Helper to get voice for a selected language
+  const getVoiceForLanguage = (langCode) => {
+    const lang = supportedLanguages.find(l => l.code === langCode);
+    return lang ? lang.voice : supportedLanguages[0].voice;
+  };
+
+  const handleLanguageChange = (event) => {
+    const newLangCode = event.target.value;
+    setSelectedLanguageCode(newLangCode);
+    setSelectedVoiceName(getVoiceForLanguage(newLangCode)); // Automatically select default voice for the language
+    console.log("Selected Language Code:", newLangCode);
+    console.log("Selected Voice Name:", getVoiceForLanguage(newLangCode));
+  };
 
   const handleCloseAndSave = async () => {
     if (currentUser && conversationHistory.length > 0) {
@@ -75,8 +104,12 @@ const CraftMitraModal = ({ isOpen, onClose }) => {
               
               const result = await getCraftMitraResponse({ 
                 audioData: base64data,
-                history: conversationHistory 
+                history: conversationHistory,
+                languageCode: selectedLanguageCode,
+                voiceName: selectedVoiceName,
               });
+              console.log("Sending to backend - Language Code:", selectedLanguageCode);
+              console.log("Sending to backend - Voice Name:", selectedVoiceName);
 
               const { transcript, responseText, responseAudio } = result.data;
               
@@ -118,6 +151,15 @@ const CraftMitraModal = ({ isOpen, onClose }) => {
         <button className="close-button" onClick={handleCloseAndSave}>&times;</button>
         <h2>Craft Mitra</h2>
         
+        <div className="language-selector">
+          <label htmlFor="language-select">Language:</label>
+          <select id="language-select" value={selectedLanguageCode} onChange={handleLanguageChange}>
+            {supportedLanguages.map(lang => (
+              <option key={lang.code} value={lang.code}>{lang.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="chat-display" ref={chatDisplayRef}>
           {conversationHistory.length === 0 && (
              <p className="mitra-subtitle">Your voice-powered craft assistant</p>
@@ -129,7 +171,6 @@ const CraftMitraModal = ({ isOpen, onClose }) => {
             </div>
           ))}
         </div>
-        
         <div className="mic-and-status">
           <div 
             className={`mic-icon-container ${isListening ? 'listening' : ''}`} 

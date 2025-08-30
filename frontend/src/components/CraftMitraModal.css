@@ -163,3 +163,38 @@
     justify-content: center;
     gap: 1rem;
 }
+
+.language-selector {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.language-selector label {
+  font-size: 1rem;
+  color: #3a3a58;
+  font-weight: 500;
+}
+
+.language-selector select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fff;
+  font-size: 1rem;
+  color: #3a3a58;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.language-selector select:hover {
+  border-color: #8a4fff;
+}
+
+.language-selector select:focus {
+  border-color: #8a4fff;
+  box-shadow: 0 0 0 2px rgba(138, 79, 255, 0.2);
+}
