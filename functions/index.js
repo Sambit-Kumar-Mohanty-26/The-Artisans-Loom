@@ -75,16 +75,22 @@ exports.getCraftMitraResponse = onCall(async (request) => {
   let userTranscript = "";
 
   try {
+    const languageCode = request.data.languageCode || "en-IN";
+    const voiceName = request.data.voiceName || "en-IN-Wavenet-C";
+
     const transcriptionRequest = {
       audio: { content: audioBase64 },
       config: {
         encoding: "WEBM_OPUS",
         sampleRateHertz: 48000,
-        languageCode: "en-US",
+        languageCode: languageCode,
+        alternativeLanguageCodes: ["en-IN", "hi-IN", "bn-IN", "ta-IN", "mr-IN"],
+        enableAutomaticPunctuation: true,
       },
     };
 
     const [resp] = await speechClient.recognize(transcriptionRequest);
+    logger.info("Speech-to-Text API Response:", JSON.stringify(resp));
     userTranscript = resp.results
       .map((r) => r.alternatives[0].transcript)
       .join("\n");
@@ -95,7 +101,7 @@ exports.getCraftMitraResponse = onCall(async (request) => {
 
       const speechRequest = {
         input: { text: "I didn't quite catch that, could you please say it again?" },
-        voice: { languageCode: "en-US", name: "en-US-Wavenet-D" },
+        voice: { languageCode: languageCode, name: voiceName },
         audioConfig: { audioEncoding: "MP3" },
       };
 
@@ -132,9 +138,12 @@ exports.getCraftMitraResponse = onCall(async (request) => {
   }
 
   try {
+    const languageCode = request.data.languageCode || "en-IN";
+    const voiceName = request.data.voiceName || "en-IN-Wavenet-C";
+
     const speechRequest = {
       input: { text: aiResponseText },
-      voice: { languageCode: "en-US", name: "en-US-Wavenet-D" },
+      voice: { languageCode: languageCode, name: voiceName },
       audioConfig: { audioEncoding: "MP3" },
     };
 
