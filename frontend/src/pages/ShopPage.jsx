@@ -15,17 +15,18 @@ const ShopPage = () => {
     category: '',
     region: '',
     minPrice: '',
-    maxPrice: ''
+    maxPrice: '',
+    materials: '',
+    sortBy: 'createdAt_desc',
   });
 
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (currentFilters) => {
     setLoading(true);
     setError('');
     try {
       const activeFilters = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value !== '')
+        Object.entries(currentFilters).filter(([_, value]) => value !== '' && value !== null)
       );
-      
       
       if (activeFilters.minPrice) activeFilters.minPrice = Number(activeFilters.minPrice) * 100;
       if (activeFilters.maxPrice) activeFilters.maxPrice = Number(activeFilters.maxPrice) * 100;
@@ -34,13 +35,13 @@ const ShopPage = () => {
       setProducts(result.data.products);
     } catch (err) {
       setError('Could not fetch products. Please try again later.');
-      console.error(err);
+      console.error("Firebase function error:", err);
     }
     setLoading(false);
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts({ sortBy: 'createdAt_desc' });
   }, [fetchProducts]);
 
   const handleFilterChange = (e) => {
@@ -50,7 +51,7 @@ const ShopPage = () => {
 
   const handleApplyFilters = (e) => {
     e.preventDefault();
-    fetchProducts();
+    fetchProducts(filters);
   };
 
   return (
@@ -58,6 +59,14 @@ const ShopPage = () => {
       <aside className="filter-sidebar">
         <h3>Filters</h3>
         <form onSubmit={handleApplyFilters}>
+          <div className="filter-group">
+            <label>Sort By</label>
+            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
+              <option value="createdAt_desc">Newest Arrivals</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+            </select>
+          </div>
           <div className="filter-group">
             <label>Category</label>
             <select name="category" value={filters.category} onChange={handleFilterChange}>
@@ -68,7 +77,17 @@ const ShopPage = () => {
               <option value="carving">Carving</option>
             </select>
           </div>
-
+          <div className="filter-group">
+            <label>Material</label>
+            <select name="materials" value={filters.materials} onChange={handleFilterChange}>
+              <option value="">All</option>
+              <option value="silk">Silk</option>
+              <option value="cotton">Cotton</option>
+              <option value="terracotta">Terracotta</option>
+              <option value="wood">Wood</option>
+              <option value="brass">Brass</option>
+            </select>
+          </div>
           <div className="filter-group">
             <label>Region</label>
             <select name="region" value={filters.region} onChange={handleFilterChange}>
@@ -79,28 +98,14 @@ const ShopPage = () => {
               <option value="uttar_pradesh">Uttar Pradesh</option>
             </select>
           </div>
-
           <div className="filter-group">
             <label>Price Range (in ₹)</label>
             <div className="price-inputs">
-              <input 
-                type="number" 
-                name="minPrice" 
-                placeholder="Min" 
-                value={filters.minPrice}
-                onChange={handleFilterChange}
-              />
+              <input type="number" name="minPrice" placeholder="Min" value={filters.minPrice} onChange={handleFilterChange} />
               <span>-</span>
-              <input 
-                type="number" 
-                name="maxPrice" 
-                placeholder="Max" 
-                value={filters.maxPrice}
-                onChange={handleFilterChange}
-              />
+              <input type="number" name="maxPrice" placeholder="Max" value={filters.maxPrice} onChange={handleFilterChange} />
             </div>
           </div>
-          
           <button type="submit" className="apply-filters-btn">Apply Filters</button>
         </form>
       </aside>
@@ -111,13 +116,25 @@ const ShopPage = () => {
         {!loading && !error && (
           products.length > 0 ? (
             <div className="shop-product-grid">
-              {products.map(product => (
-                
-                <ProductCard key={product.id} product={{...product, price: product.price / 100}} />
-              ))}
+              {products.map(product => {
+                const productCardData = {
+                  id: product.id,
+                  name: product.name,
+                  artisan: product.artisanName,
+                  rating: product.rating,
+                  reviews: product.reviews,
+                  price: product.price / 100,
+                  originalPrice: product.originalPrice ? product.originalPrice / 100 : null,
+                  discount: product.discount,
+                  tag: product.tag,
+                  image: product.imageUrl, 
+                };
+
+                return <ProductCard key={product.id} product={productCardData} />;
+              })}
             </div>
           ) : (
-            <p>No products found matching your criteria.</p>
+            <p className="no-products-message">No products found matching your criteria.</p>
           )
         )}
       </section>

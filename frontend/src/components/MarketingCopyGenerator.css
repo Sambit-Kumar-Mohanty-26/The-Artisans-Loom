@@ -52,3 +52,68 @@
     background-color: #fff;
     resize: vertical;
 }
+.copy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+
+.copy-btn {
+  background-color: #f7f7f7;
+  border: 1px solid #ddd;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copy-btn:hover {
+  background-color: #eee;
+}
+
+.copy-success-message {
+  color: #1DB954; 
+  text-align: center;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.error-message {
+  color: #D8000C; 
+  background-color: #FFD2D2; 
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+
+.button-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.view-button {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.view-button:hover {
+  background-color: #f7f7f7;
+}
+
+.generate-button {
+  width: 100%;
+}

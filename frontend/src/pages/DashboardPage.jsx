@@ -73,7 +73,7 @@ const DashboardPage = ({ data, onNavigate }) => {
                   <p>Price: {formatCurrency(product.price / 100)}</p>
                 </div>
                 <div className="product-marketing-tool">
-                  <MarketingCopyGenerator productId={product.id} />
+                  <MarketingCopyGenerator product={product} />
                 </div>
               </div>
             ))}
