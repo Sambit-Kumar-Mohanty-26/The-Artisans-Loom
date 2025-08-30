@@ -9,6 +9,7 @@
   gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  align-items: stretch; /* Ensure grid items stretch to fill available height */
 }
 
 @media (max-width: 1024px) {
