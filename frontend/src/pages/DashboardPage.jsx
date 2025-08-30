@@ -65,8 +65,8 @@ const DashboardPage = ({ data, onNavigate }) => {
         ) : products.length > 0 ? (
           <div className="products-list">
             {products.map(product => (
-              <div key={product.id} className="product-card">
-                <img src={product.imageUrl} alt={product.name} className="product-image" />
+              <div key={product.id} className="dashboard-product-card">
+                <img src={product.imageUrl} alt={product.name} className="dashboard-product-image" />
                 <div className="product-info">
                   <h3>{product.name}</h3>
                   <p>Stock: {product.stock}</p>

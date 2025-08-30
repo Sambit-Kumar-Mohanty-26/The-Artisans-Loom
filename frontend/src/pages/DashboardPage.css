@@ -134,7 +134,7 @@
   gap: 1.5rem;
 }
 
-.product-card {
+.dashboard-product-card {
   display: grid;
   grid-template-columns: 100px 1fr;
   grid-template-areas: 
@@ -147,7 +147,7 @@
   align-items: center;
 }
 
-.product-image {
+.dashboard-product-image {
   grid-area: image;
   width: 100px;
   height: 100px;
@@ -177,7 +177,7 @@
 
 
 @media (min-width: 768px) {
-  .product-card {
+  .dashboard-product-card {
     grid-template-columns: 120px 2fr 1.5fr;
     grid-template-areas: "image info marketing";
     align-items: flex-start;
