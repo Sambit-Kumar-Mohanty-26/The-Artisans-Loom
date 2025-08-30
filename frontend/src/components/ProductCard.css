@@ -8,6 +8,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
+  /* Reverted height back to default/unset if it was set explicitly */
 }
 
 .product-card:hover {
@@ -18,16 +19,18 @@
 .product-image-container {
   position: relative;
   width: 100%;
-  height: 280px; 
+  /* Reverted flex-grow, flex-shrink, min-height, max-height */
+  height: 350px; /* Set a fixed height for the container, adjust as needed */
   overflow: hidden;
   border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 .product-image {
-  width: 100%;
-  height: 100%;
+  width: 100%; /* Image fills container width */
+  height: 100%; /* Image fills container height */
   object-fit: cover;
   transition: transform 0.4s ease;
+  /* Removed grid-area if it was present */
 }
 
 .product-card:hover .product-image {
@@ -36,23 +39,67 @@
 
 .product-tags {
   position: absolute;
-  top: 12px;
-  left: -28px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  top: 0px;
+  left: 0px;
+  display: flex; /* Ensure these are side-by-side */
+  flex-direction: row;
+  gap: 8px; /* Gap between the two floating tags */
   z-index: 15;
+  padding-left: 10px; /* Adjust padding to bring tags slightly in from the edge */
+  padding-top: 10px; /* Adjust padding to bring tags slightly in from the edge */
 }
 
 .product-tag-ribbon {
-  background: #d96a3b;
+  background: #d96a3b; /* Default background color, will be overridden by specific tag classes */
   color: white;
-  padding: 6px 40px;
-  font-size: 0.75rem;
+  padding: 4px 10px; /* Smaller padding for a more compact look */
+  font-size: 0.8rem;
   font-weight: 600;
-  transform: rotate(-45deg);
+  border-radius: 4px; /* Rounded corners for the main tag box */
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   text-align: center;
+  white-space: nowrap;
+  position: relative;
+  line-height: 1;
+  display: flex; /* Removed flexbox from here as it's no longer needed for inner spans */
+}
+
+.discount-pill {
+  background-color: #f0c14b; /* Yellow/orange for discount, from reference image */
+  color: #333; /* Darker text for contrast */
+  padding: 4px 10px; /* Smaller padding for a more compact look */
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px; /* Rounded corners for the discount box */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  text-align: center;
+  white-space: nowrap;
+  position: relative;
+  line-height: 1;
+}
+
+/* Removed old combined tag styling */
+.product-tag-ribbon .tag-name,
+.product-tag-ribbon .discount-amount,
+.product-tag-ribbon .discount-text {
+  display: contents; /* Ensure children don't create new flex context */
+}
+
+/* Specific styles for different tags based on the image */
+.product-tags .product-tag-ribbon.best-seller {
+  background-color: #f7931e !important; /* Orange for Best Seller */
+}
+
+.product-tags .product-tag-ribbon.eco-friendly {
+  background-color: #6a994e !important; /* Green for Eco-Friendly */
+}
+
+.product-tags .product-tag-ribbon.limited-edition {
+  background-color: #8a6a9b !important; /* Purple for Limited Edition */
+}
+
+.product-tags .product-tag-ribbon.discount-only {
+  display: none; /* This class is no longer needed */
 }
 
 .favorite-button {

@@ -15,10 +15,14 @@ const ProductCard = ({ product }) => {
 
         <div className="product-tags">
           {product.tag && (
-            <span className="product-tag-ribbon">{product.tag}</span>
+            <span className={`product-tag-ribbon ${product.tag.toLowerCase().replace(/\s/g, '-')}`}>
+              {product.tag}
+            </span>
           )}
           {product.discount && (
-            <span className="product-tag-ribbon">{product.discount}% OFF</span>
+            <span className="discount-pill">
+              {product.discount}% OFF
+            </span>
           )}
         </div>
       </div>
