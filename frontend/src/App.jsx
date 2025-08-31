@@ -32,6 +32,35 @@ import FeaturedProducts from './sections/FeaturedProducts';
 
 const getDashboardSummary = httpsCallable(functions, 'getDashboardSummary');
 
+const normalizePage = (page) => {
+  let normalized = page.startsWith('/') ? page.substring(1) : page;
+
+  const pageAliases = {
+    'home': 'home',
+    'shop': 'shop',
+    'products': 'shop', 
+    'browse-all-products': 'shop',
+    'artisans': 'all-artisans',
+    'all-artisans': 'all-artisans',
+    'regions': 'all-states',
+    'craft-atlas': 'all-states', 
+    'all-states': 'all-states',
+    'dashboard': 'dashboard',
+    'add-product': 'addProduct',
+    'addProduct': 'addProduct',
+    'gifting-assistant': 'gifting-assistant',
+    'cart': 'cart',
+    'checkout': 'checkout',
+    'auth': 'auth',
+    'map': 'map.html', 
+    'interactive-map': 'map.html',
+    'map.html': 'map.html'
+  };
+
+  return pageAliases[normalized] || normalized;
+};
+
+
 function App() {
   const { currentUser } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
@@ -40,6 +69,16 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [isMitraOpen, setIsMitraOpen] = useState(false);
   const [scrollToSection, setScrollToSection] = useState(null);
+
+  const navigateTo = (page) => {
+    const normalizedPath = normalizePage(page);
+
+    if (normalizedPath === 'map.html') {
+      window.location.href = '/map.html'; 
+    } else {
+      setCurrentPage(normalizedPath); 
+    }
+  };
 
   useEffect(() => {
     const handleAuthChange = async () => {
@@ -54,16 +93,16 @@ function App() {
           try {
             const result = await getDashboardSummary();
             setDashboardData(result.data);
-            if(currentPage !== 'dashboard') setCurrentPage('dashboard');
+            if(currentPage !== 'dashboard') navigateTo('dashboard');
           } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
-            setCurrentPage('home');
+            navigateTo('home');
           }
         }
       } else {
         setUserRole(null);
         setDashboardData(null);
-        setCurrentPage('home');
+        navigateTo('home');
       }
       setLoading(false);
     };
@@ -83,7 +122,7 @@ function App() {
 
   const handleNavigateAndScroll = (sectionId) => {
     if (currentPage !== 'home') {
-      setCurrentPage('home');
+      navigateTo('home');
     }
     setScrollToSection(sectionId);
   };
@@ -92,40 +131,31 @@ function App() {
     if (loading) {
       return <div className="loading-fullscreen">Loading...</div>;
     }
-    let normalizedCurrentPage = currentPage;
-    if (normalizedCurrentPage.startsWith('/')) {
-      normalizedCurrentPage = normalizedCurrentPage.substring(1);
+
+    if (currentPage.startsWith('artisan/')) {
+      const artisanId = currentPage.split('/')[1];
+      return <ArtisanProfilePage artisanId={artisanId} onNavigate={navigateTo} />;
     }
 
-    if (normalizedCurrentPage.startsWith('artisan/')) {
-      const artisanId = normalizedCurrentPage.split('/')[1];
-      return <ArtisanProfilePage artisanId={artisanId} onNavigate={setCurrentPage} />;
-    }
-
-    if (normalizedCurrentPage.startsWith('state/')) {
-      const stateSlug = normalizedCurrentPage.split('/')[1];
+    if (currentPage.startsWith('state/')) {
+      const stateSlug = currentPage.split('/')[1];
       const stateData = findStateData(stateSlug);
-      return <StateDetailPage stateData={stateData} onNavigate={setCurrentPage} />;
+      return <StateDetailPage stateData={stateData} onNavigate={navigateTo} />;
+    }
+    
+    if (currentPage.startsWith('order-success/')) {
+      const orderId = currentPage.split('/')[1];
+      return <OrderSuccessPage orderId={orderId} onNavigate={navigateTo} />;
     }
 
-    if (normalizedCurrentPage === 'artisans') {
-      normalizedCurrentPage = 'all-artisans';
-    }
-    if (normalizedCurrentPage === 'regions') {
-      normalizedCurrentPage = 'all-states';
-    }
-    if (normalizedCurrentPage === 'add-product') {
-      normalizedCurrentPage = 'addProduct';
-    }
-
-    switch (normalizedCurrentPage) {
+    switch (currentPage) {
       case 'auth': return <AuthPage />;
       case 'shop': return <ShopPage />;
-      case 'cart': return <CartPage onNavigate={setCurrentPage} />;
-      case 'checkout': return <CheckoutPage onNavigate={setCurrentPage} />;
-      case 'dashboard': return userRole === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={setCurrentPage}/> : renderHomepage();
-      case 'all-states': return <AllStatesPage onNavigate={setCurrentPage} />;
-      case 'all-artisans': return <AllArtisansPage onNavigate={setCurrentPage} />;
+      case 'cart': return <CartPage onNavigate={navigateTo} />;
+      case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
+      case 'dashboard': return userRole === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={navigateTo}/> : renderHomepage();
+      case 'all-states': return <AllStatesPage onNavigate={navigateTo} />;
+      case 'all-artisans': return <AllArtisansPage onNavigate={navigateTo} />;
       case 'addProduct': return userRole === 'artisan' ? <AddProductPage /> : renderHomepage();
       case 'gifting-assistant': return <GiftingAssistantPage />;
       case 'home':
@@ -136,10 +166,10 @@ function App() {
 
   const renderHomepage = () => (
     <>
-      <Hero onNavigate={setCurrentPage} />
-      <div id="discover"><FeaturedProducts onNavigate={setCurrentPage} /></div>
-      <div id="regions"><ExploreByRegion onNavigate={setCurrentPage} /></div>
-      <div id="artisans"><FeaturedArtisans onNavigate={setCurrentPage} /></div>
+      <Hero onNavigate={navigateTo} />
+      <div id="discover"><FeaturedProducts onNavigate={navigateTo} /></div>
+      <div id="regions"><ExploreByRegion onNavigate={navigateTo} /></div>
+      <div id="artisans"><FeaturedArtisans onNavigate={navigateTo} /></div>
       <div id="stories"><CuratedCollection /></div>
     </>
   );
@@ -148,8 +178,8 @@ function App() {
     <CartProvider>
       <div className="app-wrapper">
         <Header
-          onSignInClick={() => setCurrentPage('auth')}
-          onNavigate={setCurrentPage}
+          onSignInClick={() => navigateTo('auth')}
+          onNavigate={navigateTo}
           onNavigateAndScroll={handleNavigateAndScroll}
         />
 
@@ -163,7 +193,7 @@ function App() {
         <CraftMitraModal
           isOpen={isMitraOpen}
           onClose={() => setIsMitraOpen(false)}
-          onNavigateToPage={setCurrentPage}
+          onNavigateToPage={navigateTo}
         />
       </div>
     </CartProvider>

@@ -22,7 +22,22 @@ const generativeModel = vertexAi.getGenerativeModel({
   systemInstruction: {
     parts: [
       {
-        text: "You are Craft Mitra, a friendly and knowledgeable AI assistant for 'The Artisan's Loom', an online marketplace for Indian artisans. Your goal is to help artisans with questions about selling their crafts, using the platform, and getting advice on their art. Respond in a supportive and concise manner.",
+        text: `You are Craft Mitra, a helpful AI assistant for 'The Artisan's Loom'. Your primary job is to help users by calling functions.
+
+        **CRITICAL RULE:** When a user asks to navigate, you MUST prioritize using the 'navigateTo' tool. Do NOT just say you will navigate in words; you MUST call the function.
+
+        - User says: "browse all products" -> Correct action: call \`navigateTo({ path: '/shop' })\`.
+        - User says: "go to the craft atlas" -> Correct action: call \`navigateTo({ path: '/regions' })\`.
+        - User says: "take me to my dashboard" -> Correct action: call \`navigateTo({ path: '/dashboard' })\`.
+        - User says: "I need to sign in" -> Correct action: call \`navigateTo({ path: '/auth' })\`.
+        
+        **INCORRECT BEHAVIOR (DO NOT DO THIS):**
+        - User: "Take me to the shop."
+        - You (Incorrect): "Of course, I can take you to the shop." (This is wrong because no function was called).
+
+        **CORRECT BEHAVIOR:**
+        - User: "Take me to the shop."
+        - You (Correct): Call the function \`navigateTo({ path: '/shop' })\` and respond with a simple confirmation like "Certainly, heading to the shop."`,
       },
     ],
   },
@@ -31,13 +46,13 @@ const generativeModel = vertexAi.getGenerativeModel({
       functionDeclarations: [
         {
           name: "navigateTo",
-          description: "Navigates the user to a specific page or section of the website.",
+          description: "Navigates the user to a specific page. Use only the following valid paths: '/shop', '/artisans', '/regions', '/gifting-assistant', '/dashboard', '/add-product', '/cart', '/map.html'. The '/regions' path is also called the 'Craft Atlas'.",
           parameters: {
             type: "OBJECT",
             properties: {
               path: {
                 type: "STRING",
-                description: "The path or route name of the page to navigate to (e.g., '/shop', '/dashboard', '/artisans').",
+                description: "A valid path from the allowed list. For example, to go to the interactive map, use '/map.html'.",
               },
             },
             required: ["path"],
@@ -106,31 +121,23 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
         languageCode: languageCode,
         alternativeLanguageCodes: ["en-IN", "hi-IN", "bn-IN", "ta-IN", "mr-IN"],
         enableAutomaticPunctuation: true,
-        phraseHints: [
-          "shop page",
-          "all products",
-          "artisans page",
-          "all artisans",
-          "explore by region",
-          "regions",
-          "gifting assistant",
-          "add product",
-          "dashboard",
-          "show me",
-          "take me to",
-          "go to",
-          "browse",
-          "what can I buy",
-          "who are the artisans",
-          "sell my crafts",
-          "my dashboard",
-          "help me find a gift",
-          "crafts from",
-          "pottery",
-          "textiles",
-          "jewelry",
-          "home decor",
-        ],
+        speechContexts: [{
+          phrases: [
+            "sign in",
+            "dashboard",
+            "shop",
+            "products",
+            "craft atlas",
+            "regions",
+            "interactive map",
+            "add product",
+            "my cart",
+            "go to",
+            "take me to",
+            "show me"
+          ],
+          boost: 15 
+        }],
       },
     };
 
@@ -176,7 +183,6 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
         aiResponseText = candidate.content.parts[0].text;
       } else if (candidate.content.parts[0].functionCall) {
         functionCall = candidate.content.parts[0].functionCall;
-        // Provide a meaningful response when a function call is made
         if (functionCall.name === "navigateTo" && functionCall.args.path) {
           const pageName = functionCall.args.path.replace(/\//g, ' ').trim() || 'home';
           aiResponseText = `Navigating you to the ${pageName} page.`;
@@ -321,9 +327,6 @@ exports.getDashboardSummary = onCall({ cors: true }, async (request) => {
     throw new HttpsError("permission-denied", "You do not have permission to view this dashboard.");
   }
   try {
-    // This function had a bug where it was querying for artisanId on the orders collection
-    // but the createOrder function stores artisans in an array `artisanIds`
-    // I am leaving it as is for now, but this might be a future bug.
     const [productsSnap, ordersSnap] = await Promise.all([
       admin.firestore().collection("products").where("artisanId", "==", userId).get(),
       admin.firestore().collection("orders").where("artisanIds", "array-contains", userId).get(),
