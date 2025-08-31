@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const { SpeechClient } = require("@google-cloud/speech");
 const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
 const { VertexAI } = require("@google-cloud/vertexai");
+const { ImageAnnotatorClient } = require('@google-cloud/vision');
 const cors = require("cors")({ origin: true });
 
 admin.initializeApp();
@@ -14,6 +15,7 @@ const vertexAi = new VertexAI({
   project: process.env.GCLOUD_PROJECT,
   location: "us-central1",
 });
+const visionClient = new ImageAnnotatorClient();
 
 const model = "gemini-2.5-pro";
 
@@ -295,21 +297,45 @@ exports.createProduct = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Product Search (Gen 2) ------------------
+// -------------------- Product Search (Gen 2) ------------------------
 exports.searchProducts = onCall({ cors: true }, async (request) => {
-  const { category, region, minPrice, maxPrice, sortBy, materials } = request.data;
+  const { q, category, region, minPrice, maxPrice, sortBy, materials } = request.data;
+  
   let query = admin.firestore().collection("products");
+
   if (category) query = query.where("category", "==", category.toLowerCase());
   if (region) query = query.where("region", "==", region.toLowerCase());
   if (minPrice) query = query.where("price", ">=", Number(minPrice));
   if (maxPrice) query = query.where("price", "<=", Number(maxPrice));
   if (materials) query = query.where("materials", "array-contains", materials.toLowerCase());
+
   if (sortBy === 'price_asc') query = query.orderBy('price', 'asc');
   else if (sortBy === 'price_desc') query = query.orderBy('price', 'desc');
   else query = query.orderBy('createdAt', 'desc');
+
   try {
     const snap = await query.get();
-    return { products: snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) };
+    let products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    if (q) {
+      const searchTerm = q.toLowerCase().trim();
+      
+      products = products.filter((product) => {
+        const productText = `
+          ${product.name} 
+          ${product.description} 
+          ${product.category} 
+          ${product.artisanName || ''}
+          ${product.region || ''}
+          ${(product.materials || []).join(' ')}
+        `.toLowerCase();
+        
+        return productText.includes(searchTerm);
+      });
+    }
+    
+    return { products: products };
+
   } catch (error) {
     logger.error("Error searching products:", error);
     throw new HttpsError("internal", "Failed to search products.", error);
@@ -638,5 +664,49 @@ exports.getCart = onCall({ cors: true }, async (request) => {
   } catch (error) {
     logger.error("Error fetching cart:", error);
     throw new HttpsError("internal", "Failed to fetch cart.");
+  }
+});
+// ------------- Visual Search for Products -------------
+exports.visualSearchForProducts = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to perform a visual search.");
+  }
+  
+  const imageBase64 = request.data.imageData;
+  if (!imageBase64) {
+    throw new HttpsError("invalid-argument", "Missing image data.");
+  }
+
+  try {
+    const [result] = await visionClient.labelDetection({
+      image: { content: imageBase64 },
+    });
+    
+    const labels = result.labelAnnotations;
+    if (!labels || labels.length === 0) {
+      return { products: [] };
+    }
+    const searchTerms = labels.slice(0, 5).map((label) => label.description.toLowerCase());
+    logger.info("Visual search terms detected:", searchTerms);
+
+    // This is a simplified search. For production, Algolia is better.
+    const productsRef = admin.firestore().collection("products");
+    const snapshot = await productsRef.get();
+    
+    const matchedProducts = [];
+    snapshot.forEach((doc) => {
+      const product = { id: doc.id, ...doc.data() };
+      const productText = `${product.name} ${product.description} ${product.category} ${product.materials.join(' ')}`.toLowerCase();
+      
+      if (searchTerms.some((term) => productText.includes(term))) {
+        matchedProducts.push(product);
+      }
+    });
+
+    return { products: matchedProducts };
+
+  } catch (error) {
+    logger.error("Error during visual search:", error);
+    throw new HttpsError("internal", "Failed to analyze image or find products.");
   }
 });

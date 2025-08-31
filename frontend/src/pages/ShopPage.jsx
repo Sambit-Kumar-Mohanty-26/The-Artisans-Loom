@@ -6,11 +6,18 @@ import ProductCard from '../components/ProductCard';
 
 const searchProducts = httpsCallable(functions, 'searchProducts');
 
-const ShopPage = () => {
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+
+const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
+  const [isSearchResult, setIsSearchResult] = useState(false);
   const [filters, setFilters] = useState({
     category: '',
     region: '',
@@ -41,8 +48,31 @@ const ShopPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts({ sortBy: 'createdAt_desc' });
-  }, [fetchProducts]);
+    const performSearch = async () => {
+      if (initialSearch) {
+        setLoading(true);
+        setError('');
+        setIsSearchResult(true);
+        if (initialSearch.type === 'visual') {
+          setProducts(initialSearch.payload);
+        } else if (initialSearch.type === 'text') {
+          try {
+            const result = await searchProducts({ q: initialSearch.payload });
+            setProducts(result.data.products);
+          } catch (err) {
+            setError('Could not fetch products for your search.');
+            console.error("Text search error:", err);
+          }
+        }
+        setLoading(false);
+      } else {
+        setIsSearchResult(false);
+        fetchProducts({ sortBy: 'createdAt_desc' });
+      }
+    };
+    performSearch();
+  }, [initialSearch, fetchProducts]);
+
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -52,6 +82,11 @@ const ShopPage = () => {
   const handleApplyFilters = (e) => {
     e.preventDefault();
     fetchProducts(filters);
+  };
+
+  const handleClearSearch = () => {
+    clearSearch(); 
+    setIsSearchResult(false);
   };
 
   return (
@@ -111,6 +146,15 @@ const ShopPage = () => {
       </aside>
 
       <section className="product-grid-container">
+        {isSearchResult && (
+          <div className="search-result-header">
+            <h2>Search Results</h2>
+            <button onClick={handleClearSearch} className="clear-search-btn">
+              &times; Clear Search
+            </button>
+          </div>
+        )}
+
         {loading && <p>Loading products...</p>}
         {error && <p className="error-message">{error}</p>}
         {!loading && !error && (

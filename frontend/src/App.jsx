@@ -69,6 +69,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [isMitraOpen, setIsMitraOpen] = useState(false);
   const [scrollToSection, setScrollToSection] = useState(null);
+  const [searchResults, setSearchResults] = useState(null);
 
   const navigateTo = (page) => {
     const normalizedPath = normalizePage(page);
@@ -126,6 +127,10 @@ function App() {
     }
     setScrollToSection(sectionId);
   };
+  const handleSearch = (searchData) => {
+    setSearchResults(searchData);
+    navigateTo('shop'); 
+  };
 
   const renderPage = () => {
     if (loading) {
@@ -150,7 +155,7 @@ function App() {
 
     switch (currentPage) {
       case 'auth': return <AuthPage />;
-      case 'shop': return <ShopPage />;
+      case 'shop': return <ShopPage initialSearch={searchResults} clearSearch={() => { setSearchResults(null); }} />;
       case 'cart': return <CartPage onNavigate={navigateTo} />;
       case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
       case 'dashboard': return userRole === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={navigateTo}/> : renderHomepage();
@@ -166,7 +171,7 @@ function App() {
 
   const renderHomepage = () => (
     <>
-      <Hero onNavigate={navigateTo} />
+      <Hero onNavigate={navigateTo} onSearch={handleSearch} />
       <div id="discover"><FeaturedProducts onNavigate={navigateTo} /></div>
       <div id="regions"><ExploreByRegion onNavigate={navigateTo} /></div>
       <div id="artisans"><FeaturedArtisans onNavigate={navigateTo} /></div>

@@ -2,8 +2,9 @@ import React from 'react';
 import './Hero.css';
 import artisanHero from '../assets/images/artisan-hero.jpg';
 import Button from '../components/Button';
+import AdvancedSearchBar from '../components/AdvancedSearchBar'; 
 
-const Hero = ({ onNavigate }) => {
+const Hero = ({ onNavigate, onSearch }) => {
   return (
     <section className="hero-section">
       <div className="hero-content">
@@ -14,6 +15,9 @@ const Hero = ({ onNavigate }) => {
         <p className="hero-subtitle">
           Empowering Indian artisans with AI-powered tools while connecting the world to authentic, handmade treasures that carry centuries of cultural heritage.
         </p>
+
+        <AdvancedSearchBar onSearch={onSearch} />
+
         <div className="features-grid">
           <div className="feature-item">♡ Voice-powered listings</div>
           <div className="feature-item">♡ Regional discovery</div>
@@ -49,5 +53,4 @@ const Hero = ({ onNavigate }) => {
     </section>
   );
 };
-
 export default Hero;
