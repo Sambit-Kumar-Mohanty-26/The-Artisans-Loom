@@ -6,13 +6,11 @@ import { db, functions } from './firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
-// Import Components (with corrected paths)
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CraftMitraButton from './components/CraftMitraButton';
 import CraftMitraModal from './components/CraftMitraModal';
 
-// Import Pages (with corrected paths)
 import AuthPage from './pages/AuthPage';
 import AddProductPage from './pages/AddProductPage';
 import ShopPage from './pages/ShopPage';
@@ -26,7 +24,6 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 
-// Import Sections (with corrected paths)
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
 import ExploreByRegion from './sections/ExploreByRegion';
@@ -72,7 +69,7 @@ function App() {
     };
 
     handleAuthChange();
-  }, [currentUser]); // CORRECTED: Removed `currentPage` from the dependency array
+  }, [currentUser]); 
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -95,24 +92,33 @@ function App() {
     if (loading) {
       return <div className="loading-fullscreen">Loading...</div>;
     }
+    let normalizedCurrentPage = currentPage;
+    if (normalizedCurrentPage.startsWith('/')) {
+      normalizedCurrentPage = normalizedCurrentPage.substring(1);
+    }
 
-    if (currentPage.startsWith('artisan/')) {
-      const artisanId = currentPage.split('/')[1];
+    if (normalizedCurrentPage.startsWith('artisan/')) {
+      const artisanId = normalizedCurrentPage.split('/')[1];
       return <ArtisanProfilePage artisanId={artisanId} onNavigate={setCurrentPage} />;
     }
 
-    if (currentPage.startsWith('state/')) {
-      const stateSlug = currentPage.split('/')[1];
+    if (normalizedCurrentPage.startsWith('state/')) {
+      const stateSlug = normalizedCurrentPage.split('/')[1];
       const stateData = findStateData(stateSlug);
       return <StateDetailPage stateData={stateData} onNavigate={setCurrentPage} />;
     }
 
-    if (currentPage.startsWith('order-success/')) {
-      const orderId = currentPage.split('/')[1];
-      return <OrderSuccessPage orderId={orderId} onNavigate={setCurrentPage} />;
+    if (normalizedCurrentPage === 'artisans') {
+      normalizedCurrentPage = 'all-artisans';
+    }
+    if (normalizedCurrentPage === 'regions') {
+      normalizedCurrentPage = 'all-states';
+    }
+    if (normalizedCurrentPage === 'add-product') {
+      normalizedCurrentPage = 'addProduct';
     }
 
-    switch (currentPage) {
+    switch (normalizedCurrentPage) {
       case 'auth': return <AuthPage />;
       case 'shop': return <ShopPage />;
       case 'cart': return <CartPage onNavigate={setCurrentPage} />;
@@ -157,6 +163,7 @@ function App() {
         <CraftMitraModal
           isOpen={isMitraOpen}
           onClose={() => setIsMitraOpen(false)}
+          onNavigateToPage={setCurrentPage}
         />
       </div>
     </CartProvider>

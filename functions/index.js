@@ -26,6 +26,26 @@ const generativeModel = vertexAi.getGenerativeModel({
       },
     ],
   },
+  tools: [
+    {
+      functionDeclarations: [
+        {
+          name: "navigateTo",
+          description: "Navigates the user to a specific page or section of the website.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              path: {
+                type: "STRING",
+                description: "The path or route name of the page to navigate to (e.g., '/shop', '/dashboard', '/artisans').",
+              },
+            },
+            required: ["path"],
+          },
+      },
+    ],
+  },
+  ],
 });
 
 // ------------------ Gemini Proxy (Gen 2) ------------------
@@ -86,6 +106,31 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
         languageCode: languageCode,
         alternativeLanguageCodes: ["en-IN", "hi-IN", "bn-IN", "ta-IN", "mr-IN"],
         enableAutomaticPunctuation: true,
+        phraseHints: [
+          "shop page",
+          "all products",
+          "artisans page",
+          "all artisans",
+          "explore by region",
+          "regions",
+          "gifting assistant",
+          "add product",
+          "dashboard",
+          "show me",
+          "take me to",
+          "go to",
+          "browse",
+          "what can I buy",
+          "who are the artisans",
+          "sell my crafts",
+          "my dashboard",
+          "help me find a gift",
+          "crafts from",
+          "pottery",
+          "textiles",
+          "jewelry",
+          "home decor",
+        ],
       },
     };
 
@@ -119,13 +164,26 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
   }
 
   let aiResponseText = "Sorry, I couldn't think of a response.";
+  let functionCall=null;
 
   try {
     const chat = generativeModel.startChat({ history });
     const result = await chat.sendMessage(userTranscript);
 
-    if (result.response.candidates[0].content.parts[0].text) {
-      aiResponseText = result.response.candidates[0].content.parts[0].text;
+    const candidate = result.response.candidates[0];
+    if (candidate.content.parts && candidate.content.parts.length > 0) {
+      if (candidate.content.parts[0].text) {
+        aiResponseText = candidate.content.parts[0].text;
+      } else if (candidate.content.parts[0].functionCall) {
+        functionCall = candidate.content.parts[0].functionCall;
+        // Provide a meaningful response when a function call is made
+        if (functionCall.name === "navigateTo" && functionCall.args.path) {
+          const pageName = functionCall.args.path.replace(/\//g, ' ').trim() || 'home';
+          aiResponseText = `Navigating you to the ${pageName} page.`;
+        } else {
+          aiResponseText = "I've performed an action based on your request.";
+        }
+      }
     }
   } catch (error) {
     logger.error("ERROR during Vertex AI call:", error);
@@ -153,6 +211,7 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
       transcript: userTranscript,
       responseText: aiResponseText,
       responseAudio: resp.audioContent.toString("base64"),
+      functionCall: functionCall,
     };
   } catch (error) {
     logger.error("ERROR during speech synthesis:", error);
