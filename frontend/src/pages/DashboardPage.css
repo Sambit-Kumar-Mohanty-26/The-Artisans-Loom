@@ -115,7 +115,7 @@
 }
 
 
-.artisan-products-section {
+.artisan-products-section,.artisan-orders-section {
   background-color: #ffffff;
   border-radius: 12px;
   padding: 1.5rem;
@@ -128,8 +128,13 @@
   margin-bottom: 1.5rem;
   font-size: 1.5rem;
 }
+.artisan-orders-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
 
-.products-list {
+.products-list,.orders-list {
   display: grid;
   gap: 1.5rem;
 }
@@ -186,4 +191,135 @@
     grid-area: marketing;
     grid-column: auto; 
   }
+}
+
+.dashboard-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #eee;
+  margin-bottom: 2rem;
+}
+
+.tab-btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #888;
+  position: relative;
+  top: 2px;
+  transition: color 0.2s, border-bottom-color 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+  color: #3a3a58;
+  border-bottom-color: #3a3a58;
+}
+
+.empty-message {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.dashboard-order-card {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #fcfcfc;
+  margin-bottom: 1rem;
+}
+
+.order-info p,
+.order-shipping p {
+  margin: 0.4rem 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.order-info p strong,
+.order-shipping h4 {
+  color: #333;
+}
+
+.order-info p span {
+  font-weight: 500;
+  color: #111;
+}
+
+.order-shipping h4,
+.order-items h4 {
+  margin-bottom: 0.8rem;
+  margin-top: 0;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.order-item-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  padding: 0.3rem 0;
+}
+
+.status-processing {
+  background-color: #f0c14b;
+  color: #333;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.order-items h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: #555;
+}
+.order-items ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.order-items li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+/* This is the most important part for the image size */
+.order-items li img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.order-items li span {
+  flex-grow: 1; /* Allows the name to take up remaining space */
+}
+
+.order-status.processing {
+    background-color: #f0ad4e;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
 }

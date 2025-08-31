@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import './Header.css';
-import logo from '../assets/images/logo.png';
+import './Header.css'; 
+import logo from '../assets/images/logo.png'; 
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext'; 
 import { db } from '../firebaseConfig'; 
 import { doc, getDoc } from 'firebase/firestore'; 
 
 const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => { 
   const { currentUser, logout } = useAuth();
+  const { cartCount } = useCart();
   const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
@@ -40,6 +42,11 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
       <div className="header-actions">
         <button onClick={() => onNavigate('gifting-assistant')} className="nav-link">
           🎁 Gifting Assistant
+        </button>
+
+        <button onClick={() => onNavigate('cart')} className="cart-icon-link nav-link">
+          <span className="cart-icon">🛒</span>
+          {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
         </button>
 
         {currentUser ? (

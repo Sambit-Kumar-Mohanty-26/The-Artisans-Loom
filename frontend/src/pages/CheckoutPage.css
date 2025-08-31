@@ -1,0 +1,143 @@
+.checkout-page {
+  background-color: #f9f9f9;
+  padding: 3rem 4rem;
+  min-height: 80vh;
+}
+
+.checkout-container {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.order-summary-column, .shipping-info-column {
+  padding: 1rem;
+}
+
+h2 {
+  font-size: 1.75rem;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  color: #3a3a58;
+  border-bottom: 2px solid #f0ebe5;
+  padding-bottom: 1rem;
+}
+
+/* Order Summary Styles */
+.summary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.summary-item img {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.item-details {
+  flex-grow: 1;
+}
+
+.item-name {
+  display: block;
+  font-weight: 600;
+}
+
+.item-quantity {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.item-price {
+  font-weight: 600;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+/* Shipping Info Styles */
+.shipping-info-column form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group input {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.place-order-btn {
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  background-color: #d96a3b;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.place-order-btn:hover:not(:disabled) {
+  background-color: #c85a2a;
+}
+
+.place-order-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #d9534f;
+  background-color: #f2dede;
+  border: 1px solid #ebccd1;
+  padding: 10px;
+  border-radius: 4px;
+  text-align: center;
+}

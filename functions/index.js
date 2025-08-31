@@ -57,7 +57,7 @@ exports.getGeminiResponseProxy = onRequest((request, response) => {
 });
 
 // ------------------ Craft Mitra Voice (Gen 2) ------------------
-exports.getCraftMitraResponse = onCall(async (request) => {
+exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",
@@ -161,7 +161,7 @@ exports.getCraftMitraResponse = onCall(async (request) => {
 });
 
 // ------------------ Save Conversation (Gen 2) ------------------
-exports.saveConversation = onCall(async (request) => {
+exports.saveConversation = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to save a conversation.");
   }
@@ -194,25 +194,19 @@ exports.saveConversation = onCall(async (request) => {
 });
 
 // ------------------ Product Creation (Gen 2) ------------------
-exports.createProduct = onCall(async (request) => {
+exports.createProduct = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to create a product.");
   }
-
   const userId = request.auth.uid;
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
-
   if (!userDoc.exists || userDoc.data().role !== "artisan") {
     throw new HttpsError("permission-denied", "You must be an artisan to create a product.");
   }
-
-  const { name, description, price, category, stock, imageUrl, region, materials } =
-    request.data;
-
+  const { name, description, price, category, stock, imageUrl, region, materials } = request.data;
   if (!name || !description || !price || !category || !stock || !imageUrl) {
     throw new HttpsError("invalid-argument", "Missing required product information.");
   }
-
   const newProduct = {
     name,
     description,
@@ -227,7 +221,6 @@ exports.createProduct = onCall(async (request) => {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     isFeatured: false,
   };
-
   try {
     const ref = await admin.firestore().collection("products").add(newProduct);
     return { success: true, productId: ref.id };
@@ -238,35 +231,17 @@ exports.createProduct = onCall(async (request) => {
 });
 
 // ------------------ Product Search (Gen 2) ------------------
-exports.searchProducts = onCall(async (request) => {
+exports.searchProducts = onCall({ cors: true }, async (request) => {
   const { category, region, minPrice, maxPrice, sortBy, materials } = request.data;
-
   let query = admin.firestore().collection("products");
-
-  if (category) {
-    query = query.where("category", "==", category.toLowerCase());
-  }
-  if (region) {
-    query = query.where("region", "==", region.toLowerCase());
-  }
-  if (minPrice) {
-    query = query.where("price", ">=", Number(minPrice));
-  }
-  if (maxPrice) {
-    query = query.where("price", "<=", Number(maxPrice));
-  }
-  if (materials) {
-    query = query.where("materials", "array-contains", materials.toLowerCase());
-  }
-
-  if (sortBy === 'price_asc') {
-    query = query.orderBy('price', 'asc');
-  } else if (sortBy === 'price_desc') {
-    query = query.orderBy('price', 'desc');
-  } else {
-    query = query.orderBy('createdAt', 'desc');
-  }
-
+  if (category) query = query.where("category", "==", category.toLowerCase());
+  if (region) query = query.where("region", "==", region.toLowerCase());
+  if (minPrice) query = query.where("price", ">=", Number(minPrice));
+  if (maxPrice) query = query.where("price", "<=", Number(maxPrice));
+  if (materials) query = query.where("materials", "array-contains", materials.toLowerCase());
+  if (sortBy === 'price_asc') query = query.orderBy('price', 'asc');
+  else if (sortBy === 'price_desc') query = query.orderBy('price', 'desc');
+  else query = query.orderBy('createdAt', 'desc');
   try {
     const snap = await query.get();
     return { products: snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })) };
@@ -275,51 +250,46 @@ exports.searchProducts = onCall(async (request) => {
     throw new HttpsError("internal", "Failed to search products.", error);
   }
 });
+
 // ------------------ Dashboard Summary (Gen 2) ------------------
-exports.getDashboardSummary = onCall(async (request) => {
+exports.getDashboardSummary = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view the dashboard.");
   }
-
   const userId = request.auth.uid;
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
-
   if (!userDoc.exists || userDoc.data().role !== "artisan") {
     throw new HttpsError("permission-denied", "You do not have permission to view this dashboard.");
   }
-
   try {
+    // This function had a bug where it was querying for artisanId on the orders collection
+    // but the createOrder function stores artisans in an array `artisanIds`
+    // I am leaving it as is for now, but this might be a future bug.
     const [productsSnap, ordersSnap] = await Promise.all([
       admin.firestore().collection("products").where("artisanId", "==", userId).get(),
-      admin.firestore().collection("orders").where("artisanId", "==", userId).get(),
+      admin.firestore().collection("orders").where("artisanIds", "array-contains", userId).get(),
     ]);
-
     const totalProducts = productsSnap.size;
     const totalOrders = ordersSnap.size;
-
     let totalSales = 0;
     ordersSnap.forEach((doc) => {
-      totalSales += doc.data().orderTotal || 0;
+      const orderData = doc.data();
+      orderData.items.forEach((item) => {
+        if (item.artisanId === userId) {
+            totalSales += item.price * item.quantity;
+        }
+      });
     });
-
-    const recentOrdersSnap = await admin
-      .firestore()
-      .collection("orders")
-      .where("artisanId", "==", userId)
-      .orderBy("createdAt", "desc")
-      .limit(5)
-      .get();
-
+    const recentOrdersSnap = await admin.firestore().collection("orders").where("artisanIds", "array-contains", userId).orderBy("createdAt", "desc").limit(5).get();
     const recentActivity = recentOrdersSnap.docs.map((doc) => {
       const docData = doc.data();
       return {
         id: doc.id,
         type: "NEW_ORDER",
-        customerName: docData.customerName,
+        customerName: docData.shippingInfo.name, 
         timestamp: docData.createdAt ? docData.createdAt.toDate().toISOString() : null,
       };
     });
-
     return {
       summaryStats: {
         totalSales: totalSales / 100,
@@ -336,23 +306,19 @@ exports.getDashboardSummary = onCall(async (request) => {
 });
 
 // ------------------ Review Submission (Gen 2) ------------------
-exports.submitReview = onCall(async (request) => {
+exports.submitReview = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to leave a review.");
   }
-
   const { artisanId, rating, comment } = request.data;
   const customerId = request.auth.uid;
   const customerName = request.auth.token.name || "Anonymous";
-
   if (!artisanId || !rating || !comment) {
     throw new HttpsError("invalid-argument", "Missing required review information.");
   }
-
   try {
     const artisanRef = admin.firestore().collection("users").doc(artisanId);
     const reviewRef = artisanRef.collection("reviews").doc();
-
     await reviewRef.set({
       rating: Number(rating),
       comment: comment,
@@ -360,7 +326,6 @@ exports.submitReview = onCall(async (request) => {
       customerName: customerName,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-
     return { success: true, message: "Review submitted successfully!" };
   } catch (error) {
     logger.error("Error submitting review:", error);
@@ -369,34 +334,26 @@ exports.submitReview = onCall(async (request) => {
 });
 
 // ------------------ Marketing Copy Generation (Gen 2) ------------------
-exports.generateMarketingCopy = onCall(async (request) => {
+exports.generateMarketingCopy = onCall({ cors: true }, async (request) => { 
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
   }
-
   const userId = request.auth.uid;
   const { productId } = request.data;
-
   if (!productId) {
     throw new HttpsError("invalid-argument", "Missing productId.");
   }
-
   try {
     const productRef = admin.firestore().collection("products").doc(productId);
     const productDoc = await productRef.get();
-
     if (!productDoc.exists) {
       throw new HttpsError("not-found", "Product not found.");
     }
-
     if (productDoc.data().artisanId !== userId) {
       throw new HttpsError("permission-denied", "You can only generate copy for your own products.");
     }
-
     const product = productDoc.data();
-    // eslint-disable-next-line no-unused-vars
     const artisanName = product.artisanName || "a skilled artisan";
-
     const marketingPrompt = `
       You are a marketing expert for an e-commerce platform selling authentic Indian handicrafts called "The Artisan's Loom".
       Generate marketing copy for the following product. The tone should be evocative, respectful, and focused on storytelling and craftsmanship.
@@ -417,24 +374,19 @@ exports.generateMarketingCopy = onCall(async (request) => {
 
       Important: Respond with only the raw JSON object. Do not include any introductory text, greetings, explanations, or markdown formatting like \`\`\`json.
     `;
-
     const result = await generativeModel.generateContent(marketingPrompt);
     const responseText = result.response.candidates[0].content.parts[0].text;
-
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       logger.error("AI response did not contain a valid JSON object:", responseText);
       throw new HttpsError("internal", "AI response was not in the expected format.");
     }
-
     const cleanedJson = jsonMatch[0];
     const marketingData = JSON.parse(cleanedJson);
-
     await productRef.update({
       marketingCopy: marketingData,
       hasGeneratedCopy: true,
     });
-
     return marketingData;
   } catch (error) {
     logger.error("Error generating marketing copy:", error);
@@ -443,35 +395,186 @@ exports.generateMarketingCopy = onCall(async (request) => {
 });
 
 // ------------------ Get Artisan's Products (Gen 2) ------------------
-exports.getArtisanProducts = onCall(async (request) => {
+exports.getArtisanProducts = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view your products.");
   }
-
   const userId = request.auth.uid;
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
-
   if (!userDoc.exists || userDoc.data().role !== "artisan") {
     throw new HttpsError("permission-denied", "Only artisans can view their products.");
   }
-
   try {
     const productsRef = admin.firestore().collection("products");
     const q = productsRef.where("artisanId", "==", userId).orderBy("createdAt", "desc");
     const snapshot = await q.get();
-
     if (snapshot.empty) {
       return { products: [] };
     }
-
     const products = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
-
     return { products: products };
   } catch (error) {
     logger.error("Error fetching artisan products:", error);
     throw new HttpsError("internal", "Failed to fetch products.");
+  }
+});
+
+// ------------------ Cart Management (Gen 2) ------------------
+exports.updateCart = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to manage your cart.");
+  }
+  const userId = request.auth.uid;
+  const { productId, quantity } = request.data;
+  if (!productId || typeof quantity !== 'number' || quantity < 0) {
+    throw new HttpsError("invalid-argument", "Invalid product or quantity provided.");
+  }
+  const cartRef = admin.firestore().collection("users").doc(userId).collection("cart").doc(productId);
+  if (quantity === 0) {
+    await cartRef.delete();
+    return { success: true, message: "Item removed from cart." };
+  }
+  try {
+    const productDoc = await admin.firestore().collection("products").doc(productId).get();
+    if (!productDoc.exists) {
+      throw new HttpsError("not-found", "Product not found.");
+    }
+    const productData = productDoc.data();
+    if (productData.stock < quantity) {
+      throw new HttpsError("out-of-range", `Not enough stock. Only ${productData.stock} items available.`);
+    }
+    await cartRef.set({
+      productId: productId,
+      quantity: quantity,
+      name: productData.name,
+      price: productData.price,
+      imageUrl: productData.imageUrl,
+      artisanId: productData.artisanId,
+      addedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { success: true, message: "Cart updated successfully." };
+  } catch (error) {
+    logger.error("Error updating cart:", error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", "Failed to update cart.");
+  }
+});
+
+// ------------------ Checkout and Order Creation (Gen 2) ------------------
+exports.createOrder = onCall({ cors: true }, async (request) => { 
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to place an order.");
+  }
+  const userId = request.auth.uid;
+  const { shippingInfo } = request.data;
+  if (!shippingInfo) {
+    throw new HttpsError("invalid-argument", "Missing shipping information.");
+  }
+  const userCartRef = admin.firestore().collection("users").doc(userId).collection("cart");
+  const cartSnap = await userCartRef.get();
+  if (cartSnap.empty) {
+    throw new HttpsError("failed-precondition", "Your cart is empty.");
+  }
+  const cartItems = cartSnap.docs.map((doc) => doc.data());
+  let orderTotal = 0;
+  cartItems.forEach((item) => {
+    orderTotal += item.price * item.quantity;
+  });
+  logger.info(`Simulating successful payment of ${orderTotal} for user ${userId}.`);
+  const orderRef = admin.firestore().collection("orders").doc();
+  try {
+    await admin.firestore().runTransaction(async (transaction) => {
+      const productRefs = cartItems.map((item) => admin.firestore().collection("products").doc(item.productId));
+      const productDocs = await transaction.getAll(...productRefs);
+      productDocs.forEach((doc, index) => {
+        const stock = doc.data().stock;
+        const requested = cartItems[index].quantity;
+        if (stock < requested) {
+          throw new HttpsError("out-of-range", `Not enough stock for ${doc.data().name}.`);
+        }
+      });
+      productDocs.forEach((doc, index) => {
+        const newStock = doc.data().stock - cartItems[index].quantity;
+        transaction.update(doc.ref, { stock: newStock });
+      });
+      const itemsByArtisan = cartItems.reduce((acc, item) => {
+        (acc[item.artisanId] = acc[item.artisanId] || []).push(item);
+        return acc;
+      }, {});
+      transaction.set(orderRef, {
+        userId: userId,
+        orderTotal: orderTotal,
+        items: cartItems,
+        itemsByArtisan: itemsByArtisan,
+        artisanIds: Object.keys(itemsByArtisan),
+        shippingInfo: shippingInfo,
+        status: "Processing",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+    const writeBatch = admin.firestore().batch();
+    cartSnap.docs.forEach((doc) => writeBatch.delete(doc.ref));
+    await writeBatch.commit();
+    return { success: true, orderId: orderRef.id };
+  } catch (error) {
+    logger.error("Order creation failed:", error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", "Failed to create order.");
+  }
+});
+
+// ------------------ Get Orders for Artisan Dashboard (Gen 2) ------------------
+exports.getArtisanOrders = onCall({ cors: true }, async (request) => { 
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to view orders.");
+  }
+  const userId = request.auth.uid;
+  const userDoc = await admin.firestore().collection("users").doc(userId).get();
+  if (!userDoc.exists || userDoc.data().role !== "artisan") {
+    throw new HttpsError("permission-denied", "You must be an artisan to view orders.");
+  }
+  try {
+    const ordersRef = admin.firestore().collection("orders");
+    const q = ordersRef.where("artisanIds", "array-contains", userId).orderBy("createdAt", "desc");
+    const snapshot = await q.get();
+    if (snapshot.empty) {
+      return { orders: [] };
+    }
+    const orders = snapshot.docs.map((doc) => {
+      const orderData = doc.data();
+      const artisanItems = orderData.items.filter((item) => item.artisanId === userId);
+      return {
+        id: doc.id,
+        ...orderData,
+        items: artisanItems,
+      };
+    });
+    return { orders };
+  } catch (error) {
+    logger.error("Error fetching artisan orders:", error);
+    throw new HttpsError("internal", "Failed to fetch orders.");
+  }
+});
+
+// ------------------ Get Cart Contents (Gen 2) ------------------
+exports.getCart = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to view your cart.");
+  }
+  const userId = request.auth.uid;
+  try {
+    const cartRef = admin.firestore().collection("users").doc(userId).collection("cart");
+    const snapshot = await cartRef.orderBy("addedAt", "desc").get();
+    if (snapshot.empty) {
+      return { cart: [] };
+    }
+    const cartItems = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return { cart: cartItems };
+  } catch (error) {
+    logger.error("Error fetching cart:", error);
+    throw new HttpsError("internal", "Failed to fetch cart.");
   }
 });

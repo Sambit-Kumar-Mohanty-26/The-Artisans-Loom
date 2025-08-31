@@ -8,7 +8,6 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
-  /* Reverted height back to default/unset if it was set explicitly */
 }
 
 .product-card:hover {
@@ -19,18 +18,16 @@
 .product-image-container {
   position: relative;
   width: 100%;
-  /* Reverted flex-grow, flex-shrink, min-height, max-height */
-  height: 350px; /* Set a fixed height for the container, adjust as needed */
+  height: 350px;
   overflow: hidden;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .product-image {
-  width: 100%; /* Image fills container width */
-  height: 100%; /* Image fills container height */
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   transition: transform 0.4s ease;
-  /* Removed grid-area if it was present */
 }
 
 .product-card:hover .product-image {
@@ -39,74 +36,47 @@
 
 .product-tags {
   position: absolute;
-  top: 0px;
-  left: 0px;
-  display: flex; /* Ensure these are side-by-side */
+  top: 10px;
+  left: 10px;
+  display: flex;
   flex-direction: row;
-  gap: 8px; /* Gap between the two floating tags */
+  gap: 8px;
   z-index: 15;
-  padding-left: 10px; /* Adjust padding to bring tags slightly in from the edge */
-  padding-top: 10px; /* Adjust padding to bring tags slightly in from the edge */
 }
 
 .product-tag-ribbon {
-  background: #d96a3b; /* Default background color, will be overridden by specific tag classes */
+  background: #d96a3b;
   color: white;
-  padding: 4px 10px; /* Smaller padding for a more compact look */
+  padding: 4px 10px;
   font-size: 0.8rem;
   font-weight: 600;
-  border-radius: 4px; /* Rounded corners for the main tag box */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   text-align: center;
   white-space: nowrap;
   position: relative;
   line-height: 1;
-  display: flex; /* Removed flexbox from here as it's no longer needed for inner spans */
 }
 
 .discount-pill {
-  background-color: #f0c14b; /* Yellow/orange for discount, from reference image */
-  color: #333; /* Darker text for contrast */
-  padding: 4px 10px; /* Smaller padding for a more compact look */
+  background-color: #f0c14b;
+  color: #333;
+  padding: 4px 10px;
   font-size: 0.8rem;
   font-weight: 600;
-  border-radius: 4px; /* Rounded corners for the discount box */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   text-align: center;
   white-space: nowrap;
   position: relative;
   line-height: 1;
-}
-
-/* Removed old combined tag styling */
-.product-tag-ribbon .tag-name,
-.product-tag-ribbon .discount-amount,
-.product-tag-ribbon .discount-text {
-  display: contents; /* Ensure children don't create new flex context */
-}
-
-/* Specific styles for different tags based on the image */
-.product-tags .product-tag-ribbon.best-seller {
-  background-color: #f7931e !important; /* Orange for Best Seller */
-}
-
-.product-tags .product-tag-ribbon.eco-friendly {
-  background-color: #6a994e !important; /* Green for Eco-Friendly */
-}
-
-.product-tags .product-tag-ribbon.limited-edition {
-  background-color: #8a6a9b !important; /* Purple for Limited Edition */
-}
-
-.product-tags .product-tag-ribbon.discount-only {
-  display: none; /* This class is no longer needed */
 }
 
 .favorite-button {
   position: absolute;
   top: 12px;
   right: 12px;
-  background: rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.9);
   border: none;
   border-radius: 50%;
   width: 40px;
@@ -116,7 +86,7 @@
   cursor: pointer;
   transition: background 0.3s ease, transform 0.2s ease;
   z-index: 25;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .favorite-button:hover {
@@ -152,8 +122,12 @@
   font-size: 0.85rem;
 }
 
-.product-rating .star {
+.product-rating .star.filled {
   color: #f0c14b;
+}
+
+.product-rating .star {
+  color: #ddd;
 }
 
 .product-pricing {
@@ -175,8 +149,12 @@
   font-size: 0.9rem;
 }
 
-.add-to-cart-btn {
+.btn-container {
+  position: relative;
   margin-top: 1rem;
+}
+
+.add-to-cart-btn {
   background: linear-gradient(135deg, #3a3a58, #56568a);
   color: #fff;
   border: none;
@@ -185,10 +163,82 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  width: 100%;
+  transition: transform 0.2s ease,
+              box-shadow 0.3s ease,
+              background-color 0.3s ease;
 }
 
-.add-to-cart-btn:hover {
+.add-to-cart-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(58,58,88,0.3);
+  box-shadow: 0 6px 12px rgba(58, 58, 88, 0.3);
+}
+
+.add-to-cart-btn:disabled {
+  cursor: not-allowed;
+  background: #ccc;
+}
+
+.add-to-cart-btn.adding {
+  background: #a5805e;
+}
+
+.add-to-cart-btn.in-cart {
+  background: #6a994e;
+  color: white;
+}
+
+.login-error-message {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #d9534f; 
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: fadeInOut 2.5s ease-in-out forwards;
+}
+
+.login-error-message::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #d9534f transparent transparent transparent;
+}
+
+.login-error-message .error-icon {
+  font-weight: bold;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
 }

@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import { db, functions } from './firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 
+// Import Components (with corrected paths)
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CraftMitraButton from './components/CraftMitraButton';
 import CraftMitraModal from './components/CraftMitraModal';
+
+// Import Pages (with corrected paths)
 import AuthPage from './pages/AuthPage';
 import AddProductPage from './pages/AddProductPage';
 import ShopPage from './pages/ShopPage';
-import DashboardPage from './pages/DashboardPage.jsx';
-import AllStatesPage, { findStateData } from './pages/AllStatesPage.jsx';
-import StateDetailPage from './pages/StateDetailPage.jsx';
-import GiftingAssistantPage from './pages/GiftingAssistantPage.jsx';
-import AllArtisansPage from './pages/AllArtisansPage.jsx';
-import ArtisanProfilePage from './pages/ArtisanProfilePage.jsx';
+import DashboardPage from './pages/DashboardPage';
+import AllStatesPage, { findStateData } from './pages/AllStatesPage';
+import StateDetailPage from './pages/StateDetailPage';
+import GiftingAssistantPage from './pages/GiftingAssistantPage';
+import AllArtisansPage from './pages/AllArtisansPage';
+import ArtisanProfilePage from './pages/ArtisanProfilePage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrderSuccessPage from './pages/OrderSuccessPage';
 
+// Import Sections (with corrected paths)
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
 import ExploreByRegion from './sections/ExploreByRegion';
@@ -29,7 +37,7 @@ const getDashboardSummary = httpsCallable(functions, 'getDashboardSummary');
 
 function App() {
   const { currentUser } = useAuth();
-  const [currentPage, setCurrentPage] = useState('home'); 
+  const [currentPage, setCurrentPage] = useState('home');
   const [userRole, setUserRole] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,13 +57,11 @@ function App() {
           try {
             const result = await getDashboardSummary();
             setDashboardData(result.data);
-            setCurrentPage('dashboard');
+            if(currentPage !== 'dashboard') setCurrentPage('dashboard');
           } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
             setCurrentPage('home');
           }
-        } else {
-          setCurrentPage('home');
         }
       } else {
         setUserRole(null);
@@ -66,7 +72,7 @@ function App() {
     };
 
     handleAuthChange();
-  }, [currentUser]);
+  }, [currentUser]); // CORRECTED: Removed `currentPage` from the dependency array
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -87,9 +93,9 @@ function App() {
 
   const renderPage = () => {
     if (loading) {
-      return <div>Loading...</div>;
+      return <div className="loading-fullscreen">Loading...</div>;
     }
-    
+
     if (currentPage.startsWith('artisan/')) {
       const artisanId = currentPage.split('/')[1];
       return <ArtisanProfilePage artisanId={artisanId} onNavigate={setCurrentPage} />;
@@ -101,21 +107,21 @@ function App() {
       return <StateDetailPage stateData={stateData} onNavigate={setCurrentPage} />;
     }
 
+    if (currentPage.startsWith('order-success/')) {
+      const orderId = currentPage.split('/')[1];
+      return <OrderSuccessPage orderId={orderId} onNavigate={setCurrentPage} />;
+    }
+
     switch (currentPage) {
-      case 'auth':
-        return <AuthPage />;
-      case 'shop':
-        return <ShopPage />;
-      case 'dashboard':
-        return userRole === 'artisan' ? <DashboardPage data={dashboardData}  onNavigate={setCurrentPage}/> : renderHomepage();
-      case 'all-states':
-        return <AllStatesPage onNavigate={setCurrentPage} />;
-      case 'all-artisans':
-        return <AllArtisansPage onNavigate={setCurrentPage} />;
-      case 'addProduct':
-        return userRole === 'artisan' ? <AddProductPage /> : renderHomepage();
-      case 'gifting-assistant':
-        return <GiftingAssistantPage />;
+      case 'auth': return <AuthPage />;
+      case 'shop': return <ShopPage />;
+      case 'cart': return <CartPage onNavigate={setCurrentPage} />;
+      case 'checkout': return <CheckoutPage onNavigate={setCurrentPage} />;
+      case 'dashboard': return userRole === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={setCurrentPage}/> : renderHomepage();
+      case 'all-states': return <AllStatesPage onNavigate={setCurrentPage} />;
+      case 'all-artisans': return <AllArtisansPage onNavigate={setCurrentPage} />;
+      case 'addProduct': return userRole === 'artisan' ? <AddProductPage /> : renderHomepage();
+      case 'gifting-assistant': return <GiftingAssistantPage />;
       case 'home':
       default:
         return renderHomepage();
@@ -124,7 +130,7 @@ function App() {
 
   const renderHomepage = () => (
     <>
-      <Hero onNavigate={setCurrentPage} /> 
+      <Hero onNavigate={setCurrentPage} />
       <div id="discover"><FeaturedProducts onNavigate={setCurrentPage} /></div>
       <div id="regions"><ExploreByRegion onNavigate={setCurrentPage} /></div>
       <div id="artisans"><FeaturedArtisans onNavigate={setCurrentPage} /></div>
@@ -133,29 +139,27 @@ function App() {
   );
 
   return (
-    <div className="app-wrapper">
-      <Header 
-        onSignInClick={() => setCurrentPage('auth')} 
-        onNavigate={setCurrentPage}
-        onNavigateAndScroll={handleNavigateAndScroll}
-      />
-      
-      <main>
-        {renderPage()}
-      </main>
-      
-      {currentPage === 'home' && (
-        <>
-          <Footer />
-          <CraftMitraButton onClick={() => setIsMitraOpen(true)} />
-        </>
-      )}
-      
-      <CraftMitraModal 
-        isOpen={isMitraOpen} 
-        onClose={() => setIsMitraOpen(false)} 
-      />
-    </div>
+    <CartProvider>
+      <div className="app-wrapper">
+        <Header
+          onSignInClick={() => setCurrentPage('auth')}
+          onNavigate={setCurrentPage}
+          onNavigateAndScroll={handleNavigateAndScroll}
+        />
+
+        <main>
+          {renderPage()}
+        </main>
+
+        <Footer />
+        <CraftMitraButton onClick={() => setIsMitraOpen(true)} />
+
+        <CraftMitraModal
+          isOpen={isMitraOpen}
+          onClose={() => setIsMitraOpen(false)}
+        />
+      </div>
+    </CartProvider>
   );
 }
 
