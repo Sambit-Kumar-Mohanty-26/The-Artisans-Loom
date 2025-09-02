@@ -710,3 +710,85 @@ exports.visualSearchForProducts = onCall({ cors: true }, async (request) => {
     throw new HttpsError("internal", "Failed to analyze image or find products.");
   }
 });
+
+exports.getAiRecommendations = onCall(
+  {
+    cors: [
+      /localhost:\d{4,5}$/,
+      'https://annular-climate-469215-m0.web.app'
+    ]
+  },
+  async (request) => {
+    const { mainProduct } = request.data;
+    if (!mainProduct || !mainProduct.category || !mainProduct.region) {
+      throw new HttpsError("invalid-argument", "A valid main product with category and region is required.");
+    }
+
+    try {
+      // 1. Find candidate products (unchanged)
+      const productsRef = admin.firestore().collection("products");
+      const recsQuery = productsRef
+        .where('category', '==', mainProduct.category)
+        .limit(10);
+
+      const snapshot = await recsQuery.get();
+      if (snapshot.empty) {
+        return { recommendations: [] };
+      }
+
+      const candidateProducts = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((p) => p.region !== mainProduct.region)
+        .slice(0, 3);
+
+      if (candidateProducts.length === 0) {
+        return { recommendations: [] };
+      }
+
+      // 2. A simple, clear prompt asking for a text-based JSON response.
+      const prompt = `
+        A user is interested in "${mainProduct.name}", a ${mainProduct.category} craft from ${mainProduct.region}.
+        Provide compelling, story-driven reasons to recommend the following products:
+        ${candidateProducts.map((p) => `- Product Name: ${p.name}, Region: ${p.region}`).join('\n')}
+        
+        You MUST return your response as a single, raw JSON array of objects. Do not include markdown, greetings, or any other text.
+        Each object must have these exact keys: "name" and "reason".
+      `;
+
+      // 3. Call the generative model
+      const result = await generativeModel.generateContent(prompt);
+      const response = result.response;
+      
+      // --- THIS IS THE NEW, ROBUST PARSING LOGIC ---
+      // 4. We will now safely extract the JSON from the AI's plain text response.
+      if (!response.candidates[0] || !response.candidates[0].content || !response.candidates[0].content.parts[0]) {
+        throw new Error("AI returned an empty or invalid response structure.");
+      }
+      
+      const responseText = response.candidates[0].content.parts[0].text;
+      
+      // Use a regular expression to find the JSON array, even if it's surrounded by other text.
+      const jsonMatch = responseText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+      
+      if (!jsonMatch) {
+        logger.error("Could not find a valid JSON array in the AI's response. Raw response text:", responseText);
+        throw new Error("AI response did not contain a valid JSON array.");
+      }
+      
+      // Safely parse the extracted JSON string.
+      const recommendationsWithReasons = JSON.parse(jsonMatch[0]);
+
+      // 5. Merge the AI data with our full product data (unchanged)
+      const finalRecommendations = recommendationsWithReasons.map((rec) => {
+          const fullProduct = candidateProducts.find((p) => p.name === rec.name);
+          return fullProduct ? { ...fullProduct, reason: rec.reason } : null;
+      }).filter(Boolean);
+
+      return { recommendations: finalRecommendations };
+
+    } catch (error) {
+      logger.error("FATAL Error in getAiRecommendations:", error);
+      throw new HttpsError("internal", "Failed to generate AI recommendations.");
+    }
+  }
+);

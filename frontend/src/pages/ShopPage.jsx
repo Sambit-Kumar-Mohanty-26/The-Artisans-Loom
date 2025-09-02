@@ -5,6 +5,7 @@ import { httpsCallable } from "firebase/functions";
 import ProductCard from '../components/ProductCard';
 
 const searchProducts = httpsCallable(functions, 'searchProducts');
+const getAiRecommendations = httpsCallable(functions, 'getAiRecommendations');
 
 const CloseIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -12,9 +13,10 @@ const CloseIcon = () => (
   </svg>
 );
 
-
 const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
   const [products, setProducts] = useState([]);
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [isRecsLoading, setIsRecsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSearchResult, setIsSearchResult] = useState(false);
@@ -30,9 +32,10 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
   const fetchProducts = useCallback(async (currentFilters) => {
     setLoading(true);
     setError('');
+    setAiRecommendations([]);
     try {
       const activeFilters = Object.fromEntries(
-        Object.entries(currentFilters).filter(([_, value]) => value !== '' && value !== null)
+        Object.entries(currentFilters).filter(([, value]) => value !== '' && value !== null)
       );
       
       if (activeFilters.minPrice) activeFilters.minPrice = Number(activeFilters.minPrice) * 100;
@@ -46,9 +49,28 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
     }
     setLoading(false);
   }, []);
+  useEffect(() => {
+    const fetchAiRecs = async () => {
+      if (isSearchResult && products.length > 0) {
+        setIsRecsLoading(true);
+        setAiRecommendations([]);
+        try {
+          const mainProduct = products[0];
+          const result = await getAiRecommendations({ mainProduct });
+          setAiRecommendations(result.data.recommendations || []);
+        } catch (err) {
+          console.error("Failed to fetch AI recommendations:", err);
+        } finally {
+          setIsRecsLoading(false);
+        }
+      }
+    };
+    fetchAiRecs();
+  }, [products, isSearchResult]);
 
   useEffect(() => {
     const performSearch = async () => {
+      setAiRecommendations([]); 
       if (initialSearch) {
         setLoading(true);
         setError('');
@@ -73,7 +95,6 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
     performSearch();
   }, [initialSearch, fetchProducts]);
 
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -81,12 +102,36 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
 
   const handleApplyFilters = (e) => {
     e.preventDefault();
+    clearSearch();
     fetchProducts(filters);
   };
 
   const handleClearSearch = () => {
     clearSearch(); 
+    setAiRecommendations([]);
     setIsSearchResult(false);
+  };
+
+  const renderProductGrid = () => {
+    if (loading) return <p>Loading products...</p>;
+    if (error) return <p className="error-message">{error}</p>;
+    if (products.length > 0) {
+      return (
+        <div className="shop-product-grid">
+          {products.map(product => {
+            const productCardData = {
+              id: product.id,
+              name: product.name,
+              artisan: product.artisanName,
+              price: product.price / 100,
+              image: product.imageUrl,
+            };
+            return <ProductCard key={product.id} product={productCardData} />;
+          })}
+        </div>
+      );
+    }
+    return <p className="no-products-message">No products found matching your criteria.</p>;
   };
 
   return (
@@ -96,50 +141,23 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
         <form onSubmit={handleApplyFilters}>
           <div className="filter-group">
             <label>Sort By</label>
-            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
-              <option value="createdAt_desc">Newest Arrivals</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
+            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}><option value="createdAt_desc">Newest Arrivals</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option></select>
           </div>
           <div className="filter-group">
             <label>Category</label>
-            <select name="category" value={filters.category} onChange={handleFilterChange}>
-              <option value="">All</option>
-              <option value="weaving">Weaving</option>
-              <option value="pottery">Pottery</option>
-              <option value="painting">Painting</option>
-              <option value="carving">Carving</option>
-            </select>
+            <select name="category" value={filters.category} onChange={handleFilterChange}><option value="">All</option><option value="weaving">Weaving</option><option value="pottery">Pottery</option><option value="painting">Painting</option><option value="carving">Carving</option></select>
           </div>
           <div className="filter-group">
             <label>Material</label>
-            <select name="materials" value={filters.materials} onChange={handleFilterChange}>
-              <option value="">All</option>
-              <option value="silk">Silk</option>
-              <option value="cotton">Cotton</option>
-              <option value="terracotta">Terracotta</option>
-              <option value="wood">Wood</option>
-              <option value="brass">Brass</option>
-            </select>
+            <select name="materials" value={filters.materials} onChange={handleFilterChange}><option value="">All</option><option value="silk">Silk</option><option value="cotton">Cotton</option><option value="terracotta">Terracotta</option><option value="wood">Wood</option><option value="brass">Brass</option></select>
           </div>
           <div className="filter-group">
             <label>Region</label>
-            <select name="region" value={filters.region} onChange={handleFilterChange}>
-              <option value="">All</option>
-              <option value="rajasthan">Rajasthan</option>
-              <option value="gujarat">Gujarat</option>
-              <option value="odisha">Odisha</option>
-              <option value="uttar_pradesh">Uttar Pradesh</option>
-            </select>
+            <select name="region" value={filters.region} onChange={handleFilterChange}><option value="">All</option><option value="rajasthan">Rajasthan</option><option value="gujarat">Gujarat</option><option value="odisha">Odisha</option><option value="uttar_pradesh">Uttar Pradesh</option></select>
           </div>
           <div className="filter-group">
             <label>Price Range (in ₹)</label>
-            <div className="price-inputs">
-              <input type="number" name="minPrice" placeholder="Min" value={filters.minPrice} onChange={handleFilterChange} />
-              <span>-</span>
-              <input type="number" name="maxPrice" placeholder="Max" value={filters.maxPrice} onChange={handleFilterChange} />
-            </div>
+            <div className="price-inputs"><input type="number" name="minPrice" placeholder="Min" value={filters.minPrice} onChange={handleFilterChange} /><span>-</span><input type="number" name="maxPrice" placeholder="Max" value={filters.maxPrice} onChange={handleFilterChange} /></div>
           </div>
           <button type="submit" className="apply-filters-btn">Apply Filters</button>
         </form>
@@ -150,36 +168,38 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
           <div className="search-result-header">
             <h2>Search Results</h2>
             <button onClick={handleClearSearch} className="clear-search-btn">
-              &times; Clear Search
+              <CloseIcon /> Clear Search
             </button>
           </div>
         )}
+        
+        {renderProductGrid()}
+        {isRecsLoading && (
+          <div className="recommendations-loader">
+            <div className="spinner"></div>
+            Generating personalized recommendations...
+          </div>
+        )}
 
-        {loading && <p>Loading products...</p>}
-        {error && <p className="error-message">{error}</p>}
-        {!loading && !error && (
-          products.length > 0 ? (
-            <div className="shop-product-grid">
-              {products.map(product => {
-                const productCardData = {
-                  id: product.id,
-                  name: product.name,
-                  artisan: product.artisanName,
-                  rating: product.rating,
-                  reviews: product.reviews,
-                  price: product.price / 100,
-                  originalPrice: product.originalPrice ? product.originalPrice / 100 : null,
-                  discount: product.discount,
-                  tag: product.tag,
-                  image: product.imageUrl, 
-                };
-
-                return <ProductCard key={product.id} product={productCardData} />;
-              })}
+        {aiRecommendations.length > 0 && (
+          <div className="ai-recommendations-section">
+            <h2 className="recommendations-title">A Weaver's Journey: Related Crafts</h2>
+            <div className="recommendation-cards-container">
+              {aiRecommendations.map(rec => (
+                <div key={rec.id} className="recommendation-card">
+                  <img src={rec.imageUrl} alt={rec.name} className="recommendation-image" />
+                  <div className="recommendation-content">
+                    <h3 className="recommendation-name">{rec.name}</h3>
+                    <p className="recommendation-artisan">from {rec.region}</p>
+                    <p className="recommendation-reason">
+                      <span className="reason-icon">✨</span> {rec.reason}
+                    </p>
+                    <button className="recommendation-button">View Product</button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : (
-            <p className="no-products-message">No products found matching your criteria.</p>
-          )
+          </div>
         )}
       </section>
     </div>

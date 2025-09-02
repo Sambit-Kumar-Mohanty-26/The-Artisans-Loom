@@ -141,3 +141,134 @@
   transform: translateY(0) scale(0.98);
   box-shadow: none; 
 }
+
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ai-recommendations-section {
+  margin-top: 5rem;
+  padding-top: 3rem;
+  border-top: 1px solid #e5e0da;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.recommendations-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #442c13;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.recommendation-cards-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .recommendation-cards-container {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+.recommendation-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.recommendation-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.recommendation-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #33210f;
+  margin: 0 0 0.25rem 0;
+}
+
+.recommendation-artisan {
+  font-size: 0.9rem;
+  color: #8a6e51;
+  margin-bottom: 1rem;
+}
+
+.recommendation-reason {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #5c4b38;
+  border-left: 3px solid #d9c6b4;
+  padding-left: 1rem;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+  flex-grow: 1;
+}
+
+.reason-icon {
+  margin-right: 0.5rem;
+}
+
+.recommendation-button {
+  background-color: #442c13;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: auto;
+}
+
+.recommendation-button:hover {
+  background-color: #33210f;
+}
+
+.recommendations-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 1rem;
+  color: #6d543b;
+  margin-top: 4rem;
+  padding: 2rem;
+  background-color: #fdfbf8;
+  border-radius: 12px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(109, 84, 59, 0.3);
+  border-top-color: #442c13;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
