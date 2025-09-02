@@ -60,6 +60,14 @@ const generativeModel = vertexAi.getGenerativeModel({
             required: ["path"],
           },
       },
+      {
+        name: "getArtisanAnalytics",
+        description: "Retrieves business analytics for an artisan, including best-selling item and monthly sales data. This function should be called when an artisan asks for insights into their sales performance, such as 'What's my best-selling item?' or 'How were my sales last month?'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
     ],
   },
   ],
@@ -188,6 +196,35 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
         if (functionCall.name === "navigateTo" && functionCall.args.path) {
           const pageName = functionCall.args.path.replace(/\//g, ' ').trim() || 'home';
           aiResponseText = `Navigating you to the ${pageName} page.`;
+        } else if (functionCall.name === "getArtisanAnalytics") {
+          logger.info("Calling getArtisanAnalytics function...");
+          if (!request.auth || !request.auth.uid) {
+            throw new HttpsError("unauthenticated", "User ID not available.");
+          }
+          const analyticsResult = await _getArtisanAnalyticsLogic(request.auth.uid);
+
+          let analyticsResponse = "Here are your business insights: ";
+
+          if (analyticsResult.bestSellingItem) {
+            analyticsResponse += `Your best-selling item is '${analyticsResult.bestSellingItem.name}' with ${analyticsResult.bestSellingItem.quantitySold} units sold.`;
+          } else {
+            analyticsResponse += "We couldn't determine your best-selling item yet.";
+          }
+
+          if (analyticsResult.monthlySales && analyticsResult.monthlySales.length > 0) {
+            analyticsResponse += " For monthly sales: ";
+            analyticsResult.monthlySales.forEach((data, index) => {
+              analyticsResponse += `${data.month}: ₹${data.sales.toFixed(2)}`;
+              if (index < analyticsResult.monthlySales.length - 1) {
+                analyticsResponse += ", ";
+              } else {
+                analyticsResponse += ".";
+              }
+            });
+          } else {
+            analyticsResponse += " No monthly sales data available yet.";
+          }
+          aiResponseText = analyticsResponse;
         } else {
           aiResponseText = "I've performed an action based on your request.";
         }
@@ -226,6 +263,87 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
     throw new HttpsError("internal", "Error during speech synthesis.");
   }
 });
+
+// ------------------ Get Artisan Analytics (Gen 2) ------------------
+/**
+ * Fetches and calculates analytics for a given artisan.
+ * @param {string} userId The UID of the artisan to get analytics for.
+ * @return {Promise<object>} A promise that resolves to an object containing
+ * the best selling item and monthly sales data.
+ */
+async function _getArtisanAnalyticsLogic(userId) {
+  try {
+    const [productsSnap, ordersSnap] = await Promise.all([
+      admin.firestore().collection("products").where("artisanId", "==", userId).get(),
+      admin.firestore().collection("orders").where("artisanIds", "array-contains", userId).get(),
+    ]);
+
+    const products = productsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const orders = ordersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    const productSales = {};
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (item.artisanId === userId) {
+          productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity;
+        }
+      });
+    });
+
+    let bestSellingItem = null;
+    let maxQuantitySold = 0;
+    for (const productId in productSales) {
+      if (productSales[productId] > maxQuantitySold) {
+        maxQuantitySold = productSales[productId];
+        bestSellingItem = products.find((p) => p.id === productId);
+      }
+    }
+
+    const monthlySales = {}; 
+    orders.forEach((order) => {
+      if (order.createdAt) {
+        const date = order.createdAt.toDate();
+        const yearMonth = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        order.items.forEach((item) => {
+          if (item.artisanId === userId) {
+            monthlySales[yearMonth] = (monthlySales[yearMonth] || 0) + (item.price * item.quantity);
+          }
+        });
+      }
+    });
+
+    const formattedMonthlySales = Object.entries(monthlySales).map(([month, sales]) => ({
+      month,
+      sales: sales / 100, 
+    })).sort((a, b) => a.month.localeCompare(b.month));
+
+    return {
+      bestSellingItem: bestSellingItem ? {
+        id: bestSellingItem.id,
+        name: bestSellingItem.name,
+        quantitySold: maxQuantitySold,
+      } : null,
+      monthlySales: formattedMonthlySales,
+    };
+
+  } catch (error) {
+    logger.error("Error fetching artisan analytics:", error);
+    throw new HttpsError("internal", "Failed to fetch artisan analytics.");
+  }
+}
+
+exports.getArtisanAnalytics = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to view analytics.");
+  }
+  const userId = request.auth.uid;
+  const userDoc = await admin.firestore().collection("users").doc(userId).get();
+  if (!userDoc.exists || userDoc.data().role !== "artisan") {
+    throw new HttpsError("permission-denied", "Only artisans can view analytics.");
+  }
+  return _getArtisanAnalyticsLogic(userId);
+});
+
 
 // ------------------ Save Conversation (Gen 2) ------------------
 exports.saveConversation = onCall({ cors: true }, async (request) => {
