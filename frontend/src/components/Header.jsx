@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import './Header.css'; 
 import logo from '../assets/images/logo.png'; 
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext'; 
+import { useCart } from '../context/CartContext';
 import { db } from '../firebaseConfig'; 
 import { doc, getDoc } from 'firebase/firestore'; 
 
@@ -10,6 +11,7 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
   const { currentUser, logout } = useAuth();
   const { cartCount } = useCart();
   const [userRole, setUserRole] = useState(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // State for dropdown
 
   useEffect(() => {
     if (currentUser) {
@@ -25,6 +27,22 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
       setUserRole(null);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (event.target.closest('.profile-dropdown-container') === null) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const toggleProfileDropdown = () => {
+    setIsProfileDropdownOpen(prev => !prev);
+  };
 
   return (
     <header className="header">
@@ -49,25 +67,33 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
           {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
         </button>
 
+        {currentUser && (
+          userRole === 'artisan' ? (
+            <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
+              My Dashboard
+            </button>
+          ) : (
+            <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">
+              Shop
+            </button>
+          )
+        )}
+
         {currentUser ? (
-          <div className="user-info">
-            <span className="user-email">{currentUser.email}</span>
-            
-            {userRole === 'artisan' ? (
-              <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
-                My Dashboard
-              </button>
-            ) : (
-              <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">
-                Shop
-              </button>
+          <div className="profile-dropdown-container">
+            <button className="profile-icon-button" onClick={toggleProfileDropdown}>
+              👤 
+            </button>
+            {isProfileDropdownOpen && (
+              <div className="profile-dropdown-menu">
+                <span className="profile-email">{currentUser.email}</span>
+                <button onClick={logout} className="nav-link dropdown-signout">Sign Out</button>
+              </div>
             )}
-            
-            <button onClick={logout} className="nav-link">Sign Out</button>
           </div>
         ) : (
           <>
-            <button onClick={() => onNavigate('shop')} className="nav-link">Shop</button>
+            <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">Shop</button>
             <button onClick={onSignInClick} className="nav-link nav-link--primary">Sign In</button>
           </>
         )}
