@@ -1,25 +1,22 @@
 rules_version = '2';
 
-// The service this ruleset applies to
 service firebase.storage {
-
-  // This matches the bucket for your project
   match /b/{bucket}/o {
   
-    // Rule specifically for the 'products' folder
+    // Your existing, correct rule for product images
     match /products/{userId}/{allPaths=**} {
-    
-      // Allow ANYONE to READ product images.
-      // This is necessary so that visitors to your shop can see the pictures.
-      allow read;
-      
-      // Allow a user to WRITE (upload, update, delete) an image, but ONLY IF:
-      // 1. They are logged in (request.auth is not null)
-      // 2. AND their own User ID (request.auth.uid) matches the {userId} folder
-      //    they are trying to write to. This prevents one artisan from
-      //    uploading images to another artisan's folder.
+      allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // --- ADD THIS NEW RULE BLOCK FOR AVATARS ---
+    // This allows users to upload their own profile pictures during onboarding
+    match /avatars/{userId}/{allPaths=**} {
+      // Allow anyone to read avatar images (for profile pages, etc.)
+      allow read: if true;
+      
+      // Allow an authenticated user to WRITE to their own avatar folder
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

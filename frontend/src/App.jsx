@@ -23,7 +23,9 @@ import ArtisanProfilePage from './pages/ArtisanProfilePage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
-import ProductDetailPage from './pages/ProductDetailPage'; 
+import ProductDetailPage from './pages/ProductDetailPage';
+import OnboardingPage from './pages/OnboardingPage';
+import EditProfilePage from './pages/EditProfilePage'; 
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -65,7 +67,7 @@ const normalizePage = (page) => {
 function App() {
   const { currentUser } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
-  const [userRole, setUserRole] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMitraOpen, setIsMitraOpen] = useState(false);
@@ -88,22 +90,21 @@ function App() {
       if (currentUser) {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        const role = userDoc.exists() ? userDoc.data().role : 'customer';
-        setUserRole(role);
-
-        if (role === 'artisan') {
-          try {
-            const result = await getDashboardSummary();
-            setDashboardData(result.data);
-            if(currentPage !== 'dashboard') navigateTo('dashboard');
-          } catch (error) {
-            console.error("Failed to fetch dashboard data:", error);
-            navigateTo('home');
+        if (userDoc.exists()) {
+          const profileData = { uid: currentUser.uid, ...userDoc.data() };
+          setUserProfile(profileData); 
+        if (!profileData.onboardingComplete) {
+            setCurrentPage('onboarding');
+          } else if (profileData.role === 'artisan' && currentPage !== 'dashboard') {
+            navigateTo('dashboard');
           }
+        } else {
+          console.error("User document not found in Firestore for authenticated user.");
+          setUserProfile(null);
+          navigateTo('home');
         }
       } else {
-        setUserRole(null);
-        setDashboardData(null);
+        setUserProfile(null);
         navigateTo('home');
       }
       setLoading(false);
@@ -132,10 +133,40 @@ function App() {
     setSearchResults(searchData);
     navigateTo('shop'); 
   };
+  const handleProfileUpdate = async () => {
+    if (currentUser) {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUserProfile({ uid: currentUser.uid, ...userDoc.data() });
+      }
+    }
+  };
 
   const renderPage = () => {
     if (loading) {
       return <div className="loading-fullscreen">Loading...</div>;
+    }
+    if (currentPage === 'edit-profile') {
+      return <EditProfilePage 
+               userProfile={userProfile} 
+               onProfileUpdate={handleProfileUpdate}
+               onNavigate={navigateTo} 
+             />;
+    }
+    if (currentPage === 'onboarding' && userProfile) {
+      const handleOnboardingComplete = () => {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        getDoc(userDocRef).then(docSnap => {
+          if (docSnap.exists()) {
+            setUserProfile({ uid: currentUser.uid, ...docSnap.data() });
+          }
+        });
+        
+        const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
+        navigateTo(destination);
+      };
+      return <OnboardingPage userProfile={userProfile} onComplete={handleOnboardingComplete} />;
     }
 
     if (currentPage.startsWith('product/')) {
@@ -168,13 +199,16 @@ function App() {
                          />;
       case 'cart': return <CartPage onNavigate={navigateTo} />;
       case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
-      case 'dashboard': return userRole === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={navigateTo}/> : renderHomepage();
+      case 'dashboard': return userProfile?.role === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={navigateTo}/> : renderHomepage();
       case 'all-states': return <AllStatesPage onNavigate={navigateTo} />;
       case 'all-artisans': return <AllArtisansPage onNavigate={navigateTo} />;
-      case 'addProduct': return userRole === 'artisan' ? <AddProductPage /> : renderHomepage();
+      case 'addProduct': return userProfile?.role === 'artisan' ? <AddProductPage /> : renderHomepage();
       case 'gifting-assistant': return <GiftingAssistantPage />;
       case 'home':
       default:
+        if (currentUser && !userProfile?.onboardingComplete) {
+          return <div className="loading-fullscreen">Loading...</div>;
+        }
         return renderHomepage();
     }
   };

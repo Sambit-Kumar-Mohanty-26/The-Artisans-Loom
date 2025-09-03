@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import './Header.css'; 
 import logo from '../assets/images/logo.png'; 
@@ -10,21 +9,21 @@ import { doc, getDoc } from 'firebase/firestore';
 const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => { 
   const { currentUser, logout } = useAuth();
   const { cartCount } = useCart();
-  const [userRole, setUserRole] = useState(null);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // State for dropdown
+  const [userProfile, setUserProfile] = useState(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
-      const getUserRole = async () => {
+      const getUserProfile = async () => {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setUserRole(userDoc.data().role);
+          setUserProfile(userDoc.data());
         }
       };
-      getUserRole();
+      getUserProfile();
     } else {
-      setUserRole(null);
+      setUserProfile(null);
     }
   }, [currentUser]);
 
@@ -42,6 +41,10 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
 
   const toggleProfileDropdown = () => {
     setIsProfileDropdownOpen(prev => !prev);
+  };
+  const handleDropdownNavigate = (page) => {
+    onNavigate(page);
+    setIsProfileDropdownOpen(false);
   };
 
   return (
@@ -68,7 +71,7 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
         </button>
 
         {currentUser && (
-          userRole === 'artisan' ? (
+          userProfile?.role === 'artisan' ? (
             <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
               My Dashboard
             </button>
@@ -81,12 +84,22 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
 
         {currentUser ? (
           <div className="profile-dropdown-container">
-            <button className="profile-icon-button" onClick={toggleProfileDropdown}>
-              👤 
+            <button className="profile-button" onClick={toggleProfileDropdown}>
+              {userProfile?.photoURL ? (
+                <img src={userProfile.photoURL} alt="Profile" className="profile-image" />
+              ) : (
+                <span className="profile-icon">👤</span>
+              )}
             </button>
             {isProfileDropdownOpen && (
               <div className="profile-dropdown-menu">
                 <span className="profile-email">{currentUser.email}</span>
+                 <button 
+                  onClick={() => handleDropdownNavigate('edit-profile')} 
+                  className="nav-link dropdown-action"
+                >
+                  Edit Profile
+                </button>
                 <button onClick={logout} className="nav-link dropdown-signout">Sign Out</button>
               </div>
             )}

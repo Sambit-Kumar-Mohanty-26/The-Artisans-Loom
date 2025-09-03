@@ -48,8 +48,9 @@ export function AuthProvider({ children }) {
               uid: user.uid,
               email: user.email,
               displayName: user.displayName,
-              role: 'customer',
-              createdAt: new Date()
+              role: 'customer', 
+              createdAt: new Date(),
+              onboardingComplete: false,
             });
           }
         }
@@ -78,7 +79,8 @@ export function AuthProvider({ children }) {
             email: user.email,
             displayName: user.displayName,
             role: role, 
-            createdAt: new Date()
+            createdAt: new Date(),
+            onboardingComplete: false,
           });
         }
         return userCredential;
@@ -96,7 +98,8 @@ export function AuthProvider({ children }) {
       uid: user.uid,
       email: user.email,
       role: role,
-      createdAt: new Date()
+      createdAt: new Date(),
+      onboardingComplete: false, 
     });
     return userCredential;
   }

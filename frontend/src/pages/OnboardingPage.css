@@ -1,0 +1,138 @@
+.onboarding-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #fdfbf8;
+  padding: 2rem;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.onboarding-container {
+  width: 100%;
+  max-width: 700px;
+  background-color: #fff;
+  padding: 2rem 3rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.onboarding-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #33210f;
+  text-align: center;
+  margin: 0;
+}
+
+.onboarding-subtitle {
+  text-align: center;
+  color: #6d543b;
+  font-size: 1.1rem;
+  margin: 0.5rem 0 2.5rem 0;
+}
+
+.onboarding-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-form label {
+  display: block;
+  font-weight: 600;
+  color: #442c13;
+  margin-bottom: 0.5rem;
+}
+
+.onboarding-form input,
+.onboarding-form textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #dcd1c4;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #33210f;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: #fdfdfd;
+}
+
+.onboarding-form input::placeholder,
+.onboarding-form textarea::placeholder {
+  color: #b0a191;
+}
+
+.onboarding-form input:focus,
+.onboarding-form textarea:focus {
+  outline: none;
+  border-color: #8a6e51;
+  box-shadow: 0 0 0 3px rgba(138, 110, 81, 0.2);
+}
+
+.onboarding-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .onboarding-form .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.profile-photo-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px dashed #e5e0da;
+  border-radius: 8px;
+}
+
+.image-preview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.submit-button {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background-color: #442c13;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1.5rem;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #33210f;
+  transform: translateY(-2px);
+}
+
+.submit-button:disabled {
+  background-color: #c9c9c9;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #c00;
+  background-color: #fbebeb;
+  border: 1px solid #e8b9b9;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  margin-top: 1rem;
+}

@@ -6,41 +6,56 @@ import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext'; 
 import './DashboardPage.css';
 
+const getDashboardSummary = httpsCallable(functions, 'getDashboardSummary');
 const getArtisanProducts = httpsCallable(functions, 'getArtisanProducts');
 const getArtisanOrders = httpsCallable(functions, 'getArtisanOrders');
 
-const DashboardPage = ({ data, onNavigate }) => {
+const DashboardPage = ({ onNavigate }) => {
  const { currentUser } = useAuth();
+ const [summaryData, setSummaryData] = useState(null);
  const [products, setProducts] = useState([]);
  const [orders, setOrders] = useState([]);
  const [isLoading, setIsLoading] = useState(true);
+ const [error, setError] = useState('');
 
  useEffect(() => {
   const fetchData = async () => {
    if (!currentUser) return;
+
    setIsLoading(true);
+   setError('');
    try {
-    const [productsResult, ordersResult] = await Promise.all([
-     getArtisanProducts({ artisanId: currentUser.uid }),
-     getArtisanOrders({ artisanId: currentUser.uid })
+    const [summaryResult, productsResult, ordersResult] = await Promise.all([
+     getDashboardSummary(),
+     getArtisanProducts(),
+     getArtisanOrders()
     ]);
+    
+    setSummaryData(summaryResult.data.summaryStats);
     setProducts(productsResult.data.products);
     setOrders(ordersResult.data.orders);
-   } catch (error) {
-    console.error("Error fetching dashboard data:", error);
+
+   } catch (err) {
+    console.error("Error fetching dashboard data:", err);
+    setError('Failed to load your dashboard. Please try refreshing the page.');
    } finally {
     setIsLoading(false);
    }
   };
+
   fetchData();
- }, [currentUser]);
- 
- if (!data) {
-  return <div className="page-loader">Loading Dashboard Data...</div>; 
- }
+ }, [currentUser]); 
 
  const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+ }
+ 
+ if (isLoading) {
+  return <div className="page-loader">Loading Dashboard...</div>;
+ }
+
+ if (error) {
+  return <div className="page-error">{error}</div>;
  }
 
  return (
@@ -58,17 +73,15 @@ const DashboardPage = ({ data, onNavigate }) => {
    </div>
    
    <div className="stats-grid">
-    <StatCard title="Total Sales" value={formatCurrency(data.summaryStats.totalSales)} />
+    <StatCard title="Total Sales" value={summaryData ? formatCurrency(summaryData.totalSales) : '₹0.00'} />
     <StatCard title="Total Products" value={products.length} />
-    <StatCard title="Active Artisans" value={data.summaryStats.activeArtisans || 1} /> 
+    <StatCard title="Active Artisans" value={summaryData ? summaryData.activeArtisans : 1} /> 
     <StatCard title="Total Orders" value={orders.length} />
    </div>
 
     <div className="artisan-orders-section">
       <h2>Recent Orders</h2>
-      {isLoading ? (
-        <p>Loading orders...</p>
-      ) : orders.length > 0 ? (
+      {orders.length > 0 ? (
         <div className="orders-list">
           {orders.map(order => (
             <div key={order.id} className="dashboard-order-card">
@@ -103,9 +116,7 @@ const DashboardPage = ({ data, onNavigate }) => {
 
    <div className="artisan-products-section">
     <h2>My Products</h2>
-    {isLoading ? (
-     <p>Loading your products...</p>
-    ) : products.length > 0 ? (
+     {products.length > 0 ? (
      <div className="products-list">
       {products.map(product => (
        <div 
