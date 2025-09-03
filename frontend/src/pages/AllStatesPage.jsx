@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './AllStatesPage.css';
 
 const allStatesData = [
-{ 
+  { 
     name: 'Andhra Pradesh', 
     image: 'https://th.bing.com/th/id/R.6e7862f748a857bba09de03ec27c3e55?rik=uNe1EjmPy4N%2fRw&riu=http%3a%2f%2fwww.tusktravel.com%2fblog%2fwp-content%2fuploads%2f2019%2f10%2fAnnavaram-Temple-Andhra-Pradesh.jpg&ehk=3XCp9pbSszt103D4VAD0f%2fgQKkOCaLaWj3loKhD%2fk5w%3d&risl=&pid=ImgRaw&r=0', 
     crafts: [
@@ -26,7 +26,7 @@ const allStatesData = [
   },
   { 
     name: 'Assam',
-    image: 'https://www.adotrip.com/public/images/city/master_images/5eb257ab30134-Dispur_Attractions.jpg',
+    image: 'https://images.travelandleisureasia.com/wp-content/uploads/sites/2/2024/01/29132107/Kaziranga-National-Park-Golaghat-Mousam-Ray-Shutterstock.jpg',
     crafts: [
       { name: 'Muga Silk', description: 'Renowned for its golden luster, woven into exquisite mekhela chadors.', image: 'https://www.iiad.edu.in/wp-content/uploads/2022/05/image3-12.webp' },
       { name: 'Bell Metal Craft', description: 'Utensils and artifacts made from bell metal in Sarthebari.', image: 'https://www.revv.co.in/blogs/wp-content/uploads/2022/04/Chattisgarh.jpg' }
@@ -371,7 +371,7 @@ const allStatesData = [
     image: 'https://d27k8xmh3cuzik.cloudfront.net/wp-content/uploads/2016/02/Stakna-monastery-in-Leh-Ladakh.jpg',
     crafts: [
       { name: 'Thangka Painting', description: 'Tibetan Buddhist paintings depicting deities, mandalas, or scenes.', image: 'https://th.bing.com/th/id/R.ddf8bd13e7d498cba76daba1d05dd02d?rik=IoHWETjXLQt6SA&riu=http%3a%2f%2ftraditionalartofnepal.com%2fwp-content%2fuploads%2f2015%2f05%2fCanvas-Life-of-Buddha-painting.jpg&ehk=9uHTVd6bkoc9EjO7FAzciMsTQmxOBw862g7iWssMa0Q%3d&risl=&pid=ImgRaw&r=0' },
-      { name: 'Pashmina Weaving', description: 'Home to the Changthangi goat, the source of the finest Pashmina wool.', image: 'https://d35l77wxi0xou3.cloudfront.net/collab/craft1576495910pashmina%20showcase%204.jpg' }
+      { name: 'Pashmina Weaving', description: 'Home to the Changthangi goat, the source of the finest Pashmina wool.', image: 'https://www.mapsofindia.com/ci-moi-images/my-india/Pashmina-Shawls-of-Kashmir-665x444.jpg' }
     ],
     microtext: 'Land of High Passes',
     badge: '🙏',
@@ -404,29 +404,41 @@ const allStatesData = [
 const StateCard = ({ state, onNavigate }) => (
   <div 
     className="state-card"
-    style={{ backgroundImage: `url(${state.image})` }}
-    onClick={() => onNavigate(`state/${state.name.toLowerCase().replace(/\s+/g, '-')}`)}
+    onClick={() => onNavigate(`state/${state.name.toLowerCase().replace(/[\s&,]+/g, '-')}`)}
   >
-    <div className="craft-badge">{state.badge}</div>
+    <div className="state-card-image" style={{ backgroundImage: `url(${state.image})` }}></div>
     <div className="state-info">
-      <h3 className="state-name">{state.name}</h3>
+      <div className="state-header">
+        <span className="craft-badge">{state.badge}</span>
+        <h3 className="state-name">{state.name}</h3>
+      </div>
       <p className="state-microtext">{state.microtext}</p>
-      <div className="craft-tags">
-        {state.crafts.map(craft => (
-          <span key={craft.name} className="craft-tag">{craft.name}</span>
-        ))}
+      
+      <div className="state-crafts-container">
+        <p className="crafts-title">Featured Crafts:</p>
+        <div className="crafts-list">
+            {state.crafts.slice(0, 2).map(craft => (
+              <div key={craft.name} className="craft-item" title={craft.description}>
+                <img src={craft.image} alt={craft.name} className="craft-item-image" />
+                <span className="craft-item-name">{craft.name}</span>
+              </div>
+            ))}
+        </div>
       </div>
     </div>
   </div>
 );
+
 
 const AllStatesPage = ({ onNavigate }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredStates, setFilteredStates] = useState(allStatesData);
 
   useEffect(() => {
+    const sortedStates = [...allStatesData].sort((a, b) => a.name.localeCompare(b.name));
+    
     const lowercasedFilter = searchTerm.toLowerCase();
-    const filtered = allStatesData.filter(state => {
+    const filtered = sortedStates.filter(state => {
       return (
         state.name.toLowerCase().includes(lowercasedFilter) ||
         state.crafts.some(craft => craft.name.toLowerCase().includes(lowercasedFilter))
@@ -435,10 +447,6 @@ const AllStatesPage = ({ onNavigate }) => {
     setFilteredStates(filtered);
   }, [searchTerm]);
   
-  const findStateData = (stateSlug) => {
-    return allStatesData.find(state => state.name.toLowerCase().replace(/\s+/g, '-') === stateSlug);
-  };
-
   return (
     <div className="all-states-page">
       <div className="page-header">
@@ -447,7 +455,7 @@ const AllStatesPage = ({ onNavigate }) => {
         <div className="search-container">
           <input
             type="text"
-            placeholder="Search by state or craft (e.g., 'Pottery')"
+            placeholder="Search by state or craft (e.g., 'Pashmina')"
             className="search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -465,7 +473,7 @@ const AllStatesPage = ({ onNavigate }) => {
 };
 
 export const findStateData = (stateSlug) => {
-    return allStatesData.find(state => state.name.toLowerCase().replace(/\s+/g, '-') === stateSlug);
+    return allStatesData.find(state => state.name.toLowerCase().replace(/[\s&,]+/g, '-') === stateSlug);
 };
 
 export default AllStatesPage;
