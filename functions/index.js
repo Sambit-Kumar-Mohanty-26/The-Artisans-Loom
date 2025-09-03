@@ -828,7 +828,7 @@ exports.visualSearchForProducts = onCall({ cors: true }, async (request) => {
     throw new HttpsError("internal", "Failed to analyze image or find products.");
   }
 });
-
+//----------------AI Recommendations-------------------
 exports.getAiRecommendations = onCall(
   {
     cors: [
@@ -898,7 +898,7 @@ exports.getAiRecommendations = onCall(
     }
   }
 );
-
+//----------------Dynamic Featured Products-------------------
 exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
   try {
     const productsRef = admin.firestore().collection("products");
