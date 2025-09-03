@@ -843,7 +843,6 @@ exports.getAiRecommendations = onCall(
     }
 
     try {
-      // 1. Find candidate products (unchanged)
       const productsRef = admin.firestore().collection("products");
       const recsQuery = productsRef
         .where('category', '==', mainProduct.category)
@@ -862,8 +861,6 @@ exports.getAiRecommendations = onCall(
       if (candidateProducts.length === 0) {
         return { recommendations: [] };
       }
-
-      // 2. A simple, clear prompt asking for a text-based JSON response.
       const prompt = `
         A user is interested in "${mainProduct.name}", a ${mainProduct.category} craft from ${mainProduct.region}.
         Provide compelling, story-driven reasons to recommend the following products:
@@ -872,31 +869,22 @@ exports.getAiRecommendations = onCall(
         You MUST return your response as a single, raw JSON array of objects. Do not include markdown, greetings, or any other text.
         Each object must have these exact keys: "name" and "reason".
       `;
-
-      // 3. Call the generative model
       const result = await generativeModel.generateContent(prompt);
       const response = result.response;
-      
-      // --- THIS IS THE NEW, ROBUST PARSING LOGIC ---
-      // 4. We will now safely extract the JSON from the AI's plain text response.
+
       if (!response.candidates[0] || !response.candidates[0].content || !response.candidates[0].content.parts[0]) {
         throw new Error("AI returned an empty or invalid response structure.");
       }
       
       const responseText = response.candidates[0].content.parts[0].text;
-      
-      // Use a regular expression to find the JSON array, even if it's surrounded by other text.
       const jsonMatch = responseText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
       
       if (!jsonMatch) {
         logger.error("Could not find a valid JSON array in the AI's response. Raw response text:", responseText);
         throw new Error("AI response did not contain a valid JSON array.");
       }
-      
-      // Safely parse the extracted JSON string.
-      const recommendationsWithReasons = JSON.parse(jsonMatch[0]);
 
-      // 5. Merge the AI data with our full product data (unchanged)
+      const recommendationsWithReasons = JSON.parse(jsonMatch[0]);
       const finalRecommendations = recommendationsWithReasons.map((rec) => {
           const fullProduct = candidateProducts.find((p) => p.name === rec.name);
           return fullProduct ? { ...fullProduct, reason: rec.reason } : null;
@@ -910,3 +898,33 @@ exports.getAiRecommendations = onCall(
     }
   }
 );
+
+exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
+  try {
+    const productsRef = admin.firestore().collection("products");
+    const limitNum = 3; 
+    const randomId = productsRef.doc().id;
+    const query1 = productsRef
+      .where(admin.firestore.FieldPath.documentId(), '>=', randomId)
+      .limit(limitNum);
+      
+    const snapshot1 = await query1.get();
+    let products = snapshot1.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    if (products.length < limitNum) {
+      const needed = limitNum - products.length;
+      const query2 = productsRef
+        .where(admin.firestore.FieldPath.documentId(), '<', randomId)
+        .limit(needed);
+        
+      const snapshot2 = await query2.get();
+      const moreProducts = snapshot2.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      products = [...products, ...moreProducts];
+    }
+
+    return { products };
+
+  } catch (error) {
+    logger.error("Error fetching featured products:", error);
+    throw new HttpsError("internal", "Failed to fetch featured products.");
+  }
+});
