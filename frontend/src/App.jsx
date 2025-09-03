@@ -23,6 +23,7 @@ import ArtisanProfilePage from './pages/ArtisanProfilePage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
+import ProductDetailPage from './pages/ProductDetailPage'; 
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -137,6 +138,11 @@ function App() {
       return <div className="loading-fullscreen">Loading...</div>;
     }
 
+    if (currentPage.startsWith('product/')) {
+      const productId = currentPage.split('/')[1];
+      return <ProductDetailPage productId={productId} onNavigate={navigateTo} />;
+    }
+
     if (currentPage.startsWith('artisan/')) {
       const artisanId = currentPage.split('/')[1];
       return <ArtisanProfilePage artisanId={artisanId} onNavigate={navigateTo} />;
@@ -155,7 +161,11 @@ function App() {
 
     switch (currentPage) {
       case 'auth': return <AuthPage />;
-      case 'shop': return <ShopPage initialSearch={searchResults} clearSearch={() => { setSearchResults(null); }} />;
+      case 'shop': return <ShopPage 
+                            initialSearch={searchResults} 
+                            clearSearch={() => setSearchResults(null)} 
+                            onNavigate={navigateTo} 
+                         />;
       case 'cart': return <CartPage onNavigate={navigateTo} />;
       case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
       case 'dashboard': return userRole === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={navigateTo}/> : renderHomepage();

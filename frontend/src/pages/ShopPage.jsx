@@ -13,7 +13,7 @@ const CloseIcon = () => (
   </svg>
 );
 
-const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
+const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) => {
   const [products, setProducts] = useState([]);
   const [aiRecommendations, setAiRecommendations] = useState([]);
   const [isRecsLoading, setIsRecsLoading] = useState(false);
@@ -126,7 +126,7 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {} }) => {
               price: product.price / 100,
               image: product.imageUrl,
             };
-            return <ProductCard key={product.id} product={productCardData} />;
+            return <ProductCard key={product.id} product={productCardData} onNavigate={onNavigate} />;
           })}
         </div>
       );

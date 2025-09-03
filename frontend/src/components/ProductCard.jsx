@@ -3,10 +3,9 @@ import './ProductCard.css';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onNavigate }) => {
   const { currentUser } = useAuth();
   const { addToCart, cartItems } = useCart();
-
   const [isAdding, setIsAdding] = useState(false);
   const [showLoginError, setShowLoginError] = useState(false);
 
@@ -14,12 +13,12 @@ const ProductCard = ({ product }) => {
     (item) => item.productId === product.id
   );
 
-  const imageUrl =
-    product.image || product.imageUrl || 'https://via.placeholder.com/300';
+  const imageUrl = product.image || product.imageUrl || 'https://via.placeholder.com/300';
   const originalPrice = product.originalPrice;
-  const displayPrice = product.price;
+  const displayPrice = product.price / 100; 
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (e) => {
+    e.stopPropagation(); 
     if (!currentUser) {
       setShowLoginError(true);
       setTimeout(() => setShowLoginError(false), 2500); 
@@ -37,25 +36,24 @@ const ProductCard = ({ product }) => {
       setIsAdding(false);
     }, 1500);
   };
+  const handleNavigate = () => {
+    if (typeof onNavigate === 'function') {
+      onNavigate(`product/${product.id}`);
+    }
+  };
 
   return (
-    <div className="product-card">
-      <button className="favorite-button">♡</button>
+    <div className="product-card" onClick={handleNavigate}>
+      <button className="favorite-button" onClick={(e) => e.stopPropagation()}>♡</button>
 
       <div className="product-image-container">
         <img src={imageUrl} alt={product.name} className="product-image" />
-
         <div className="product-tags">
           {product.tag && (
-            <span
-              className={`product-tag-ribbon ${product.tag
-                .toLowerCase()
-                .replace(/\s/g, '-')}`}
-            >
+            <span className={`product-tag-ribbon ${product.tag.toLowerCase().replace(/\s/g, '-')}`}>
               {product.tag}
             </span>
           )}
-
           {product.discount > 0 && (
             <span className="discount-pill">{product.discount}% OFF</span>
           )}
@@ -63,51 +61,27 @@ const ProductCard = ({ product }) => {
       </div>
 
       <div className="product-details">
-        <h3 className="product-name">
-          {product.name || 'Untitled Product'}
-        </h3>
-
+        <h3 className="product-name">{product.name || 'Untitled Product'}</h3>
         {product.artisan && (
           <p className="product-artisan">by {product.artisan}</p>
         )}
-
         {product.reviews > 0 && (
           <div className="product-rating">
             {Array.from({ length: 5 }, (_, index) => (
-              <span
-                key={index}
-                className={`star ${
-                  index < Math.round(product.rating) ? 'filled' : ''
-                }`}
-              >
-                ★
-              </span>
+              <span key={index} className={`star ${index < Math.round(product.rating) ? 'filled' : ''}`}>★</span>
             ))}
-            <span className="rating-text">
-              {product.rating.toFixed(1)} ({product.reviews})
-            </span>
+            <span className="rating-text">{product.rating.toFixed(1)} ({product.reviews})</span>
           </div>
         )}
-
         <div className="product-pricing">
-          <span className="current-price">
-            ₹
-            {displayPrice
-              ? displayPrice.toLocaleString('en-IN')
-              : 'N/A'}
-          </span>
+          <span className="current-price">₹{displayPrice ? displayPrice.toLocaleString('en-IN') : 'N/A'}</span>
           {originalPrice && (
-            <span className="original-price">
-              ₹{originalPrice.toLocaleString('en-IN')}
-            </span>
+            <span className="original-price">₹{(originalPrice / 100).toLocaleString('en-IN')}</span>
           )}
         </div>
-
         <div className="btn-container">
           <button
-            className={`add-to-cart-btn 
-              ${isAdding ? 'adding' : ''} 
-              ${isAlreadyInCart ? 'in-cart' : ''}`}
+            className={`add-to-cart-btn ${isAdding ? 'adding' : ''} ${isAlreadyInCart ? 'in-cart' : ''}`}
             onClick={handleAddToCart}
             disabled={isAlreadyInCart || product.stock === 0 || isAdding}
           >
@@ -119,7 +93,6 @@ const ProductCard = ({ product }) => {
               ? 'Adding...'
               : 'Add to Cart'}
           </button>
-
           {showLoginError && (
             <div className="login-error-message">
               <span className="error-icon">✖</span> Please log in to add items.
