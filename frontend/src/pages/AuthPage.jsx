@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import './AuthPage.css';
 import { useLanguage } from '../context/LanguageContext';
-import { functions } from '../firebaseConfig';
+import { functions, auth, db } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
-import './AuthPage.css';
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const getTranslations = httpsCallable(functions, 'getTranslations');
 
@@ -29,25 +31,35 @@ const englishContent = {
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
-    <path fill="#FFC107" d="M43.611,20.083h-18.3v7.834h10.5c-1.5,4.5-5.5,7.5-10.5,7.5c-6.083,0-11-4.917-11-11s4.917-11,11-11c2.667,0,5.083,1,7,2.5l5.833-5.833c-3.333-3-7.667-5-12.833-5c-10.5,0-19,8.5-19,19s8.5,19,19,19c10.5,0,18.833-8.5,18.833-19C43.611,22.25,43.611,21.167,43.611,20.083z" />
-    <path fill="#FF3D00" d="M6.611,14.083l6.5,4.833c1.833-4.5,5.833-8,10.833-9.5l-5.833-5.833C13.444,6.583,8.444,9.583,6.611,14.083z" />
-    <path fill="#4CAF50" d="M24.611,43.083c5.167,0,9.833-2,13.167-5.167l-6.5-5.5c-1.833,1.5-4.167,2.5-6.667,2.5c-4.833,0-8.833-3.333-10.333-7.833l-6.5,5.167C10.444,38.083,17.444,43.083,24.611,43.083z" />
-    <path fill="#1976D2" d="M43.611,20.083h-18.3v7.834h10.5c-1.5,4.5-5.5,7.5-10.5,7.5c-6.083,0-11-4.917-11-11s4.917-11,11-11c2.667,0,5.083,1,7,2.5l5.833-5.833c-3.333-3-7.667-5-12.833-5c-10.5,0-19,8.5-19,19s8.5,19,19,19c10.5,0,18.833-8.5,18.833-19C43.611,22.25,43.611,21.167,43.611,20.083z" />
+    <path fill="#FFC107" d="M43.611,20.083h-18.3v7.834h10.5c-1.5,4.5-5.5,7.5-10.5,7.5
+      c-6.083,0-11-4.917-11-11s4.917-11,11-11c2.667,0,5.083,1,7,2.5l5.833-5.833
+      c-3.333-3-7.667-5-12.833-5c-10.5,0-19,8.5-19,19s8.5,19,19,19
+      c10.5,0,18.833-8.5,18.833-19C43.611,22.25,43.611,21.167,43.611,20.083z"/>
+    <path fill="#FF3D00" d="M6.611,14.083l6.5,4.833c1.833-4.5,5.833-8,10.833-9.5
+      l-5.833-5.833C13.444,6.583,8.444,9.583,6.611,14.083z"/>
+    <path fill="#4CAF50" d="M24.611,43.083c5.167,0,9.833-2,13.167-5.167l-6.5-5.5
+      c-1.833,1.5-4.167,2.5-6.667,2.5c-4.833,0-8.833-3.333-10.333-7.833l-6.5,5.167
+      C10.444,38.083,17.444,43.083,24.611,43.083z"/>
+    <path fill="#1976D2" d="M43.611,20.083h-18.3v7.834h10.5c-1.5,4.5-5.5,7.5-10.5,7.5
+      c-6.083,0-11-4.917-11-11s4.917-11,11-11c2.667,0,5.083,1,7,2.5l5.833-5.833
+      c-3.333-3-7.667-5-12.833-5c-10.5,0-19,8.5-19,19s8.5,19,19,19
+      c10.5,0,18.833-8.5,18.833-19C43.611,22.25,43.611,21.167,43.611,20.083z"/>
   </svg>
 );
 
-const AuthPage = () => {
+const AuthPage = ({ onAuthSuccess }) => {
   const { currentLanguage } = useLanguage();
   const [content, setContent] = useState(englishContent);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [userType, setUserType] = useState('artisan'); 
-  const [isLoginMode, setIsLoginMode] = useState(true); 
+  const [userType, setUserType] = useState('artisan');
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signup, login, loginWithGoogle } = useAuth();
+  const { signup, login } = useAuth();
 
+  // --- Handle translations ---
   useEffect(() => {
     const translateContent = async () => {
       if (currentLanguage.code === 'en') {
@@ -62,14 +74,10 @@ const AuthPage = () => {
           targetLanguageCode: currentLanguage.code,
         });
         const translations = result.data.translations;
-        setContent({
-          brandName1: translations[0], brandName2: translations[1], brandName3: translations[2],
-          customersButton: translations[3], artisansButton: translations[4], formTitleArtisans: translations[5],
-          formTitleCustomers: translations[6], signInTab: translations[7], signUpTab: translations[8],
-          emailPlaceholder: translations[9], passwordPlaceholder: translations[10], signInButton: translations[11],
-          signUpButton: translations[12], loadingButton: translations[13], googleButton: translations[14],
-          createAccountLink: translations[15], alreadyHaveAccountLink: translations[16],
-        });
+        setContent(Object.keys(englishContent).reduce((acc, key, i) => {
+          acc[key] = translations[i];
+          return acc;
+        }, {}));
       } catch (err) {
         console.error("Failed to translate AuthPage content:", err);
         setContent(englishContent);
@@ -80,6 +88,7 @@ const AuthPage = () => {
     translateContent();
   }, [currentLanguage]);
 
+  // --- Email/Password auth ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -90,20 +99,43 @@ const AuthPage = () => {
       } else {
         await signup(email, password, userType);
       }
+      onAuthSuccess && onAuthSuccess();
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
+    } finally {
       setLoading(false);
     }
   };
 
+  // --- Google Sign In with Firestore persistence ---
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
     try {
-      await loginWithGoogle(userType);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+          displayName: user.displayName,
+          email: user.email,
+          uid: user.uid,
+          photoURL: user.photoURL,
+          role: userType,
+          createdAt: new Date(),
+        });
+      }
+
+      onAuthSuccess && onAuthSuccess();
     } catch (err) {
+      console.error("Google Sign-In Error:", err);
       setError(err.message.replace('Firebase: ', ''));
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -131,9 +163,13 @@ const AuthPage = () => {
           </button>
         </div>
       </div>
+
       <div className="auth-right-panel">
         <div className="auth-form-wrapper">
-          <h2 className="form-title">{userType === 'artisan' ? content.formTitleArtisans : content.formTitleCustomers}</h2>
+          <h2 className="form-title">
+            {userType === 'artisan' ? content.formTitleArtisans : content.formTitleCustomers}
+          </h2>
+
           <div className="tab-container">
             <button className={`tab ${isLoginMode ? 'active' : ''}`} onClick={() => setIsLoginMode(true)}>
               {content.signInTab}
@@ -142,18 +178,20 @@ const AuthPage = () => {
               {content.signUpTab}
             </button>
           </div>
+
+          {/* Email/Password Form */}
           <form onSubmit={handleSubmit}>
-            <input 
-              className="auth-input" 
-              type="email" 
+            <input
+              className="auth-input"
+              type="email"
               placeholder={content.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <input 
-              className="auth-input" 
-              type="password" 
+            <input
+              className="auth-input"
+              type="password"
               placeholder={content.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -164,10 +202,13 @@ const AuthPage = () => {
               {loading ? content.loadingButton : (isLoginMode ? content.signInButton : content.signUpButton)}
             </button>
           </form>
+
+          {/* Google Sign In */}
           <button className="auth-button google" onClick={handleGoogleSignIn} disabled={loading}>
             <GoogleIcon />
             {content.googleButton}
           </button>
+
           <p className="auth-link" onClick={() => setIsLoginMode(prev => !prev)}>
             {isLoginMode ? content.createAccountLink : content.alreadyHaveAccountLink}
           </p>
