@@ -2,6 +2,7 @@
   padding: 2rem 4rem;
   max-width: 1400px;
   margin: 0 auto;
+  transition: opacity 0.4s ease-in-out;
 }
 
 .cart-page-container h2 {
@@ -114,8 +115,7 @@
   background-color: #2c2c44;
 }
 
-/* --- STYLES FOR EMPTY CART AND BUTTON (RENAMED TO MATCH JSX) --- */
-.empty-cart { /* <-- RENAMED from .empty-cart-container */
+.empty-cart {
   text-align: center;
   padding: 4rem 2rem;
   background-color: #fff;
@@ -129,7 +129,7 @@
   margin-bottom: 2rem;
 }
 
-.shop-now-btn { /* <-- RENAMED from .continue-shopping-btn */
+.shop-now-btn { 
   background-color: transparent;
   color: #3a3a58; 
   border: 2px solid #3a3a58; 
@@ -141,7 +141,7 @@
   transition: all 0.3s ease; 
 }
 
-.shop-now-btn:hover { /* <-- RENAMED from .continue-shopping-btn:hover */
+.shop-now-btn:hover { 
   background-color: #3a3a58; 
   color: #fff; 
   transform: translateY(-2px); 
@@ -181,4 +181,8 @@
 .clear-cart-btn:hover {
   background-color: #e0e0e0;
   color: #333;
+}
+
+.cart-page-container.translating {
+  opacity: 0.7;
 }

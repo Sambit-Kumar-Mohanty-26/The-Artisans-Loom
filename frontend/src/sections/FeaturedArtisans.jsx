@@ -1,74 +1,102 @@
-import React from 'react';
+import React,{useState, useEffect } from 'react';
+import { functions } from '../firebaseConfig'; 
+import { httpsCallable } from 'firebase/functions';
+import { useLanguage } from '../context/LanguageContext';
 import ArtisanCard from '../components/ArtisanCard';
 import Button from '../components/Button';
 import './FeaturedArtisans.css';
 
+const getFeaturedArtisans = httpsCallable(functions, 'getFeaturedArtisans');
+const getTranslations = httpsCallable(functions, 'getTranslations');
 
-import kamalaDeviImg from '../assets/images/kamala-devi.png';
-import arjunPatelImg from '../assets/images/arjun-patel.png';
-import meeraSharmaImg from '../assets/images/meera-sharma.png';
-
-const featuredArtisansData = [
-  {
-    id: 'kamala-devi-1',
-    name: 'Kamala Devi',
-    location: 'Rajasthan, India',
-    badge: 'Heritage Master',
-    craft: 'Block Printing', 
-    experience: 25, 
-    description: 'Master of traditional Rajasthani block printing, carrying forward her grandmother’s 100-year-old techniques.', // Corrected from 'bio'
-    rating: 4.9,
-    products: 42,
-    image: kamalaDeviImg,
-  },
-  {
-    id: 'arjun-patel-2',
-    name: 'Arjun Patel',
-    location: 'Gujarat, India',
-    badge: 'Verified Artist',
-    craft: 'Ceramic Pottery', 
-    experience: 18,
-    description: 'Third-generation potter specializing in traditional Gujarati ceramics with contemporary designs.',
-    rating: 4.8,
-    products: 36,
-    image: arjunPatelImg,
-  },
-  {
-    id: 'meera-sharma-3',
-    name: 'Meera Sharma',
-    location: 'Odisha, India',
-    badge: 'Cultural Guardian',
-    craft: 'Palm Leaf Engraving', 
-    experience: 22,
-    description: 'Preserving the ancient art of palm leaf manuscripts and traditional Odishan engravings.',
-    rating: 4.9,
-    products: 28,
-    image: meeraSharmaImg,
-  },
-];
+const englishContent = {
+  tag: "⭐ Featured Artisans",
+  title: "Meet the Masters Behind the Magic",
+  subtitle: "Discover the incredible stories and heritage craftsmanship of India’s most talented artists.",
+  loadingText: "Loading artisans...",
+  browseButton: "Discover All Artisans",
+};
 
 const FeaturedArtisans = ({ onNavigate }) => {
+  const { currentLanguage } = useLanguage();
+  const [artisans, setArtisans] = useState([]);
+  const [content, setContent] = useState(englishContent);
+  const [loading, setLoading] = useState(true);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  useEffect(() => {
+    const fetchArtisans = async () => {
+      setLoading(true);
+      try {
+        const result = await getFeaturedArtisans();
+        setArtisans(result.data.artisans);
+      } catch (error) {
+        console.error("Error fetching featured artisans:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchArtisans();
+  }, []); 
+
+  useEffect(() => {
+    const translateContent = async () => {
+      if (currentLanguage.code === 'en') {
+        setContent(englishContent);
+        return;
+      }
+      setIsTranslating(true);
+      try {
+        const textsToTranslate = Object.values(englishContent);
+        const result = await getTranslations({
+          texts: textsToTranslate,
+          targetLanguageCode: currentLanguage.code,
+        });
+        
+        const translations = result.data.translations;
+        setContent({
+          tag: translations[0],
+          title: translations[1],
+          subtitle: translations[2],
+          loadingText: translations[3],
+          browseButton: translations[4],
+        });
+      } catch (error) {
+        console.error("Failed to translate FeaturedArtisans content:", error);
+        setContent(englishContent);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+    translateContent();
+  }, [currentLanguage]);
+
   return (
     <section className="featured-artisans-section">
-      <div className="section-header">
-        <span className="section-tag">⭐ Featured Artisans</span>
-        <h2 className="section-title">Meet the Masters Behind the Magic</h2>
-        <p className="section-subtitle">
-          Discover the incredible stories and heritage craftsmanship of India’s most talented artists.
-        </p>
+      <div className={`section-header ${isTranslating ? 'translating' : ''}`}>
+        <span className="section-tag">{content.tag}</span>
+        <h2 className="section-title">{content.title}</h2>
+        <p className="section-subtitle">{content.subtitle}</p>
       </div>
-      <div className="artisans-grid">
-        {featuredArtisansData.map((artisan) => (
-          <ArtisanCard 
-            key={artisan.id} 
-            artisan={artisan} 
-            onNavigate={onNavigate} 
-          />
-        ))}
-      </div>
+      
+      {loading ? (
+        <p>{content.loadingText}</p>
+      ) : (
+        <div className="artisans-grid">
+          {artisans.map((artisan) => (
+            <ArtisanCard 
+              key={artisan.id} 
+              artisan={artisan} 
+              onNavigate={onNavigate} 
+            />
+          ))}
+        </div>
+      )}
+
       <div className="section-footer">
         <Button 
-            text="Discover All Artisans" 
+            text={content.browseButton}
             type="dark" 
             onClick={() => onNavigate('all-artisans')} 
         />
@@ -78,4 +106,3 @@ const FeaturedArtisans = ({ onNavigate }) => {
 };
 
 export default FeaturedArtisans;
-

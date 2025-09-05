@@ -9,7 +9,7 @@
   gap: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  align-items: stretch; /* Ensure grid items stretch to fill available height */
+  align-items: stretch; 
 }
 
 @media (max-width: 1024px) {
@@ -29,4 +29,27 @@
   .products-grid {
     grid-template-columns: 1fr; 
   }
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  transition: opacity 0.4s ease-in-out;
+}
+.section-header.translating {
+  opacity: 0.5;
+}
+
+.section-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #442c13;
+  margin-bottom: 0.5rem;
+}
+
+.section-header p {
+  font-size: 1.1rem;
+  color: #6d543b;
+  max-width: 600px;
+  margin: 0 auto;
 }

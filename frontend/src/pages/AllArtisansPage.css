@@ -68,3 +68,17 @@
     color: #666;
     margin-top: 0.5rem;
 }
+.all-artisans-page .page-header {
+  transition: opacity 0.4s ease-in-out;
+}
+
+.all-artisans-page .page-header.translating {
+  opacity: 0.5;
+}
+
+.loading-text {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #6d543b;
+  padding: 4rem 0;
+}

@@ -3,16 +3,45 @@ import { db, storage } from '../firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../context/AuthContext';
-import './EditProfilePage.css'; 
+import { useLanguage } from '../context/LanguageContext'; // --- IMPORT a
+import { functions } from '../firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
+import './EditProfilePage.css';
+
+// Create a reference to your universal translation function
+const getTranslations = httpsCallable(functions, 'getTranslations');
+
+// Store all static English text in an object
+const englishContent = {
+  title: "Edit Your Profile",
+  profilePhotoLabel: "Profile Photo",
+  nameLabel: "Full Name / Brand Name",
+  phoneLabel: "Phone Number",
+  locationLabel: "City / State",
+  ageLabel: "Age",
+  craftLabel: "Primary Craft",
+  storyLabel: "Your Story / About Your Craft",
+  backButton: "Back",
+  saveButton: "Save Changes",
+  savingButton: "Saving...",
+  successMessage: "Profile updated successfully!",
+  errorMessage: "Failed to update profile. Please try again.",
+};
 
 const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
   const { currentUser } = useAuth();
+  const { currentLanguage } = useLanguage();
+  
   const [formData, setFormData] = useState({});
+  const [content, setContent] = useState(englishContent);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Effect 1: Pre-fill the form with user data (unchanged)
   useEffect(() => {
     if (userProfile) {
       setFormData({
@@ -27,13 +56,49 @@ const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
     }
   }, [userProfile]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    const translateContent = async () => {
+      if (currentLanguage.code === 'en') {
+        setContent(englishContent);
+        return;
+      }
+      setIsTranslating(true);
+      try {
+        const textsToTranslate = Object.values(englishContent);
+        const result = await getTranslations({
+          texts: textsToTranslate,
+          targetLanguageCode: currentLanguage.code,
+        });
+        const translations = result.data.translations;
+        setContent({
+          title: translations[0],
+          profilePhotoLabel: translations[1],
+          nameLabel: translations[2],
+          phoneLabel: translations[3],
+          locationLabel: translations[4],
+          ageLabel: translations[5],
+          craftLabel: translations[6],
+          storyLabel: translations[7],
+          backButton: translations[8],
+          saveButton: translations[9],
+          savingButton: translations[10],
+          successMessage: translations[11],
+          errorMessage: translations[12],
+        });
+      } catch (err) {
+        console.error("Failed to translate EditProfilePage content:", err);
+        setContent(englishContent);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+    translateContent();
+  }, [currentLanguage]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
+  const handleChange = (e) => { const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+   };
+  const handleImageChange = (e) => { const file = e.target.files[0];
     if (file) {
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
@@ -59,10 +124,10 @@ const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
       await updateDoc(userDocRef, updateData);
       await onProfileUpdate();
 
-      setSuccess('Profile updated successfully!');
+      setSuccess(content.successMessage); 
       
     } catch (err) {
-      setError('Failed to update profile. Please try again.');
+      setError(content.errorMessage); 
       console.error(err);
     } finally {
       setLoading(false);
@@ -73,25 +138,25 @@ const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
 
   return (
     <div className="edit-profile-page">
-      <div className="edit-profile-container">
-        <h1 className="edit-profile-title">Edit Your Profile</h1>
+      <div className={`edit-profile-container ${isTranslating ? 'translating' : ''}`}>
+        <h1 className="edit-profile-title">{content.title}</h1>
         <form onSubmit={handleSubmit} className="edit-profile-form">
           <div className="form-group profile-photo-group">
-            <label htmlFor="photo">Profile Photo</label>
+            <label htmlFor="photo">{content.profilePhotoLabel}</label>
             {imagePreview && <img src={imagePreview} alt="Profile preview" className="image-preview" />}
             <input id="photo" name="photo" type="file" onChange={handleImageChange} accept="image/*" />
           </div>
           <div className="form-group">
-            <label htmlFor="displayName">Full Name / Brand Name</label>
+            <label htmlFor="displayName">{content.nameLabel}</label>
             <input id="displayName" name="displayName" type="text" value={formData.displayName} onChange={handleChange} />
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="phoneNumber">Phone Number</label>
+              <label htmlFor="phoneNumber">{content.phoneLabel}</label>
               <input id="phoneNumber" name="phoneNumber" type="tel" value={formData.phoneNumber} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label htmlFor="location">City / State</label>
+              <label htmlFor="location">{content.locationLabel}</label>
               <input id="location" name="location" type="text" value={formData.location} onChange={handleChange} />
             </div>
           </div>
@@ -99,16 +164,16 @@ const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
             <>
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="age">Age</label>
+                  <label htmlFor="age">{content.ageLabel}</label>
                   <input id="age" name="age" type="number" value={formData.age} onChange={handleChange} />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="specialization">Primary Craft</label>
+                  <label htmlFor="specialization">{content.craftLabel}</label>
                   <input id="specialization" name="specialization" type="text" value={formData.specialization} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-group">
-                <label htmlFor="story">Your Story / About Your Craft</label>
+                <label htmlFor="story">{content.storyLabel}</label>
                 <textarea id="story" name="story" rows="5" value={formData.story} onChange={handleChange}></textarea>
               </div>
             </>
@@ -119,10 +184,10 @@ const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
           
           <div className="form-actions">
             <button type="button" className="cancel-button" onClick={() => onNavigate(isArtisan ? 'dashboard' : 'home')}>
-              Back
+              {content.backButton}
             </button>
             <button type="submit" className="submit-button" disabled={loading}>
-              {loading ? 'Saving...' : 'Save Changes'}
+              {loading ? content.savingButton : content.saveButton}
             </button>
           </div>
         </form>

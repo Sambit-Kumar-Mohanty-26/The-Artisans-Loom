@@ -1,6 +1,7 @@
 .dashboard-page {
   padding: 2rem;
   background-color: #f9f9f9;
+  transition: opacity 0.4s ease-in-out;
 }
 
 .dashboard-header {
@@ -302,7 +303,6 @@
   font-size: 0.9rem;
 }
 
-/* This is the most important part for the image size */
 .order-items li img {
   width: 60px;
   height: 60px;
@@ -312,7 +312,7 @@
 }
 
 .order-items li span {
-  flex-grow: 1; /* Allows the name to take up remaining space */
+  flex-grow: 1; 
 }
 
 .order-status.processing {
@@ -322,4 +322,7 @@
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: bold;
+}
+.dashboard-page.translating {
+  opacity: 0.7;
 }

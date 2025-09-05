@@ -136,3 +136,11 @@
     text-align: center;
   }
 }
+
+.hero-content {
+  transition: opacity 0.4s ease-in-out;
+}
+
+.hero-content.translating {
+  opacity: 0.7;
+}

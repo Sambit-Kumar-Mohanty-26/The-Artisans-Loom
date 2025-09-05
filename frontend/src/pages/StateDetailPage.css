@@ -1,6 +1,7 @@
 .state-detail-page {
   background-color: #FDFBF8;
   min-height: 100vh;
+  transition: opacity 0.4s ease-in-out;
 }
 
 .state-banner {
@@ -213,4 +214,8 @@
 .modal-body {
   line-height: 1.7;
   color: #555;
+}
+.state-detail-page-container.translating {
+  opacity: 0.7;
+  transition: opacity 0.4s ease-in-out;
 }

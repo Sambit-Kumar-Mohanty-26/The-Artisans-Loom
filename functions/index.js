@@ -5,12 +5,15 @@ const { SpeechClient } = require("@google-cloud/speech");
 const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
 const { VertexAI } = require("@google-cloud/vertexai");
 const { ImageAnnotatorClient } = require('@google-cloud/vision');
+const {Translate} = require('@google-cloud/translate').v2;
 const cors = require("cors")({ origin: true });
 
 admin.initializeApp();
 
 const speechClient = new SpeechClient();
 const textToSpeechClient = new TextToSpeechClient();
+const translate = new Translate();
+const corsOptions = { cors: true };
 const vertexAi = new VertexAI({
   project: process.env.GCLOUD_PROJECT,
   location: "us-central1",
@@ -73,7 +76,7 @@ const generativeModel = vertexAi.getGenerativeModel({
   ],
 });
 
-// ------------------ Gemini Proxy (Gen 2) ------------------
+// ------------------ Gemini Proxy---------------------------
 exports.getGeminiResponseProxy = onRequest((request, response) => {
   cors(request, response, async () => {
     if (request.method !== "POST") {
@@ -101,8 +104,8 @@ exports.getGeminiResponseProxy = onRequest((request, response) => {
   });
 });
 
-// ------------------ Craft Mitra Voice (Gen 2) ------------------
-exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
+// ------------------ Craft Mitra Voice---------------------------
+exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError(
       "unauthenticated",
@@ -264,7 +267,7 @@ exports.getCraftMitraResponse = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Get Artisan Analytics (Gen 2) ------------------
+// ------------------ Get Artisan Analytics-------------------------
 /**
  * Fetches and calculates analytics for a given artisan.
  * @param {string} userId The UID of the artisan to get analytics for.
@@ -332,7 +335,7 @@ async function _getArtisanAnalyticsLogic(userId) {
   }
 }
 
-exports.getArtisanAnalytics = onCall({ cors: true }, async (request) => {
+exports.getArtisanAnalytics = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view analytics.");
   }
@@ -345,8 +348,8 @@ exports.getArtisanAnalytics = onCall({ cors: true }, async (request) => {
 });
 
 
-// ------------------ Save Conversation (Gen 2) ------------------
-exports.saveConversation = onCall({ cors: true }, async (request) => {
+// ------------------ Save Conversation---------------------------
+exports.saveConversation = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to save a conversation.");
   }
@@ -378,8 +381,8 @@ exports.saveConversation = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Product Creation (Gen 2) ------------------
-exports.createProduct = onCall({ cors: true }, async (request) => {
+// ------------------ Product Creation ------------------
+exports.createProduct = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to create a product.");
   }
@@ -415,8 +418,8 @@ exports.createProduct = onCall({ cors: true }, async (request) => {
   }
 });
 
-// -------------------- Product Search (Gen 2) ------------------------
-exports.searchProducts = onCall({ cors: true }, async (request) => {
+// -------------------- Product Search ------------------------
+exports.searchProducts = onCall(corsOptions, async (request) => {
   const { q, category, region, minPrice, maxPrice, sortBy, materials } = request.data;
   
   let query = admin.firestore().collection("products");
@@ -460,8 +463,8 @@ exports.searchProducts = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Dashboard Summary (Gen 2) ------------------
-exports.getDashboardSummary = onCall({ cors: true }, async (request) => {
+// ------------------ Dashboard Summary ----------------------
+exports.getDashboardSummary = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view the dashboard.");
   }
@@ -511,8 +514,8 @@ exports.getDashboardSummary = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Review Submission (Gen 2) ------------------
-exports.submitReview = onCall({ cors: true }, async (request) => {
+// ------------------ Review Submission------------------------
+exports.submitReview = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to leave a review.");
   }
@@ -539,13 +542,13 @@ exports.submitReview = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Marketing Copy Generation (Gen 2) ------------------
-exports.generateMarketingCopy = onCall({ cors: true }, async (request) => { 
+// ------------------ Marketing Copy Generation------------------------
+exports.generateMarketingCopy = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
   }
   const userId = request.auth.uid;
-  const { productId } = request.data;
+  const { productId, targetLanguage } = request.data;
   if (!productId) {
     throw new HttpsError("invalid-argument", "Missing productId.");
   }
@@ -561,8 +564,11 @@ exports.generateMarketingCopy = onCall({ cors: true }, async (request) => {
     const product = productDoc.data();
     const artisanName = product.artisanName || "a skilled artisan";
     const marketingPrompt = `
-      You are a marketing expert for an e-commerce platform selling authentic Indian handicrafts called "The Artisan's Loom".
-      Generate marketing copy for the following product. The tone should be evocative, respectful, and focused on storytelling and craftsmanship.
+      You are a marketing expert for an e-commerce platform selling authentic Indian handicrafts.
+      Generate marketing copy for the following product. 
+       The tone should be evocative, respectful, and focused on storytelling and craftsmanship.
+      Use culturally relevant phrases and highlight the artisan's skill and the product's uniqueness.
+      **IMPORTANT: The entire generated JSON response must be in the ${targetLanguage || 'English'} language.**
 
       Product Details:
       - Name: ${product.name}
@@ -600,8 +606,8 @@ exports.generateMarketingCopy = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Get Artisan's Products (Gen 2) ------------------
-exports.getArtisanProducts = onCall({ cors: true }, async (request) => {
+// ------------------ Get Artisan's Products------------------------
+exports.getArtisanProducts = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view your products.");
   }
@@ -628,8 +634,8 @@ exports.getArtisanProducts = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Cart Management (Gen 2) ------------------
-exports.updateCart = onCall({ cors: true }, async (request) => {
+// ------------------ Cart Management-----------------------
+exports.updateCart = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to manage your cart.");
   }
@@ -669,8 +675,8 @@ exports.updateCart = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Checkout and Order Creation (Gen 2) ------------------
-exports.createOrder = onCall({ cors: true }, async (request) => { 
+// ------------------ Checkout and Order Creation---------------------
+exports.createOrder = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to place an order.");
   }
@@ -732,8 +738,8 @@ exports.createOrder = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Get Orders for Artisan Dashboard (Gen 2) ------------------
-exports.getArtisanOrders = onCall({ cors: true }, async (request) => { 
+// ------------------ Get Orders for Artisan Dashboard----------------------
+exports.getArtisanOrders = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view orders.");
   }
@@ -765,8 +771,8 @@ exports.getArtisanOrders = onCall({ cors: true }, async (request) => {
   }
 });
 
-// ------------------ Get Cart Contents (Gen 2) ------------------
-exports.getCart = onCall({ cors: true }, async (request) => {
+// ------------------ Get Cart Contents----------------------
+exports.getCart = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view your cart.");
   }
@@ -784,8 +790,8 @@ exports.getCart = onCall({ cors: true }, async (request) => {
     throw new HttpsError("internal", "Failed to fetch cart.");
   }
 });
-// ------------- Visual Search for Products -------------
-exports.visualSearchForProducts = onCall({ cors: true }, async (request) => {
+// ------------- Visual Search for Products ---------------
+exports.visualSearchForProducts = onCall(corsOptions, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to perform a visual search.");
   }
@@ -828,7 +834,7 @@ exports.visualSearchForProducts = onCall({ cors: true }, async (request) => {
     throw new HttpsError("internal", "Failed to analyze image or find products.");
   }
 });
-//----------------AI Recommendations-------------------
+// ----------------AI Recommendations-------------------
 exports.getAiRecommendations = onCall(
   {
     cors: [
@@ -898,8 +904,8 @@ exports.getAiRecommendations = onCall(
     }
   }
 );
-//----------------Dynamic Featured Products-------------------
-exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
+// ----------------Dynamic Featured Products-------------------
+exports.getFeaturedProducts = onCall(corsOptions, async (request) => {
   try {
     const productsRef = admin.firestore().collection("products");
     const limitNum = 3; 
@@ -926,5 +932,184 @@ exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
   } catch (error) {
     logger.error("Error fetching featured products:", error);
     throw new HttpsError("internal", "Failed to fetch featured products.");
+  }
+});
+
+// ----------------Translation Function(product)------------------
+exports.translateProduct = onCall(corsOptions, async (request) => {
+  const { productId, targetLanguageCode } = request.data;
+  if (!productId || !targetLanguageCode) {
+    throw new HttpsError("invalid-argument", "Missing required parameters.");
+  }
+
+  const productRef = admin.firestore().collection("products").doc(productId);
+
+  try {
+    const productDoc = await productRef.get();
+    if (!productDoc.exists) {
+      throw new HttpsError("not-found", "Product not found.");
+    }
+
+    const productData = productDoc.data();
+    
+    if (productData.translations && productData.translations[targetLanguageCode]) {
+      return productData.translations[targetLanguageCode];
+    }
+
+    const stringsToTranslate = [productData.name, productData.description];
+    const [translations] = await translate.translate(stringsToTranslate, targetLanguageCode);
+    
+    const translatedData = {
+      name: translations[0],
+      description: translations[1],
+    };
+
+    await productRef.update({
+      [`translations.${targetLanguageCode}`]: translatedData
+    });
+
+    return translatedData;
+
+  } catch (error) {
+    logger.error(`Error translating product ${productId} to ${targetLanguageCode}:`, error);
+    throw new HttpsError("internal", "Failed to translate product details.");
+  }
+});
+// -----------------Translation Function-----------------------
+exports.getTranslations = onCall(corsOptions, async (request) => {
+  const { texts, targetLanguageCode } = request.data;
+
+  if (!Array.isArray(texts) || texts.length === 0 || !targetLanguageCode) {
+    throw new HttpsError("invalid-argument", "Invalid request parameters.");
+  }
+
+  try {
+    const chunkSize = 100; 
+    let allTranslations = [];
+
+    for (let i = 0; i < texts.length; i += chunkSize) {
+      const chunk = texts.slice(i, i + chunkSize);
+      const [translationsChunk] = await translate.translate(chunk, targetLanguageCode);
+      allTranslations = [...allTranslations, ...translationsChunk];
+    }
+    
+    return { translations: allTranslations };
+
+  } catch (error) {
+    logger.error(`Failed to translate texts to ${targetLanguageCode}:`, error);
+    throw new HttpsError("internal", "An error occurred during translation.");
+  }
+});
+// ----------------Fetch Artisans-------------------------------
+exports.getFeaturedArtisans = onCall(corsOptions, async (request) => {
+  try {
+    const usersRef = admin.firestore().collection("users");
+    const limitNum = 3;
+    const allArtisansSnapshot = await usersRef.where('role', '==', 'artisan').get();
+    const totalArtisans = allArtisansSnapshot.size;
+    
+    if (totalArtisans === 0) {
+        return { artisans: [] };
+    }
+    const randomIndexes = new Set();
+    while (randomIndexes.size < Math.min(limitNum, totalArtisans)) {
+        randomIndexes.add(Math.floor(Math.random() * totalArtisans));
+    }     
+    const artisanPromises = Array.from(randomIndexes).map((index) => {
+        const randomQuery = usersRef.where('role', '==', 'artisan').limit(1).offset(index);
+        return randomQuery.get();
+    });
+
+    const randomSnapshots = await Promise.all(artisanPromises);
+
+    const artisans = randomSnapshots.flatMap((snapshot) =>
+      snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          displayName: data.displayName || 'Unnamed Artisan',
+          photoURL: data.photoURL || null,
+          specialization: data.specialization || 'Master Artisan',
+          location: data.location || 'India',
+          story: data.story || '',
+          age: data.age || null
+        };
+      })
+    );
+
+    return { artisans };
+
+  } catch (error) {
+    logger.error("Error fetching featured artisans:", error);
+    throw new HttpsError("internal", "Failed to fetch featured artisans.");
+  }
+});
+// ----------------Get All Artisans-------------------------
+exports.getAllArtisans = onCall(corsOptions, async (request) => {
+  try {
+    const usersRef = admin.firestore().collection("users");
+    const q = usersRef.where('role', '==', 'artisan');
+    
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+      return { artisans: [] };
+    }
+    const artisans = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return { 
+        id: doc.id,
+        displayName: data.displayName || 'Unnamed Artisan',
+        photoURL: data.photoURL || null,
+        specialization: data.specialization || 'Master Artisan',
+        location: data.location || 'India',
+      };
+    });
+
+    return { artisans };
+
+  } catch (error) {
+    logger.error("Error fetching all artisans:", error);
+    throw new HttpsError("internal", "Failed to fetch all artisans.");
+  }
+});
+// -----------------get Artisan Profile--------------------------
+exports.getArtisanProfile = onCall({ cors: true }, async (request) => {
+  const { artisanId } = request.data;
+  if (!artisanId) {
+    throw new HttpsError("invalid-argument", "An artisanId must be provided.");
+  }
+
+  try {
+    const firestore = admin.firestore();
+    const artisanDocRef = firestore.collection("users").doc(artisanId);
+    const artisanDoc = await artisanDocRef.get();
+
+    if (!artisanDoc.exists) {
+      throw new HttpsError("not-found", "This artisan could not be found.");
+    }
+
+    const artisanData = artisanDoc.data();
+    const productsRef = firestore.collection("products");
+    const productsQuery = productsRef.where("artisanId", "==", artisanId);
+    const productsSnapshot = await productsQuery.get();
+
+    const products = productsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return {
+      artisan: {
+        id: artisanDoc.id,
+        displayName: artisanData.displayName,
+        photoURL: artisanData.photoURL,
+        location: artisanData.location,
+        specialization: artisanData.specialization,
+        story: artisanData.story,
+      },
+      products: products,
+    };
+
+  } catch (error) {
+    logger.error(`Error fetching profile for artisan ${artisanId}:`, error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", "Failed to fetch artisan profile.");
   }
 });

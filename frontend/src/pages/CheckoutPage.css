@@ -2,6 +2,7 @@
   background-color: #f9f9f9;
   padding: 3rem 4rem;
   min-height: 80vh;
+  transition: opacity 0.4s ease-in-out;
 }
 
 .checkout-container {
@@ -29,7 +30,6 @@ h2 {
   padding-bottom: 1rem;
 }
 
-/* Order Summary Styles */
 .summary-items {
   display: flex;
   flex-direction: column;
@@ -77,7 +77,6 @@ h2 {
   border-top: 1px solid #ddd;
 }
 
-/* Shipping Info Styles */
 .shipping-info-column form {
   display: flex;
   flex-direction: column;
@@ -140,4 +139,8 @@ h2 {
   padding: 10px;
   border-radius: 4px;
   text-align: center;
+}
+
+.checkout-page.translating {
+  opacity: 0.7;
 }

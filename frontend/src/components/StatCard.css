@@ -6,6 +6,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  animation: fadeInScaleUp 0.5s ease-out forwards;
 }
 
 .stat-card-title {
@@ -20,4 +21,25 @@
   font-size: 2rem;
   font-weight: 600;
   color: #333;
+  animation: valueFadeIn 0.6s 0.2s ease-out forwards;
+}
+@keyframes fadeInScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes valueFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

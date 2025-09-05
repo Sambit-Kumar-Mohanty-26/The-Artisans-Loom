@@ -65,3 +65,10 @@
     font-size: 2rem;
   }
 }
+.featured-artisans-section .section-header {
+  transition: opacity 0.4s ease-in-out;
+}
+
+.featured-artisans-section .section-header.translating {
+  opacity: 0.5;
+}

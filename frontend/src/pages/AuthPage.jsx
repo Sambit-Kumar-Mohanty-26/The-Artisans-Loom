@@ -1,6 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+import { functions } from '../firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
 import './AuthPage.css';
+
+const getTranslations = httpsCallable(functions, 'getTranslations');
+
+const englishContent = {
+  brandName1: "THE",
+  brandName2: "ARTISAN'S",
+  brandName3: "LOOM",
+  customersButton: "Customers",
+  artisansButton: "Artisans",
+  formTitleArtisans: "Artisans",
+  formTitleCustomers: "Customers",
+  signInTab: "Sign In",
+  signUpTab: "Sign Up",
+  emailPlaceholder: "Email",
+  passwordPlaceholder: "Password",
+  signInButton: "Sign In",
+  signUpButton: "Sign Up",
+  loadingButton: "...",
+  googleButton: "Sign in with Google",
+  createAccountLink: "Create an account",
+  alreadyHaveAccountLink: "Already have an account? Sign In",
+};
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24px" height="24px">
@@ -12,42 +37,70 @@ const GoogleIcon = () => (
 );
 
 const AuthPage = () => {
+  const { currentLanguage } = useLanguage();
+  const [content, setContent] = useState(englishContent);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [userType, setUserType] = useState('artisan'); 
   const [isLoginMode, setIsLoginMode] = useState(true); 
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
   const { signup, login, loginWithGoogle } = useAuth();
+
+  useEffect(() => {
+    const translateContent = async () => {
+      if (currentLanguage.code === 'en') {
+        setContent(englishContent);
+        return;
+      }
+      setIsTranslating(true);
+      try {
+        const textsToTranslate = Object.values(englishContent);
+        const result = await getTranslations({
+          texts: textsToTranslate,
+          targetLanguageCode: currentLanguage.code,
+        });
+        const translations = result.data.translations;
+        setContent({
+          brandName1: translations[0], brandName2: translations[1], brandName3: translations[2],
+          customersButton: translations[3], artisansButton: translations[4], formTitleArtisans: translations[5],
+          formTitleCustomers: translations[6], signInTab: translations[7], signUpTab: translations[8],
+          emailPlaceholder: translations[9], passwordPlaceholder: translations[10], signInButton: translations[11],
+          signUpButton: translations[12], loadingButton: translations[13], googleButton: translations[14],
+          createAccountLink: translations[15], alreadyHaveAccountLink: translations[16],
+        });
+      } catch (err) {
+        console.error("Failed to translate AuthPage content:", err);
+        setContent(englishContent);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
+    translateContent();
+  }, [currentLanguage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       if (isLoginMode) {
         await login(email, password);
       } else {
-        
         await signup(email, password, userType);
       }
-      
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
       setLoading(false);
     }
   };
 
- const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
     try {
-     
       await loginWithGoogle(userType);
-      
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
       setLoading(false); 
@@ -62,52 +115,38 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="auth-page-split">
+    <div className={`auth-page-split ${isTranslating ? 'translating' : ''}`}>
       <div className="auth-left-panel">
         <div className="logo-container">
-          <p>THE</p>
-          <p>ARTISAN'S</p>
-          <p>LOOM</p>
+          <p>{content.brandName1}</p>
+          <p>{content.brandName2}</p>
+          <p>{content.brandName3}</p>
         </div>
         <div className="user-type-toggle">
-          <button 
-            className={userType === 'customer' ? 'active' : ''}
-            onClick={() => handleUserTypeToggle('customer')}
-          >
-            Customers
+          <button className={userType === 'customer' ? 'active' : ''} onClick={() => handleUserTypeToggle('customer')}>
+            {content.customersButton}
           </button>
-          <button 
-            className={userType === 'artisan' ? 'active' : ''}
-            onClick={() => handleUserTypeToggle('artisan')}
-          >
-            Artisans
+          <button className={userType === 'artisan' ? 'active' : ''} onClick={() => handleUserTypeToggle('artisan')}>
+            {content.artisansButton}
           </button>
         </div>
       </div>
       <div className="auth-right-panel">
         <div className="auth-form-wrapper">
-          <h2 className="form-title">{userType === 'artisan' ? 'Artisans' : 'Customers'}</h2>
-          
+          <h2 className="form-title">{userType === 'artisan' ? content.formTitleArtisans : content.formTitleCustomers}</h2>
           <div className="tab-container">
-            <button 
-              className={`tab ${isLoginMode ? 'active' : ''}`}
-              onClick={() => setIsLoginMode(true)}
-            >
-              Sign In
+            <button className={`tab ${isLoginMode ? 'active' : ''}`} onClick={() => setIsLoginMode(true)}>
+              {content.signInTab}
             </button>
-            <button 
-              className={`tab ${!isLoginMode ? 'active' : ''}`}
-              onClick={() => setIsLoginMode(false)}
-            >
-              Sign Up
+            <button className={`tab ${!isLoginMode ? 'active' : ''}`} onClick={() => setIsLoginMode(false)}>
+              {content.signUpTab}
             </button>
           </div>
-
           <form onSubmit={handleSubmit}>
             <input 
               className="auth-input" 
               type="email" 
-              placeholder="Email"
+              placeholder={content.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -115,24 +154,22 @@ const AuthPage = () => {
             <input 
               className="auth-input" 
               type="password" 
-              placeholder="Password"
+              placeholder={content.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
             {error && <p className="error-message">{error}</p>}
             <button type="submit" className="auth-button primary" disabled={loading}>
-              {loading ? '...' : (isLoginMode ? 'Sign In' : 'Sign Up')}
+              {loading ? content.loadingButton : (isLoginMode ? content.signInButton : content.signUpButton)}
             </button>
           </form>
-
           <button className="auth-button google" onClick={handleGoogleSignIn} disabled={loading}>
             <GoogleIcon />
-            Sign in with Google
+            {content.googleButton}
           </button>
-
           <p className="auth-link" onClick={() => setIsLoginMode(prev => !prev)}>
-            {isLoginMode ? "Create an account" : "Already have an account? Sign In"}
+            {isLoginMode ? content.createAccountLink : content.alreadyHaveAccountLink}
           </p>
         </div>
       </div>

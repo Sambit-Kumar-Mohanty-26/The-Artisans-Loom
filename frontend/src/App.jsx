@@ -236,7 +236,7 @@ function App() {
           {renderPage()}
         </main>
 
-        <Footer />
+        <Footer onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
         <CraftMitraButton onClick={() => setIsMitraOpen(true)} />
 
         <CraftMitraModal

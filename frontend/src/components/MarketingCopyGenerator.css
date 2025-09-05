@@ -3,6 +3,7 @@
     border-radius: 12px;
     padding: 1.5rem;
     margin-top: 2rem;
+    transition: opacity 0.4s ease-in-out;
 }
 
 .generate-button {
@@ -116,4 +117,7 @@
 
 .generate-button {
   width: 100%;
+}
+.marketing-copy-generator.translating {
+  opacity: 0.7;
 }

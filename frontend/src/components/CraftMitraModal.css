@@ -29,6 +29,7 @@
   max-width: 480px; 
   transform: scale(0.9);
   animation: scaleUp 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: opacity 0.4s ease-in-out;
 }
 
 @keyframes scaleUp {
@@ -197,4 +198,7 @@
 .language-selector select:focus {
   border-color: #8a4fff;
   box-shadow: 0 0 0 2px rgba(138, 79, 255, 0.2);
+}
+.mitra-modal-content.translating {
+  opacity: 0.7;
 }

@@ -1,6 +1,42 @@
 .curated-collection-section {
   padding: 4rem;
   background-color: #ffffff;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.curated-collection-section.translating {
+  opacity: 0.7;
+}
+
+.curated-collection-section .section-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.curated-collection-section .section-tag {
+  background-color: #f0ebe5;
+  color: #a5805e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.curated-collection-section .section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-top: 1rem;
+}
+
+.curated-collection-section .section-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin-top: 0.5rem;
+  line-height: 1.6;
 }
 
 .collection-layout {

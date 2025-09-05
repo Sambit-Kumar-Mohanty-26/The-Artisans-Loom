@@ -2,6 +2,7 @@
   display: flex;
   padding: 2rem 4rem;
   gap: 2rem;
+  transition: opacity 0.4s ease-in-out;
 }
 
 .filter-sidebar {
@@ -271,4 +272,8 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.shop-page.translating {
+  opacity: 0.7;
 }

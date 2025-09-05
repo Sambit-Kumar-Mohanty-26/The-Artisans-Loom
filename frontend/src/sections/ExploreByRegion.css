@@ -7,6 +7,11 @@
   text-align: center;
   max-width: 700px;
   margin: 0 auto 3rem auto;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.section-header.translating {
+  opacity: 0.5;
 }
 
 .section-tag {
@@ -50,17 +55,18 @@
   padding: 0.5rem 1rem;
   border-radius: 9999px;
   cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  white-space: nowrap; 
+  white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
-.refresh-button:hover {
+.refresh-button:hover:not(:disabled) {
   background-color: #f0ebe5;
   border-color: #a5805e;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transform: rotate(360deg) scale(1.1);
 }
 
 .refresh-button:disabled {
@@ -91,6 +97,12 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.category-grid.loading-journeys {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .category-card {

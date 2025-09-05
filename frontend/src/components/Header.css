@@ -10,6 +10,7 @@
   top: 0;
   z-index: 1000;
   gap: 2rem; 
+  transition: opacity 0.4s ease-in-out;
 }
 
 .logo-link {
@@ -289,4 +290,96 @@
 
 .dropdown-action::after {
   display: none; 
+}
+
+.language-selector-container {
+  position: relative;
+}
+
+.language-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  border: 1px solid #e5e0da;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6d543b;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.language-button:hover {
+  background-color: #f7f3ef;
+  border-color: #dcd1c4;
+}
+
+.language-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.language-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px); 
+  right: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  z-index: 1002;
+  width: 160px;
+  overflow: hidden;
+  animation: slideInFade 0.3s ease-out forwards;
+}
+
+.language-option {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.95rem;
+  color: #442c13;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  opacity: 0;
+  animation: slideInFade 0.5s ease-out forwards;
+}
+
+.language-dropdown-menu .language-option:nth-child(1) { animation-delay: 0.05s; }
+.language-dropdown-menu .language-option:nth-child(2) { animation-delay: 0.1s; }
+.language-dropdown-menu .language-option:nth-child(3) { animation-delay: 0.15s; }
+.language-dropdown-menu .language-option:nth-child(4) { animation-delay: 0.2s; }
+.language-dropdown-menu .language-option:nth-child(5) { animation-delay: 0.25s; }
+.language-dropdown-menu .language-option:nth-child(6) { animation-delay: 0.3s; }
+.language-dropdown-menu .language-option:nth-child(7) { animation-delay: 0.35s; }
+
+
+.language-option:hover {
+  background-color: #f7f3ef;
+}
+
+.language-option.active {
+  font-weight: 700;
+  background-color: #f0ebe5;
+  color: #33210f;
+}
+.header.translating {
+  opacity: 0.7;
 }
