@@ -25,7 +25,8 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import OnboardingPage from './pages/OnboardingPage';
-import EditProfilePage from './pages/EditProfilePage'; 
+import EditProfilePage from './pages/EditProfilePage';
+import CustomerDashboardPage from './pages/CustomerDashboardPage'; 
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -199,7 +200,14 @@ function App() {
                          />;
       case 'cart': return <CartPage onNavigate={navigateTo} />;
       case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
-      case 'dashboard': return userProfile?.role === 'artisan' ? <DashboardPage data={dashboardData} onNavigate={navigateTo}/> : renderHomepage();
+      case 'dashboard': 
+          if (userProfile?.role === 'artisan') {
+            return <DashboardPage onNavigate={navigateTo}/>;
+          } else if (userProfile?.role === 'customer') {
+            return <CustomerDashboardPage userProfile={userProfile} onNavigate={navigateTo} />;
+          } else {
+            return renderHomepage();
+          }
       case 'all-states': return <AllStatesPage onNavigate={navigateTo} />;
       case 'all-artisans': return <AllArtisansPage onNavigate={navigateTo} />;
       case 'addProduct': return userProfile?.role === 'artisan' ? <AddProductPage /> : renderHomepage();

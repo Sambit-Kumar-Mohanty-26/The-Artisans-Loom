@@ -242,3 +242,7 @@
     transform: translate(-50%, 10px);
   }
 }
+
+.favorite-button.wishlisted {
+  color: #e53935; 
+}

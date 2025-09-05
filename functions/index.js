@@ -1074,7 +1074,7 @@ exports.getAllArtisans = onCall(corsOptions, async (request) => {
   }
 });
 // -----------------get Artisan Profile--------------------------
-exports.getArtisanProfile = onCall({ cors: true }, async (request) => {
+exports.getArtisanProfile = onCall(corsOptions, async (request) => {
   const { artisanId } = request.data;
   if (!artisanId) {
     throw new HttpsError("invalid-argument", "An artisanId must be provided.");
@@ -1111,5 +1111,82 @@ exports.getArtisanProfile = onCall({ cors: true }, async (request) => {
     logger.error(`Error fetching profile for artisan ${artisanId}:`, error);
     if (error instanceof HttpsError) throw error;
     throw new HttpsError("internal", "Failed to fetch artisan profile.");
+  }
+});
+// ------------------ Customer Dashboard Data ----------------------
+exports.getCustomerDashboardData = onCall(corsOptions, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in.");
+  }
+  const userId = request.auth.uid;
+
+  try {
+    const firestore = admin.firestore();
+    const userDoc = await firestore.collection("users").doc(userId).get();
+    const displayName = userDoc.exists ? userDoc.data().displayName : "Customer";
+    const ordersQuery = firestore.collection("orders")
+      .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .limit(5);
+    const ordersSnapshot = await ordersQuery.get();
+    const recentOrders = ordersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const wishlistRef = firestore.collection("users").doc(userId).collection("wishlist");
+    const wishlistSnapshot = await wishlistRef.get();
+    const productIds = wishlistSnapshot.docs.map((doc) => doc.id);
+
+    const wishlistItems = [];
+    if (productIds.length > 0) {
+      const productPromises = [];
+      for (let i = 0; i < productIds.length; i += 30) {
+        const chunk = productIds.slice(i, i + 30);
+        const productsQuery = firestore.collection("products").where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
+        productPromises.push(productsQuery);
+      }
+      
+      const productSnapshots = await Promise.all(productPromises);
+      productSnapshots.forEach((snapshot) => {
+        snapshot.docs.forEach((doc) => {
+          wishlistItems.push({ id: doc.id, ...doc.data() });
+        });
+      });
+    }
+    const limitedWishlist = wishlistItems.slice(0, 10);
+
+    return { displayName, recentOrders, wishlistItems: limitedWishlist };
+
+  } catch (error) {
+    logger.error(`Error fetching customer dashboard for user ${userId}:`, error);
+    throw new HttpsError("internal", "Failed to fetch dashboard data.");
+  }
+});
+
+// ------------------ Wishlist Management ----------------------
+exports.toggleWishlistItem = onCall(corsOptions, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in.");
+  }
+  const userId = request.auth.uid;
+  const { productId } = request.data;
+
+  if (!productId) {
+    throw new HttpsError("invalid-argument", "A productId must be provided.");
+  }
+
+  try {
+    const wishlistItemRef = admin.firestore().collection("users").doc(userId).collection("wishlist").doc(productId);
+    const doc = await wishlistItemRef.get();
+
+    if (doc.exists) {
+      await wishlistItemRef.delete();
+      return { status: 'removed' };
+    } else {
+      await wishlistItemRef.set({
+        addedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return { status: 'added' };
+    }
+  } catch (error) {
+    logger.error(`Error toggling wishlist item ${productId} for user ${userId}:`, error);
+    throw new HttpsError("internal", "Failed to update wishlist.");
   }
 });

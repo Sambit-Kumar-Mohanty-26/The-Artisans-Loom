@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import './ProductCard.css';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 
 const ProductCard = ({ product, onNavigate }) => {
   const { currentUser } = useAuth();
   const { addToCart, cartItems } = useCart();
+  const { wishlist, toggleItem } = useWishlist(); 
   const [isAdding, setIsAdding] = useState(false);
   const [showLoginError, setShowLoginError] = useState(false);
 
@@ -16,6 +18,7 @@ const ProductCard = ({ product, onNavigate }) => {
   const imageUrl = product.image || product.imageUrl || 'https://via.placeholder.com/300';
   const originalPrice = product.originalPrice;
   const displayPrice = product.price / 100; 
+  const isWishlisted = wishlist.includes(product.id);
 
   const handleAddToCart = async (e) => {
     e.stopPropagation(); 
@@ -42,9 +45,16 @@ const ProductCard = ({ product, onNavigate }) => {
     }
   };
 
+   const handleWishlistClick = (e) => {
+    e.stopPropagation();
+    toggleItem(product.id);
+  };
+
   return (
     <div className="product-card" onClick={handleNavigate}>
-      <button className="favorite-button" onClick={(e) => e.stopPropagation()}>♡</button>
+      <button className={`favorite-button ${isWishlisted ? 'wishlisted' : ''}`} onClick={handleWishlistClick}>
+        {isWishlisted ? '♥' : '♡'}
+      </button>
 
       <div className="product-image-container">
         <img src={imageUrl} alt={product.name} className="product-image" />

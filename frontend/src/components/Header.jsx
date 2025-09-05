@@ -42,12 +42,11 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Refs for click-outside detection
   const profileDropdownRef = useRef(null);
   const langDropdownRef = useRef(null);
   const navigationRef = useRef(null);
+  const mobileMenuIconRef = useRef(null);
 
-  // Fetch user profile
   useEffect(() => {
     if (currentUser) {
       const getUserProfile = async () => {
@@ -63,7 +62,6 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
     }
   }, [currentUser]);
 
-  // Close dropdowns and mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
@@ -72,7 +70,9 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
       if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
         setIsLangDropdownOpen(false);
       }
-      if (navigationRef.current && !navigationRef.current.contains(event.target) && isMobileMenuOpen) {
+      if (navigationRef.current && !navigationRef.current.contains(event.target) &&
+          mobileMenuIconRef.current && !mobileMenuIconRef.current.contains(event.target) &&
+          isMobileMenuOpen) {
         setIsMobileMenuOpen(false);
       }
     };
@@ -80,7 +80,6 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileMenuOpen]);
 
-  // Translate content
   useEffect(() => {
     const translateContent = async () => {
       if (currentLanguage.code === 'en') {
@@ -119,40 +118,44 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
 
   const toggleProfileDropdown = () => setIsProfileDropdownOpen(prev => !prev);
   const toggleLangDropdown = () => setIsLangDropdownOpen(prev => !prev);
-  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(prev => !prev);
+  };
 
   const handleDropdownNavigate = (page) => {
     onNavigate(page);
     setIsProfileDropdownOpen(false);
+    setIsMobileMenuOpen(false);
   };
+  
   const handleLanguageChange = (langCode) => {
     changeLanguage(langCode);
     setIsLangDropdownOpen(false);
   };
+  
+  const handleScrollAndCloseMenu = (section) => {
+      onNavigateAndScroll(section);
+      setIsMobileMenuOpen(false);
+  }
 
   return (
-    <header className={`header ${isTranslating ? 'translating' : ''}`}>
-      {/* Logo */}
+    <header className={`header ${isTranslating ? 'translating' : ''} ${isMobileMenuOpen ? 'mobile-menu-active' : ''}`}>
       <a href="#" onClick={(e) => { e.preventDefault(); onNavigate('home'); }} className="logo-link">
         <img src={logo} alt="The Artisan's Loom Logo" className="logo-image" />
       </a>
 
-      {/* Navigation */}
       <nav className={`navigation ${isMobileMenuOpen ? 'mobile-menu-active' : ''}`} ref={navigationRef}>
-        <button onClick={() => onNavigateAndScroll('discover')} className="nav-link">{content.discover}</button>
-        <button onClick={() => onNavigateAndScroll('regions')} className="nav-link">{content.regions}</button>
-        <button onClick={() => onNavigateAndScroll('artisans')} className="nav-link">{content.artisans}</button>
-        <button onClick={() => onNavigateAndScroll('stories')} className="nav-link">{content.stories}</button>
+        <button onClick={() => handleScrollAndCloseMenu('discover')} className="nav-link">{content.discover}</button>
+        <button onClick={() => handleScrollAndCloseMenu('regions')} className="nav-link">{content.regions}</button>
+        <button onClick={() => handleScrollAndCloseMenu('artisans')} className="nav-link">{content.artisans}</button>
+        <button onClick={() => handleScrollAndCloseMenu('stories')} className="nav-link">{content.stories}</button>
       </nav>
 
-      {/* Mobile menu button */}
-      <button className="mobile-menu-icon" onClick={toggleMobileMenu}>
+      <button className="mobile-menu-icon" onClick={toggleMobileMenu} ref={mobileMenuIconRef}>
         {isMobileMenuOpen ? '✕' : '☰'}
       </button>
 
-      {/* Header actions */}
       <div className="header-actions">
-        {/* Language selector */}
         <div className="language-selector-container" ref={langDropdownRef}>
           <button className="language-button" onClick={toggleLangDropdown}>
             <GlobeIcon />
@@ -173,18 +176,15 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
           )}
         </div>
 
-        {/* Gifting Assistant */}
-        <button onClick={() => onNavigate('gifting-assistant')} className="nav-link">
+        <button onClick={() => onNavigate('gifting-assistant')} className="nav-link gifting-assistant-link">
           {content.giftingAssistant}
         </button>
 
-        {/* Cart */}
         <button onClick={() => onNavigate('cart')} className="cart-icon-link nav-link">
           <span className="cart-icon">🛒</span>
           {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
         </button>
 
-        {/* Dashboard / Shop buttons */}
         {currentUser && (
           userProfile?.role === 'artisan' ? (
             <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
@@ -197,7 +197,6 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
           )
         )}
 
-        {/* Profile / Sign in */}
         {currentUser ? (
           <div className="profile-dropdown-container" ref={profileDropdownRef}>
             <button className="profile-button" onClick={toggleProfileDropdown}>
@@ -210,6 +209,14 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
             {isProfileDropdownOpen && (
               <div className="profile-dropdown-menu">
                 <span className="profile-email">{currentUser.email}</span>
+                {userProfile?.role === 'customer' && (
+                  <button
+                    onClick={() => handleDropdownNavigate('dashboard')}
+                    className="nav-link dropdown-action"
+                  >
+                    {content.myDashboard}
+                  </button>
+                )}
                 <button
                   onClick={() => handleDropdownNavigate('edit-profile')}
                   className="nav-link dropdown-action"

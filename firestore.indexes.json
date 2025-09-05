@@ -32,9 +32,18 @@
       "collectionGroup": "products", "queryScope": "COLLECTION",
       "fields": [ { "fieldPath": "region", "order": "ASCENDING" }, { "fieldPath": "price", "order": "DESCENDING" } ]
     },
+    
     {
       "collectionGroup": "products", "queryScope": "COLLECTION",
       "fields": [ { "fieldPath": "price", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" } ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

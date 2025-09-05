@@ -3,10 +3,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 4rem;
-  background-color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(245, 245, 245, 0.9));
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid #f0ebe5;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -231,7 +233,6 @@ button.profile-button:focus-visible {
   display: none;
 }
 
-/* 🌐 Language selector */
 .language-selector-container {
   position: relative;
 }
@@ -274,16 +275,19 @@ button.profile-button:focus-visible {
 
 .language-dropdown-menu {
   position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  right: auto;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
-  z-index: 1002;
+  z-index: 1003;
   width: 160px;
   overflow: hidden;
   animation: slideInFade 0.3s ease-out forwards;
+  outline: none;
 }
 
 .language-option {
@@ -320,7 +324,6 @@ button.profile-button:focus-visible {
   color: #33210f;
 }
 
-/* ✨ Mobile menu toggle */
 .mobile-menu-icon {
   display: none;
   background: none;
@@ -331,12 +334,10 @@ button.profile-button:focus-visible {
   z-index: 1002;
 }
 
-/* Translating fade effect */
 .header.translating {
   opacity: 0.7;
 }
 
-/* 📱 Responsive */
 @media (max-width: 1024px) {
   .header {
     padding: 1rem 2rem;
@@ -347,20 +348,50 @@ button.profile-button:focus-visible {
 @media (max-width: 768px) {
   .header {
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     padding: 0.8rem 1rem;
-    gap: 1.2rem;
+    gap: 1rem;
+    justify-content: space-between;
+    position: relative;
   }
 
-  .logo-link { order: 1; }
-  .mobile-menu-icon { order: 2; display: block; }
-  .header-actions { order: 3; }
+  .logo-link {
+    order: 1;
+    flex: 1;
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .logo-image {
+    height: 55px;
+  }
+
+  .mobile-menu-icon {
+    order: 2;
+    display: block;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: #333;
+    z-index: 1002;
+  }
+
+  .header-actions {
+    order: 3;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    width: auto;
+    gap: 0.8rem;
+    z-index: 999;
+  }
   .navigation {
     order: 4;
     display: none;
     flex-direction: column;
     position: absolute;
-    top: 60px;
+    top: 100%;
     left: 0;
     width: 100%;
     background-color: rgba(255, 255, 255, 0.95);
@@ -371,28 +402,42 @@ button.profile-button:focus-visible {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     align-items: center;
     gap: 1rem;
+    z-index: 1001;
   }
 
   .navigation.mobile-menu-active {
     display: flex;
   }
 
-  .header-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    width: auto;
-    gap: 0.8rem;
+  .header.mobile-menu-active {
+    justify-content: center;
+  }
+
+  .header.mobile-menu-active .logo-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  .header.mobile-menu-active .header-actions {
+    display: none;
+  }
+
+  .header.mobile-menu-active .mobile-menu-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1002;
   }
 
   .nav-link {
-    font-size: 0.9rem;
+    font-size: 1rem;
     padding: 0.4rem 0.8rem;
   }
 
   .nav-link--primary {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
   }
 
   .cart-icon {
@@ -411,38 +456,53 @@ button.profile-button:focus-visible {
 
 @media (max-width: 480px) {
   .header {
-    padding: 0.4rem;
-    gap: 0.6rem;
+    padding: 0.5rem;
+    gap: 0.5rem;
   }
 
   .navigation {
-    gap: 0.6rem;
+    gap: 0.5rem;
   }
 
   .header-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
     gap: 0.6rem;
   }
 
   .nav-link {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     padding: 0.3rem 0.6rem;
   }
 
   .nav-link--primary {
-    font-size: 0.8rem;
-    padding: 0.3rem 0.6rem;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
   }
 
   .cart-icon {
-    font-size: 1.1rem;
+    font-size: 1rem;
   }
 
   .profile-button {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
   }
 
   .profile-icon {
-    font-size: 1.1rem;
+    font-size: 1rem;
+  }
+
+  .language-button {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    gap: 5px;
+  }
+
+  .language-button svg {
+    width: 16px;
+    height: 16px;
   }
 }
