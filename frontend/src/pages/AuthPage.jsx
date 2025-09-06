@@ -88,7 +88,6 @@ const AuthPage = ({ onAuthSuccess }) => {
     translateContent();
   }, [currentLanguage]);
 
-  // --- Email/Password auth ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -107,7 +106,6 @@ const AuthPage = ({ onAuthSuccess }) => {
     }
   };
 
-  // --- Google Sign In with Firestore persistence ---
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
@@ -178,8 +176,6 @@ const AuthPage = ({ onAuthSuccess }) => {
               {content.signUpTab}
             </button>
           </div>
-
-          {/* Email/Password Form */}
           <form onSubmit={handleSubmit}>
             <input
               className="auth-input"
@@ -203,7 +199,6 @@ const AuthPage = ({ onAuthSuccess }) => {
             </button>
           </form>
 
-          {/* Google Sign In */}
           <button className="auth-button google" onClick={handleGoogleSignIn} disabled={loading}>
             <GoogleIcon />
             {content.googleButton}

@@ -125,8 +125,8 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
 
   const audioBase64 = request.data.audioData;
   const history = request.data.history || [];
-  const userRole = request.data.userRole; // Get userRole from frontend
-  const onboardingComplete = request.data.onboardingComplete; // Get onboardingComplete from frontend
+  const userRole = request.data.userRole; 
+  const onboardingComplete = request.data.onboardingComplete; 
 
   logger.info("Backend received userRole:", userRole);
   logger.info("Backend received onboardingComplete:", onboardingComplete);
@@ -202,7 +202,6 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
   let functionCall=null;
 
   try {
-    // Build the context prefix for the current turn.
     let contextPrefix = "";
     if (userRole === 'artisan') {
       contextPrefix = `[CONTEXT: Role: artisan, Onboarding: ${onboardingComplete ? 'complete' : 'incomplete'}]`;
@@ -212,19 +211,15 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
       contextPrefix = "[CONTEXT: Role: unauthenticated]";
     }
 
-    // Reconstruct the entire history to prepend the current context to every user message.
     const contextualizedHistory = history.map((item) => {
       if (item.role === 'user') {
         return { ...item, parts: [{ text: `${contextPrefix} My query is: ${item.parts[0].text}` }] };
       }
       return item;
     });
-
-    // Construct the full conversation parts for the generateContent call.
-    // This includes the re-contextualized history and the current user query with context.
     const conversationParts = [
       ...contextualizedHistory, 
-      { role: 'user', parts: [{ text: `${contextPrefix} My query is: ${userTranscript}` }] }, // The actual user query with context
+      { role: 'user', parts: [{ text: `${contextPrefix} My query is: ${userTranscript}` }] }, 
     ];
 
     logger.info("Conversation parts sent to Gemini.generateContent:", JSON.stringify(conversationParts));
@@ -276,7 +271,7 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
       }
     }
   } catch (error) {
-    logger.error("ERROR during Vertex AI call:", error); // Modified logging to include full error object
+    logger.error("ERROR during Vertex AI call:", error); 
 
     if (error.response) {
       logger.error("Vertex AI response details:", JSON.stringify(error.response));

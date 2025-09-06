@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import './CraftMitraAssistant.css'; // Assuming you'll create this CSS file
+import './CraftMitraAssistant.css'; 
 
 const CraftMitraAssistant = ({ onSpeak, selectedLanguageCode }) => {
   const { currentUser, userRole, onboardingComplete, loading, loadingUserData } = useAuth();
   const [message, setMessage] = useState("");
-  const [hasSpokenInitialWelcome, setHasSpokenInitialWelcome] = useState(false); // New state to track if initial welcome has been spoken
+  const [hasSpokenInitialWelcome, setHasSpokenInitialWelcome] = useState(false); 
 
   useEffect(() => {
     if (!loading && !loadingUserData) {
@@ -30,7 +30,7 @@ const CraftMitraAssistant = ({ onSpeak, selectedLanguageCode }) => {
       setMessage(welcomeMessage);
       if (onSpeak && welcomeMessage && !hasSpokenInitialWelcome) {
         onSpeak(welcomeMessage, selectedLanguageCode);
-        setHasSpokenInitialWelcome(true); // Mark that the initial welcome has been spoken
+        setHasSpokenInitialWelcome(true);
       }
     }
   }, [currentUser, userRole, onboardingComplete, loading, loadingUserData, onSpeak, selectedLanguageCode, hasSpokenInitialWelcome]);
@@ -42,7 +42,6 @@ const CraftMitraAssistant = ({ onSpeak, selectedLanguageCode }) => {
   return (
     <div className="craft-mitra-assistant">
       <p>{message}</p>
-      {/* Future: Add input for user queries and more interactive elements */}
     </div>
   );
 };

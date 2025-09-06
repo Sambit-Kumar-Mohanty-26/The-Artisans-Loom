@@ -147,7 +147,7 @@
   font-weight: 600;
 }
 .sidebar-cta {
-  display: none; /* Hidden on mobile */
+  display: none; 
 }
 
 @keyframes fadeInTab {
@@ -216,7 +216,6 @@
 
 .wishlist-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 
-/* --- Desktop Styles --- */
 @media (min-width: 992px) {
   .customer-dashboard-container {
     padding: 2rem;

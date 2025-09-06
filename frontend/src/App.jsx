@@ -10,7 +10,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import CraftMitraButton from './components/CraftMitraButton';
 import CraftMitraModal from './components/CraftMitraModal';
-import CraftMitraAssistant from './components/CraftMitraAssistant'; // Import the new component
+import CraftMitraAssistant from './components/CraftMitraAssistant'; 
 
 import AuthPage from './pages/AuthPage';
 import AddProductPage from './pages/AddProductPage';
@@ -66,11 +66,11 @@ const normalizePage = (page) => {
 };
 
 function App() {
-  const { currentUser, userRole, onboardingComplete, loading: authLoading } = useAuth(); // Destructure loading from useAuth
+  const { currentUser, userRole, onboardingComplete, loading: authLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
-  const [userProfile, setUserProfile] = useState(null); // Reintroducing userProfile state
+  const [userProfile, setUserProfile] = useState(null); 
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true); // Main loading state for App component
+  const [loading, setLoading] = useState(true); 
   const [isMitraOpen, setIsMitraOpen] = useState(false);
   const [scrollToSection, setScrollToSection] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
@@ -87,20 +87,20 @@ function App() {
 
   useEffect(() => {
     const handleAuthAndProfile = async () => {
-      if (authLoading) return; // Wait for AuthContext to finish loading
+      if (authLoading) return; 
 
       if (currentUser) {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           const profileData = { uid: currentUser.uid, ...userDoc.data() };
-          setUserProfile(profileData); // Set userProfile from Firestore
+          setUserProfile(profileData); 
 
           if (!profileData.onboardingComplete) {
             setCurrentPage('onboarding');
           } else if (profileData.role === 'artisan' && currentPage !== 'dashboard') {
             navigateTo('dashboard');
-          } else if (profileData.role === 'customer') { // Removed profileData.onboardingComplete condition
+          } else if (profileData.role === 'customer') { 
             navigateTo('home');
           }
         } else {
@@ -116,7 +116,7 @@ function App() {
     };
 
     handleAuthAndProfile();
-  }, [currentUser, authLoading]); // Depend on currentUser and authLoading
+  }, [currentUser, authLoading]); 
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -143,7 +143,7 @@ function App() {
       const userDocRef = doc(db, 'users', currentUser.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
-        // setUserProfile({ uid: currentUser.uid, ...userDoc.data() }); // This line is no longer needed
+        // setUserProfile({ uid: currentUser.uid, ...userDoc.data() }); 
       }
     }
   };
@@ -154,17 +154,17 @@ function App() {
     }
     if (currentPage === 'edit-profile') {
       return <EditProfilePage
-               userProfile={userProfile} // Pass userProfile to EditProfilePage
+               userProfile={userProfile} 
                onProfileUpdate={handleProfileUpdate}
                onNavigate={navigateTo}
              />;
     }
-    if (currentPage === 'onboarding' && userProfile) { // Ensure userProfile is available
-      const handleOnboardingComplete = async () => { // Make async
+    if (currentPage === 'onboarding' && userProfile) { 
+      const handleOnboardingComplete = async () => { 
         const userDocRef = doc(db, 'users', currentUser.uid);
-        const docSnap = await getDoc(userDocRef); // Await getDoc
+        const docSnap = await getDoc(userDocRef); 
         if (docSnap.exists()) {
-          setUserProfile({ uid: currentUser.uid, ...docSnap.data() }); // Update local userProfile
+          setUserProfile({ uid: currentUser.uid, ...docSnap.data() });
         }
 
         const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
@@ -204,7 +204,6 @@ function App() {
       case 'cart': return <CartPage onNavigate={navigateTo} />;
       case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
       case 'dashboard':
-          // Use userProfile for role check
           if (userProfile?.role === 'artisan') {
             return <DashboardPage onNavigate={navigateTo}/>;
           } else if (userProfile?.role === 'customer') {
@@ -218,8 +217,7 @@ function App() {
       case 'gifting-assistant': return <GiftingAssistantPage />;
       case 'home':
       default:
-        // Check userProfile for onboarding status
-        if (currentUser && !userProfile?.onboardingComplete && !loading) { // Add !loading to condition
+        if (currentUser && !userProfile?.onboardingComplete && !loading) {
           return <div className="loading-fullscreen">Loading...</div>;
         }
         return renderHomepage();

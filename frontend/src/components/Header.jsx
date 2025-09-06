@@ -240,7 +240,7 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
                     {content.myDashboard}
                   </button>
                 )}
-                {isMobileDesktop && ( // Conditionally render Shop button inside dropdown for mobile-desktop
+                {isMobileDesktop && ( 
                   <button
                     onClick={() => handleDropdownNavigate('shop')}
                     className="nav-link dropdown-action"
@@ -269,7 +269,6 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
             )}
           </div>
         ) : (
-          // If user is not logged in
           <>
             {!isMobileDesktop && (
               <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">{content.shop}</button>

@@ -3,15 +3,13 @@ import { db, storage } from '../firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext'; // --- IMPORT a
+import { useLanguage } from '../context/LanguageContext'; 
 import { functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import './EditProfilePage.css';
 
-// Create a reference to your universal translation function
 const getTranslations = httpsCallable(functions, 'getTranslations');
 
-// Store all static English text in an object
 const englishContent = {
   title: "Edit Your Profile",
   profilePhotoLabel: "Profile Photo",
@@ -41,7 +39,6 @@ const EditProfilePage = ({ userProfile, onProfileUpdate, onNavigate }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Effect 1: Pre-fill the form with user data (unchanged)
   useEffect(() => {
     if (userProfile) {
       setFormData({

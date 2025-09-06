@@ -1,5 +1,5 @@
 .craft-mitra-button {
-  position: fixed; /* Keeps the button in place while scrolling */
+  position: fixed; 
   bottom: 2rem;
   right: 2rem;
   width: 70px;

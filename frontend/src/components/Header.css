@@ -350,7 +350,7 @@ button.profile-button:focus-visible {
 
 @media (min-width: 729px) and (max-width: 1024px) {
   .header-actions {
-    display: flex !important; /* Always show header actions */
+    display: flex !important; 
     order: 3;
     flex-wrap: nowrap;
     justify-content: flex-end;
@@ -360,7 +360,7 @@ button.profile-button:focus-visible {
   }
 
   .header.mobile-menu-active .header-actions {
-    display: flex !important; /* Explicitly override hiding when mobile menu is active */
+    display: flex !important; 
   }
 
   .header.mobile-menu-active .mobile-menu-icon {
@@ -368,7 +368,7 @@ button.profile-button:focus-visible {
     right: auto;
     top: auto;
     transform: none;
-    order: 2; /* Keep it visible and in place */
+    order: 2; 
   }
 
   .navigation.mobile-menu-active {
@@ -376,7 +376,7 @@ button.profile-button:focus-visible {
     top: 100%;
     left: 0;
     width: 100%;
-    display: flex; /* Ensure it's displayed */
+    display: flex;
     flex-direction: column;
     align-items: center;
     background-color: rgba(255, 255, 255, 0.95);
