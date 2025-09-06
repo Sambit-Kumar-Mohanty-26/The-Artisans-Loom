@@ -42,12 +42,33 @@ async function ensureUserProfile(user, role) {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null); // New state for user role
+  const [onboardingComplete, setOnboardingComplete] = useState(false); // New state for onboarding status
+  const [loadingUserData, setLoadingUserData] = useState(false); // New state for loading user-specific data
 
   // Track auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
+    const unsubscribe = onAuthStateChanged(auth, async user => {
       setCurrentUser(user);
       setLoading(false);
+      if (user) {
+        setLoadingUserData(true);
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUserRole(userData.role);
+          setOnboardingComplete(userData.onboardingComplete || false);
+        } else {
+          // If user document doesn't exist, default to 'customer' and not onboarded
+          setUserRole('customer');
+          setOnboardingComplete(false);
+        }
+        setLoadingUserData(false);
+      } else {
+        setUserRole(null);
+        setOnboardingComplete(false);
+      }
     });
     return unsubscribe;
   }, []);
@@ -63,6 +84,14 @@ export function AuthProvider({ children }) {
           const storedUserType = localStorage.getItem('googleSignInUserType');
           localStorage.removeItem('googleSignInUserType');
           await ensureUserProfile(user, storedUserType || 'customer');
+          // After ensuring profile, fetch the updated role and onboarding status
+          const userDocRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserRole(userData.role);
+            setOnboardingComplete(userData.onboardingComplete || false);
+          }
         }
       } catch (error) {
         console.error("Error processing redirect result:", error);
@@ -101,8 +130,10 @@ export function AuthProvider({ children }) {
       email: user.email,
       role: role,
       createdAt: new Date(),
-      onboardingComplete: false, 
+      onboardingComplete: false,
     });
+    setUserRole(role); // Set role immediately after signup
+    setOnboardingComplete(false); // Set onboarding status immediately after signup
     return userCredential;
   }
 
@@ -113,6 +144,8 @@ export function AuthProvider({ children }) {
 
   // ✅ Logout
   function logout() {
+    setUserRole(null); // Clear role on logout
+    setOnboardingComplete(false); // Clear onboarding status on logout
     return signOut(auth);
   }
 
@@ -121,7 +154,10 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
-    loginWithGoogle
+    loginWithGoogle,
+    userRole, // Add userRole to context value
+    onboardingComplete, // Add onboardingComplete to context value
+    loadingUserData // Add loadingUserData to context value
   };
 
   return (

@@ -24,14 +24,14 @@ const englishContent = {
 const MicOnIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> );
 const MicOffIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> );
 
-const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage }) => {
+const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage, children }) => {
   const { currentLanguage: appLanguage } = useLanguage();
   const [content, setContent] = useState(englishContent);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [statusText, setStatusText] = useState(englishContent.initialStatus);
   const [conversationHistory, setConversationHistory] = useState([]);
-  const { currentUser } = useAuth();
+  const { currentUser, userRole, onboardingComplete } = useAuth(); // Destructure all needed values here
 
   const supportedLanguages = [
     { code: 'en-IN', name: 'English (India)', voice: 'en-IN-Wavenet-C' },
@@ -47,6 +47,7 @@ const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage }) => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const chatDisplayRef = useRef(null);
+  const speechSynthRef = useRef(window.speechSynthesis);
 
   useEffect(() => {
     const translateContent = async () => {
@@ -114,7 +115,8 @@ const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage }) => {
         console.error("Failed to save conversation:", error);
       }
     }
-    onClose(); 
+    speechSynthRef.current.cancel(); // Stop any ongoing speech when modal closes
+    onClose();
   };
 
   const handleListenToggle = async () => {
@@ -144,12 +146,17 @@ const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage }) => {
               if (!currentUser) throw new Error("User is not logged in.");
               await currentUser.getIdToken(true);
               const base64data = reader.result.split(',')[1];
+
+              // console.log("Frontend sending userRole:", userRole);
+              // console.log("Frontend sending onboardingComplete:", onboardingComplete);
               
               const result = await getCraftMitraResponse({ 
                 audioData: base64data,
                 history: conversationHistory,
                 languageCode: selectedLanguageCode,
                 voiceName: selectedVoiceName,
+                userRole: userRole, // Pass user role from state
+                onboardingComplete: onboardingComplete, // Pass onboarding status from state
               });
 
               const { transcript, responseText, responseAudio, functionCall } = result.data;
@@ -194,6 +201,15 @@ const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage }) => {
 
   if (!isOpen) return null;
 
+  const speak = (text, langCode) => {
+    if (speechSynthRef.current) {
+      speechSynthRef.current.cancel(); // Stop any current speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = langCode || selectedLanguageCode; // Use selected language or default
+      speechSynthRef.current.speak(utterance);
+    }
+  };
+
   return (
     <div className="mitra-modal-overlay" onClick={handleCloseAndSave}>
       <div className={`mitra-modal-content ${isTranslating ? 'translating' : ''}`} onClick={(e) => e.stopPropagation()}>
@@ -213,6 +229,8 @@ const CraftMitraModal = ({ isOpen, onClose, onNavigateToPage }) => {
           {conversationHistory.length === 0 && (
              <p className="mitra-subtitle">{content.subtitle}</p>
           )}
+          {/* Render children (CraftMitraAssistant) here */}
+          {React.cloneElement(children, { onSpeak: speak, selectedLanguageCode: selectedLanguageCode })}
           {conversationHistory.map((entry, index) => (
             <div key={index} className={`chat-bubble ${entry.role}`}>
               {entry.parts[0].text}
