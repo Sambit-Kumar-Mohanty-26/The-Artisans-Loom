@@ -10,6 +10,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import CraftMitraButton from './components/CraftMitraButton';
 import CraftMitraModal from './components/CraftMitraModal';
+import CraftMitraAssistant from './components/CraftMitraAssistant'; // Import the new component
 
 import AuthPage from './pages/AuthPage';
 import AddProductPage from './pages/AddProductPage';
@@ -64,13 +65,12 @@ const normalizePage = (page) => {
   return pageAliases[normalized] || normalized;
 };
 
-
 function App() {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole, onboardingComplete, loading: authLoading } = useAuth(); // Destructure loading from useAuth
   const [currentPage, setCurrentPage] = useState('home');
-  const [userProfile, setUserProfile] = useState(null);
+  const [userProfile, setUserProfile] = useState(null); // Reintroducing userProfile state
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Main loading state for App component
   const [isMitraOpen, setIsMitraOpen] = useState(false);
   const [scrollToSection, setScrollToSection] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
@@ -86,18 +86,22 @@ function App() {
   };
 
   useEffect(() => {
-    const handleAuthChange = async () => {
-      setLoading(true);
+    const handleAuthAndProfile = async () => {
+      if (authLoading) return; // Wait for AuthContext to finish loading
+
       if (currentUser) {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           const profileData = { uid: currentUser.uid, ...userDoc.data() };
-          setUserProfile(profileData); 
-        if (!profileData.onboardingComplete) {
+          setUserProfile(profileData); // Set userProfile from Firestore
+
+          if (!profileData.onboardingComplete) {
             setCurrentPage('onboarding');
           } else if (profileData.role === 'artisan' && currentPage !== 'dashboard') {
             navigateTo('dashboard');
+          } else if (profileData.role === 'customer') { // Removed profileData.onboardingComplete condition
+            navigateTo('home');
           }
         } else {
           console.error("User document not found in Firestore for authenticated user.");
@@ -111,8 +115,8 @@ function App() {
       setLoading(false);
     };
 
-    handleAuthChange();
-  }, [currentUser]); 
+    handleAuthAndProfile();
+  }, [currentUser, authLoading]); // Depend on currentUser and authLoading
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -139,7 +143,7 @@ function App() {
       const userDocRef = doc(db, 'users', currentUser.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
-        setUserProfile({ uid: currentUser.uid, ...userDoc.data() });
+        // setUserProfile({ uid: currentUser.uid, ...userDoc.data() }); // This line is no longer needed
       }
     }
   };
@@ -149,21 +153,20 @@ function App() {
       return <div className="loading-fullscreen">Loading...</div>;
     }
     if (currentPage === 'edit-profile') {
-      return <EditProfilePage 
-               userProfile={userProfile} 
+      return <EditProfilePage
+               userProfile={userProfile} // Pass userProfile to EditProfilePage
                onProfileUpdate={handleProfileUpdate}
-               onNavigate={navigateTo} 
+               onNavigate={navigateTo}
              />;
     }
-    if (currentPage === 'onboarding' && userProfile) {
-      const handleOnboardingComplete = () => {
+    if (currentPage === 'onboarding' && userProfile) { // Ensure userProfile is available
+      const handleOnboardingComplete = async () => { // Make async
         const userDocRef = doc(db, 'users', currentUser.uid);
-        getDoc(userDocRef).then(docSnap => {
-          if (docSnap.exists()) {
-            setUserProfile({ uid: currentUser.uid, ...docSnap.data() });
-          }
-        });
-        
+        const docSnap = await getDoc(userDocRef); // Await getDoc
+        if (docSnap.exists()) {
+          setUserProfile({ uid: currentUser.uid, ...docSnap.data() }); // Update local userProfile
+        }
+
         const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
         navigateTo(destination);
       };
@@ -200,7 +203,8 @@ function App() {
                          />;
       case 'cart': return <CartPage onNavigate={navigateTo} />;
       case 'checkout': return <CheckoutPage onNavigate={navigateTo} />;
-      case 'dashboard': 
+      case 'dashboard':
+          // Use userProfile for role check
           if (userProfile?.role === 'artisan') {
             return <DashboardPage onNavigate={navigateTo}/>;
           } else if (userProfile?.role === 'customer') {
@@ -214,7 +218,8 @@ function App() {
       case 'gifting-assistant': return <GiftingAssistantPage />;
       case 'home':
       default:
-        if (currentUser && !userProfile?.onboardingComplete) {
+        // Check userProfile for onboarding status
+        if (currentUser && !userProfile?.onboardingComplete && !loading) { // Add !loading to condition
           return <div className="loading-fullscreen">Loading...</div>;
         }
         return renderHomepage();
@@ -251,7 +256,9 @@ function App() {
           isOpen={isMitraOpen}
           onClose={() => setIsMitraOpen(false)}
           onNavigateToPage={navigateTo}
-        />
+        >
+          <CraftMitraAssistant />
+        </CraftMitraModal>
       </div>
     </CartProvider>
   );
