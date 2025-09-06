@@ -1,14 +1,20 @@
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
-const { logger } = require("firebase-functions");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { logger} = require("firebase-functions");
 const admin = require("firebase-admin");
+const sgMail = require('@sendgrid/mail');
 const { SpeechClient } = require("@google-cloud/speech");
 const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
 const { VertexAI } = require("@google-cloud/vertexai");
 const { ImageAnnotatorClient } = require('@google-cloud/vision');
 const {Translate} = require('@google-cloud/translate').v2;
 const cors = require("cors")({ origin: true });
+const { defineSecret } = require('firebase-functions/params');
+const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
 
 admin.initializeApp();
+
+const FROM_EMAIL = "contact.artisans.loom@gmail.com";
 
 const speechClient = new SpeechClient();
 const textToSpeechClient = new TextToSpeechClient();
@@ -1189,4 +1195,128 @@ exports.toggleWishlistItem = onCall(corsOptions, async (request) => {
     logger.error(`Error toggling wishlist item ${productId} for user ${userId}:`, error);
     throw new HttpsError("internal", "Failed to update wishlist.");
   }
+});
+// ------------------ Welcome Email on User Creation ----------------------
+exports.sendWelcomeEmail = onDocumentCreated(
+  {
+    document: "users/{userId}", 
+    secrets: [SENDGRID_API_KEY]
+  },
+  async (event) => {
+    sgMail.setApiKey(SENDGRID_API_KEY.value());
+    const snapshot = event.data;
+    if (!snapshot) {
+      logger.error(`No data for user ${event.params.userId}.`);
+      return;
+    }
+
+    const userData = snapshot.data();
+    const email = userData.email; 
+    const displayName = userData.displayName || "Friend";
+
+    if (!email) {
+      logger.error(`User document ${event.params.userId} is missing an email.`);
+      return;
+    }
+
+    const msg = {
+      to: email,
+      from: { name: "The Artisan's Loom", email: FROM_EMAIL },
+      subject: "Welcome to The Artisan's Loom!",
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.6;">
+          <h2>Welcome, ${displayName}!</h2>
+          <p>Thank you for joining our community of artisans and art lovers. We are thrilled to have you with us.</p>
+          <a href="https://annular-climate-469215-m0.web.app" style="background-color: #d96a3b; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Shop Now</a>
+          <p>Warmly,<br/>The Artisan's Loom Team</p>
+        </div>
+      `,
+    };
+    
+
+    try {
+      await sgMail.send(msg);
+      return logger.info(`Welcome email sent to ${email}`);
+    } catch (error) {
+      return logger.error(
+        "Error sending welcome email:",
+        (error.response && error.response.body) || error
+      );
+    }
+  }
+);
+// ------------------ Order Confirmation Emails ----------------------
+exports.sendOrderEmails = onDocumentCreated({
+    document: "orders/{orderId}",
+    secrets: [SENDGRID_API_KEY]
+  }, async (event) => {
+    if (!process.env.SENDGRID_API_KEY) {
+        logger.error("FATAL: SENDGRID_API_KEY secret is not loaded. Check function configuration.");
+        return;
+    }
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+  const orderId = event.params.orderId;
+  const orderData = event.data.data();
+
+  if (!orderData) {
+    logger.error(`No data for order ${orderId}. Exiting function.`);
+    return;
+  }
+  
+  logger.info(`START: Processing order ${orderId}...`);
+
+  const customerId = orderData.userId;
+  const artisanIds = [...new Set(orderData.items.map((item) => item.artisanId))];
+  try {
+    const customerDoc = await admin.firestore().collection("users").doc(customerId).get();
+    if (customerDoc.exists && customerDoc.data().email) {
+      const customerEmail = customerDoc.data().email;
+      const customerMsg = {
+        to: customerEmail,
+        from: { name: 'The Artisan\'s Loom Orders', email: FROM_EMAIL },
+        subject: `Your Order #${orderId.substring(0, 8)} is Confirmed!`,
+        html: `<div>Your order is confirmed.</div>`, 
+      };
+
+      logger.log(`Preparing to send CUSTOMER email for order ${orderId} to ${customerEmail}...`);
+      await sgMail.send(customerMsg);
+      logger.info(`SUCCESS: Sent CUSTOMER email for order ${orderId} to ${customerEmail}.`);
+
+    } else {
+       logger.error(`Data check failed for customer ${customerId} on order ${orderId}. Exists: ${customerDoc.exists}`);
+    }
+  } catch (error) {
+      logger.error(`!!! FAILED TO SEND CUSTOMER EMAIL for order ${orderId} !!!`);
+      logger.error("DETAILED SENDGRID ERROR (CUSTOMER):", JSON.stringify(error, null, 2));
+  }
+
+
+  // ---  Handle Artisan Emails ---
+  for (const artisanId of artisanIds) {
+    try {
+        const artisanDoc = await admin.firestore().collection("users").doc(artisanId).get();
+        if (artisanDoc.exists && artisanDoc.data().email) {
+            const artisanEmail = artisanDoc.data().email;
+            const artisanMsg = {
+                to: artisanEmail,
+                from: { name: 'The Artisan\'s Loom Sales', email: FROM_EMAIL },
+                subject: "🎉 You have a new order!",
+                html: `<div>You have a new order.</div>`, 
+            };
+
+            logger.log(`Preparing to send ARTISAN email for order ${orderId} to ${artisanEmail}...`);
+            await sgMail.send(artisanMsg);
+            logger.info(`SUCCESS: Sent ARTISAN email for order ${orderId} to ${artisanEmail}.`);
+
+        } else {
+            logger.error(`Data check failed for artisan ${artisanId} on order ${orderId}. Exists: ${artisanDoc.exists}`);
+        }
+    } catch (error) {
+        logger.error(`!!! FAILED TO SEND ARTISAN EMAIL for order ${orderId} to artisan ${artisanId} !!!`);
+        logger.error("DETAILED SENDGRID ERROR (ARTISAN):", JSON.stringify(error, null, 2));
+    }
+  }
+  
+  logger.info(`END: Finished processing order ${orderId}.`);
 });
