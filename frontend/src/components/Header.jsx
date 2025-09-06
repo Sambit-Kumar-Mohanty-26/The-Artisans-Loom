@@ -11,6 +11,23 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const getTranslations = httpsCallable(functions, 'getTranslations');
 
+const useMobileDesktopMode = () => {
+  const [isMobileDesktop, setIsMobileDesktop] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobileDesktop(window.innerWidth >= 729 && window.innerWidth <= 1024);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  return isMobileDesktop;
+};
+
 const englishContent = {
   discover: "Discover",
   regions: "Regions",
@@ -46,6 +63,8 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
   const langDropdownRef = useRef(null);
   const navigationRef = useRef(null);
   const mobileMenuIconRef = useRef(null);
+
+  const isMobileDesktop = useMobileDesktopMode();
 
   useEffect(() => {
     if (currentUser) {
@@ -187,13 +206,17 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
 
         {currentUser && (
           userProfile?.role === 'artisan' ? (
-            <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
-              {content.myDashboard}
-            </button>
+            !isMobileDesktop && (
+              <button onClick={() => onNavigate('dashboard')} className="nav-link nav-link--primary">
+                {content.myDashboard}
+              </button>
+            )
           ) : (
-            <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">
-              {content.shop}
-            </button>
+            !isMobileDesktop && (
+              <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">
+                {content.shop}
+              </button>
+            )
           )
         )}
 
@@ -217,12 +240,28 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
                     {content.myDashboard}
                   </button>
                 )}
+                {isMobileDesktop && ( // Conditionally render Shop button inside dropdown for mobile-desktop
+                  <button
+                    onClick={() => handleDropdownNavigate('shop')}
+                    className="nav-link dropdown-action"
+                  >
+                    {content.shop}
+                  </button>
+                )}
                 <button
                   onClick={() => handleDropdownNavigate('edit-profile')}
                   className="nav-link dropdown-action"
                 >
                   {content.editProfile}
                 </button>
+                {userProfile?.role === 'artisan' && isMobileDesktop && (
+                  <button
+                    onClick={() => handleDropdownNavigate('dashboard')}
+                    className="nav-link dropdown-action"
+                  >
+                    {content.myDashboard}
+                  </button>
+                )}
                 <button onClick={logout} className="nav-link dropdown-signout">
                   {content.signOut}
                 </button>
@@ -230,8 +269,11 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
             )}
           </div>
         ) : (
+          // If user is not logged in
           <>
-            <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">{content.shop}</button>
+            {!isMobileDesktop && (
+              <button onClick={() => onNavigate('shop')} className="nav-link nav-link--primary">{content.shop}</button>
+            )}
             <button onClick={onSignInClick} className="nav-link nav-link--primary">{content.signIn}</button>
           </>
         )}
