@@ -5,6 +5,9 @@
   padding: 1rem 4rem;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(245, 245, 245, 0.9));
   -webkit-backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #e0e0e0;
   border-radius: 0 0 12px 12px;
@@ -342,6 +345,59 @@ button.profile-button:focus-visible {
   .header {
     padding: 1rem 2rem;
     gap: 1.2rem;
+  }
+}
+
+@media (min-width: 729px) and (max-width: 1024px) {
+  .header-actions {
+    display: flex !important; /* Always show header actions */
+    order: 3;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    width: auto;
+    gap: 0.8rem;
+    z-index: 999;
+  }
+
+  .header.mobile-menu-active .header-actions {
+    display: flex !important; /* Explicitly override hiding when mobile menu is active */
+  }
+
+  .header.mobile-menu-active .mobile-menu-icon {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    order: 2; /* Keep it visible and in place */
+  }
+
+  .navigation.mobile-menu-active {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    display: flex; /* Ensure it's displayed */
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #f0ebe5;
+    padding: 1rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    gap: 1rem;
+    z-index: 1001;
+  }
+
+  .header.mobile-menu-active {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .header.mobile-menu-active .logo-link {
+    width: auto;
+    text-align: left;
+    flex: 1;
   }
 }
 
