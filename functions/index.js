@@ -33,14 +33,17 @@ const generativeModel = vertexAi.getGenerativeModel({
   systemInstruction: {
     parts: [
       {
-        text: `You are Craft Mitra, a helpful AI assistant for 'The Artisan's Loom'. Your primary job is to help users by calling functions.
+        text: `You are Craft Mitra, a helpful AI assistant for 'The Artisan's Loom'. Your primary job is to help users by calling functions and providing relevant information tailored to their role and familiarity with the website.
 
         **CRITICAL RULE:** When a user asks to navigate, you MUST prioritize using the 'navigateTo' tool. Do NOT just say you will navigate in words; you MUST call the function.
+
+        **ABSOLUTELY CRITICAL CONTEXT RULE:** For every user message in our conversation (past and present), I will explicitly provide your current role and onboarding status within the message (e.g., "[CONTEXT: Role: artisan, Onboarding: complete] My query is: [user's actual query]"). You MUST rely on this explicit context as the SOLE AND AUTHORITATIVE source for the user's status for ALL responses in the conversation. You are explicitly instructed to IGNORE any internal assumptions or previous turns that might contradict this explicit context. If this explicit context indicates a logged-in user (artisan or customer), you MUST NOT ask them to log in or suggest they are unauthenticated. Your responses MUST always be consistent with the status provided in the current message's context.\n\n        **GUIDANCE BASED ON USER ROLE/STATUS (ALWAYS REFER TO THE EXPLICIT CONTEXT IN THE USER MESSAGE):**\n        - If the explicit context indicates an **unfamiliar artisan**: Provide a warm welcome to 'The Artisan's Loom', explain how the platform helps artisans showcase their craft, and offer to guide them through listing their first product. For example, you can say, "I can show you how to add a product if you like. Just ask, 'How do I add a product?'"\n        - If the explicit context indicates a **familiar artisan**: Provide a brief, welcoming message and offer assistance with product management, viewing their profile, or checking analytics.\n        - If the explicit context indicates a **customer**: Provide an engaging welcome to 'The Artisan's Loom', highlight the unique handcrafted products available, explain key sections like "curated collections", "artisans by region", and encourage exploration. For example, you can say, "Explore our diverse range of products by category or discover artisans from specific regions."\n        - If the explicit context indicates an **unauthenticated user**: Politey remind them that they need to log in or sign up to access the full features and personalized assistance of Craft Mitra.
 
         - User says: "browse all products" -> Correct action: call \`navigateTo({ path: '/shop' })\`.
         - User says: "go to the craft atlas" -> Correct action: call \`navigateTo({ path: '/regions' })\`.
         - User says: "take me to my dashboard" -> Correct action: call \`navigateTo({ path: '/dashboard' })\`.
         - User says: "I need to sign in" -> Correct action: call \`navigateTo({ path: '/auth' })\`.
+        - User says: "How do I add a product?" (and is an unfamiliar artisan) -> Correct action: call \`navigateTo({ path: '/add-product' })\` and provide a helpful response like "Certainly, I'll take you to the Add Product page. There you can enter details about your craft."
         
         **INCORRECT BEHAVIOR (DO NOT DO THIS):**
         - User: "Take me to the shop."
@@ -68,17 +71,18 @@ const generativeModel = vertexAi.getGenerativeModel({
             },
             required: ["path"],
           },
-      },
-      {
-        name: "getArtisanAnalytics",
-        description: "Retrieves business analytics for an artisan, including best-selling item and monthly sales data. This function should be called when an artisan asks for insights into their sales performance, such as 'What's my best-selling item?' or 'How were my sales last month?'.",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
         },
-      },
-    ],
-  },
+        {
+          name: "getArtisanAnalytics",
+          description: "Retrieves business analytics for an artisan, including best-selling item and monthly sales data. This function should be called when an artisan asks for insights into their sales performance, such as 'What's my best-selling item?' or 'How were my sales last month?'.",
+          parameters: {
+            type: "OBJECT",
+            properties: {},
+            required: [],
+          },
+        },
+      ],
+    },
   ],
 });
 
@@ -121,6 +125,11 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
 
   const audioBase64 = request.data.audioData;
   const history = request.data.history || [];
+  const userRole = request.data.userRole; // Get userRole from frontend
+  const onboardingComplete = request.data.onboardingComplete; // Get onboardingComplete from frontend
+
+  logger.info("Backend received userRole:", userRole);
+  logger.info("Backend received onboardingComplete:", onboardingComplete);
 
   if (!audioBase64) {
     throw new HttpsError("invalid-argument", "Missing audio data.");
@@ -193,8 +202,35 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
   let functionCall=null;
 
   try {
-    const chat = generativeModel.startChat({ history });
-    const result = await chat.sendMessage(userTranscript);
+    // Build the context prefix for the current turn.
+    let contextPrefix = "";
+    if (userRole === 'artisan') {
+      contextPrefix = `[CONTEXT: Role: artisan, Onboarding: ${onboardingComplete ? 'complete' : 'incomplete'}]`;
+    } else if (userRole === 'customer') {
+      contextPrefix = "[CONTEXT: Role: customer]";
+    } else {
+      contextPrefix = "[CONTEXT: Role: unauthenticated]";
+    }
+
+    // Reconstruct the entire history to prepend the current context to every user message.
+    const contextualizedHistory = history.map((item) => {
+      if (item.role === 'user') {
+        return { ...item, parts: [{ text: `${contextPrefix} My query is: ${item.parts[0].text}` }] };
+      }
+      return item;
+    });
+
+    // Construct the full conversation parts for the generateContent call.
+    // This includes the re-contextualized history and the current user query with context.
+    const conversationParts = [
+      ...contextualizedHistory, 
+      { role: 'user', parts: [{ text: `${contextPrefix} My query is: ${userTranscript}` }] }, // The actual user query with context
+    ];
+
+    logger.info("Conversation parts sent to Gemini.generateContent:", JSON.stringify(conversationParts));
+    logger.info("User transcript (raw):", userTranscript);
+
+    const result = await generativeModel.generateContent({ contents: conversationParts });
 
     const candidate = result.response.candidates[0];
     if (candidate.content.parts && candidate.content.parts.length > 0) {
@@ -240,7 +276,7 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
       }
     }
   } catch (error) {
-    logger.error("ERROR during Vertex AI call:", error);
+    logger.error("ERROR during Vertex AI call:", error); // Modified logging to include full error object
 
     if (error.response) {
       logger.error("Vertex AI response details:", JSON.stringify(error.response));
@@ -826,13 +862,16 @@ exports.visualSearchForProducts = onCall(corsOptions, async (request) => {
     const matchedProducts = [];
     snapshot.forEach((doc) => {
       const product = { id: doc.id, ...doc.data() };
-      const productText = `${product.name} ${product.description} ${product.category} ${product.materials.join(' ')}`.toLowerCase();
+      const productText = `${product.name} ${product.description} ${product.category} ${product.artisanName || ''}
+          ${product.region || ''}
+          ${(product.materials || []).join(' ')}
+        `.toLowerCase();
       
       if (searchTerms.some((term) => productText.includes(term))) {
         matchedProducts.push(product);
       }
     });
-
+    
     return { products: matchedProducts };
 
   } catch (error) {
@@ -1112,7 +1151,6 @@ exports.getArtisanProfile = onCall(corsOptions, async (request) => {
       },
       products: products,
     };
-
   } catch (error) {
     logger.error(`Error fetching profile for artisan ${artisanId}:`, error);
     if (error instanceof HttpsError) throw error;
