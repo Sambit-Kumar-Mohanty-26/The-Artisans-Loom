@@ -78,23 +78,25 @@ const Footer = ({ onNavigate, onNavigateAndScroll }) => {
           <img src={logo} alt="The Artisan's Loom Logo" className="footer-logo-image" />
           <p>{content.aboutText}</p>
         </div>
-        <div className="footer-section links">
-          <h3>{content.quickLinksTitle}</h3>
-          <ul>
-            <li><a href="#" onClick={(e) => handleScrollLinkClick(e, 'discover')}>{content.discoverLink}</a></li>
-            <li><a href="#" onClick={(e) => handleLinkClick(e, 'all-artisans')}>{content.artisansLink}</a></li>
-            <li><a href="#" onClick={(e) => handleLinkClick(e, 'about-us')}>{content.aboutUsLink}</a></li>
-            <li><a href="#" onClick={(e) => handleScrollLinkClick(e, 'stories')}>{content.storiesLink}</a></li>
-          </ul>
-        </div>
-        <div className="footer-section links">
-          <h3>{content.supportTitle}</h3>
-          <ul>
-            <li><a href="#" onClick={(e) => handleLinkClick(e, 'faq')}>{content.faqLink}</a></li>
-            <li><a href="#" onClick={(e) => handleLinkClick(e, 'contact')}>{content.contactLink}</a></li>
-            <li><a href="#" onClick={(e) => handleLinkClick(e, 'shipping')}>{content.shippingLink}</a></li>
-            <li><a href="#" onClick={(e) => handleLinkClick(e, 'returns')}>{content.returnsLink}</a></li>
-          </ul>
+        <div className="footer-links-wrapper">
+          <div className="footer-section links">
+            <h3>{content.quickLinksTitle}</h3>
+            <ul>
+              <li><a href="#" onClick={(e) => handleScrollLinkClick(e, 'discover')}>{content.discoverLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'all-artisans')}>{content.artisansLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'about-us')}>{content.aboutUsLink}</a></li>
+              <li><a href="#" onClick={(e) => handleScrollLinkClick(e, 'stories')}>{content.storiesLink}</a></li>
+            </ul>
+          </div>
+          <div className="footer-section links">
+            <h3>{content.supportTitle}</h3>
+            <ul>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'faq')}>{content.faqLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'contact')}>{content.contactLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'shipping')}>{content.shippingLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'returns')}>{content.returnsLink}</a></li>
+            </ul>
+          </div>
         </div>
         <div className="footer-section subscribe">
           <h3>{content.subscribeTitle}</h3>
