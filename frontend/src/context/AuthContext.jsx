@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async user => {
       setCurrentUser(user);
       setLoading(false);
-      if (user) {
+      if (user && user.uid) {
         setLoadingUserData(true);
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
@@ -73,7 +73,7 @@ export function AuthProvider({ children }) {
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
-        if (result) {
+        if (result && result.user && result.user.uid) {
           const user = result.user;
           const storedUserType = localStorage.getItem('googleSignInUserType');
           localStorage.removeItem('googleSignInUserType');

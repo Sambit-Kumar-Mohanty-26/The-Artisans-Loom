@@ -119,6 +119,12 @@ function App() {
   }, [currentUser, authLoading]); 
 
   useEffect(() => {
+    if (currentUser && currentPage === 'auth') {
+      navigateTo('home');
+    }
+  }, [currentUser, currentPage, navigateTo]);
+
+  useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
       const sectionElement = document.getElementById(scrollToSection);
       if (sectionElement) {
