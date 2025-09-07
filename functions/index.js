@@ -1399,3 +1399,103 @@ exports.getAiCuratedCollection = onCall({ cors: true, timeoutSeconds: 120 }, asy
     throw new HttpsError("internal", "Failed to generate a curated collection.");
   }
 });
+// ------------------ Forum Post Moderation ----------------------
+exports.moderateForumPost = onDocumentCreated("forumPosts/{postId}", async (event) => {
+  const postData = event.data.data();
+  const contentToCheck = `${postData.title} ${postData.content}`;
+  
+  const prompt = `
+    Analyze the following text from a community forum for artisans. The text is written by artisans and is about arts and crafts.
+    Text: "${contentToCheck}"
+    Is this text inappropriate for a professional community forum? Consider hate speech, harassment, spam, explicit content, or severe profanity.
+    Respond with a single word: "YES" if it is inappropriate, or "NO" if it is acceptable.
+  `;
+
+  try {
+    const result = await generativeModel.generateContent(prompt);
+    let decision = "NO"; 
+    if (
+      result.response &&
+      result.response.candidates &&
+      result.response.candidates[0] &&
+      result.response.candidates[0].content &&
+      result.response.candidates[0].content.parts &&
+      result.response.candidates[0].content.parts[0] &&
+      result.response.candidates[0].content.parts[0].text
+    ) {
+      decision = result.response.candidates[0].content.parts[0].text.trim().toUpperCase();
+    }
+
+    if (decision === "YES") {
+      logger.warn(`Inappropriate post ${event.params.postId} was automatically flagged by AI.`);
+      return event.data.ref.update({ isFlagged: true });
+    } else {
+      return event.data.ref.update({ isModerated: true });
+    }
+  } catch (error) {
+    logger.error(`Error during content moderation for post ${event.params.postId}:`, error);
+    return event.data.ref.update({ needsManualReview: true });
+  }
+});
+// ------------------ AI Assistant "Mitra" for Forum ----------------------
+exports.checkForMitraMention = onDocumentCreated("forumPosts/{postId}/replies/{replyId}", async (event) => {
+  const replyData = event.data.data();
+  const replyContent = replyData.content || '';
+
+  if (replyContent.toLowerCase().includes("@mitra")) {
+    const postId = event.params.postId;
+    const authorName = "Craft Mitra (AI Assistant)";
+    const authorId = "craft-mitra-ai";
+
+    const expertPrompt = `
+      You are Craft Mitra, a friendly and highly knowledgeable expert on Indian handicrafts, e-commerce, and small business practices for artisans.
+      An artisan has asked for your help in a community forum. Provide a helpful, encouraging, and detailed answer to their question.
+      Format your answer with clear paragraphs. If relevant, use bullet points or numbered lists.
+      
+      The artisan's question is: "${replyContent.replace(/@mitra/gi, "").trim()}"
+    `;
+    
+    try {
+      const result = await generativeModel.generateContent(expertPrompt);
+      let aiResponse = null;
+      if (
+        result.response &&
+        result.response.candidates &&
+        result.response.candidates[0] &&
+        result.response.candidates[0].content &&
+        result.response.candidates[0].content.parts &&
+        result.response.candidates[0].content.parts[0] &&
+        result.response.candidates[0].content.parts[0].text
+      ) {
+        aiResponse = result.response.candidates[0].content.parts[0].text;
+      }
+
+      if (!aiResponse) {
+        throw new Error("AI generated an empty response.");
+      }
+
+      const repliesRef = admin.firestore().collection(`forumPosts/${postId}/replies`);
+      await repliesRef.add({
+        content: aiResponse,
+        authorId: authorId,
+        authorName: authorName,
+        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", // Replace with your URL
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isAiResponse: true,
+      });
+      logger.info(`Craft Mitra successfully responded to a mention in post ${postId}.`);
+
+    } catch (error) {
+      logger.error(`Error handling @Mitra mention for post ${postId}:`, error);
+      const repliesRef = admin.firestore().collection(`forumPosts/${postId}/replies`);
+      await repliesRef.add({
+        content: "Sorry, I encountered an error and couldn't answer your question. Please try asking again.",
+        authorId: authorId,
+        authorName: authorName,
+        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", // Replace with your URL
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isAiResponse: true,
+      });
+    }
+  }
+});

@@ -5,27 +5,46 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow read: if true;
-      allow create, update, delete: if false;
+      allow write: if false;
     }
 
     match /orders/{orderId} {
-      // --- THIS IS THE CORRECTED LINE ---
-      // It now correctly checks for the 'userId' field
       allow read: if request.auth.uid == resource.data.userId;
-      allow create, update, delete: if false;
+      allow write: if false;
     }
+
+    // --- RULES FOR THE NEW FORUM FEATURE ---
+    match /forumCategories/{categoryId} {
+      // Allow any authenticated user to read the list of categories
+      allow read: if request.auth != null;
+      allow write: if false; // Categories are managed by the seed script
+    }
+
+    match /forumPosts/{postId} {
+      // Allow authenticated ARTISANS to read and create posts
+      allow read, create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'artisan';
+      
+      // Only allow the original author to update or delete their own post
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+
+      // Rules for the 'replies' subcollection within a post
+      match /replies/{replyId} {
+        allow read, create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'artisan';
+        allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+      }
+    }
+    // ------------------------------------
 
     match /users/{userId} {
       allow read, write: if request.auth.uid == userId;
-
+      
       match /wishlist/{productId} {
         allow read, create, delete: if request.auth.uid == userId;
         allow update: if false;
       }
-      
       match /reviews/{reviewId} {
         allow read: if true;
-        allow create, update, delete: if false;
+        allow write: if false;
       }
       match /conversations/{conversationId} {
         allow create, read: if request.auth.uid == userId;

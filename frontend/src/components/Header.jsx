@@ -39,6 +39,7 @@ const englishContent = {
   editProfile: "Edit Profile",
   signOut: "Sign Out",
   signIn: "Sign In",
+  artisanCommunity: "Artisan Community", 
 };
 
 const GlobeIcon = () => (
@@ -124,6 +125,7 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
           editProfile: translations[7],
           signOut: translations[8],
           signIn: translations[9],
+          artisanCommunity: translations[10],
         });
       } catch (err) {
         console.error("Failed to translate Header content:", err);
@@ -260,6 +262,15 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
                     className="nav-link dropdown-action"
                   >
                     {content.myDashboard}
+                  </button>
+                  
+                )}
+                {userProfile?.role === 'artisan' && (
+                  <button
+                    onClick={() => handleDropdownNavigate('forum')}
+                    className="nav-link dropdown-action"
+                  >
+                    {content.artisanCommunity}
                   </button>
                 )}
                 <button onClick={logout} className="nav-link dropdown-signout">
