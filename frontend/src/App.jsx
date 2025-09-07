@@ -74,10 +74,10 @@ function App() {
   }, [userProfile, authLoading]);
 
   useEffect(() => {
-    if (currentUser && currentPage === 'auth') {
+    if (userProfile?.uid && currentPage === 'auth') {
       navigateTo('home');
     }
-  }, [currentUser, currentPage, navigateTo]);
+  }, [userProfile, currentPage, navigateTo]);
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
