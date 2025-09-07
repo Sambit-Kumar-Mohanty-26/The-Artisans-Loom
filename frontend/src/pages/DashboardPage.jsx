@@ -18,6 +18,7 @@ const englishContent = {
   dashboardTitle: "Dashboard",
   addProductButton: "+ Add New Product",
   backToHomeButton: "Back to Home",
+  communityForumButton: "Community Forum",
   totalSalesStat: "Total Sales",
   totalProductsStat: "Total Products",
   activeArtisansStat: "Active Artisans",
@@ -34,6 +35,12 @@ const englishContent = {
   priceLabel: "Price:",
   noProductsMessage: "You haven't added any products yet. Click 'Add New Product' to get started!",
 };
+
+const CommunityIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962a3.75 3.75 0 015.962 0L14.25 6h5.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+  </svg>
+);
 
 const DashboardPage = ({ onNavigate }) => {
  const { currentUser } = useAuth();
@@ -88,7 +95,7 @@ const DashboardPage = ({ onNavigate }) => {
           recentOrdersTitle: translations[9], orderIdLabel: translations[10], customerLabel: translations[11],
           dateLabel: translations[12], statusLabel: translations[13], itemsOrderedLabel: translations[14],
           noOrdersMessage: translations[15], myProductsTitle: translations[16], stockLabel: translations[17],
-          priceLabel: translations[18], noProductsMessage: translations[19],
+          priceLabel: translations[18], noProductsMessage: translations[19], communityForumButton: translations[20],
         });
       } catch (err) {
         console.error("Failed to translate DashboardPage content:", err);
@@ -112,6 +119,9 @@ const DashboardPage = ({ onNavigate }) => {
    <div className="dashboard-header">
     <h1>{content.dashboardTitle}</h1>
     <div className="dashboard-actions">
+      <button onClick={() => onNavigate('forum')} className="dashboard-btn-forum">
+            {content.communityForumButton}
+          </button>
      <button onClick={() => onNavigate('addProduct')} className="dashboard-btn">
       {content.addProductButton}
      </button>
