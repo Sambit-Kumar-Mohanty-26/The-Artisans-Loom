@@ -111,7 +111,6 @@ function App() {
     if (userProfile) { 
       const userDocRef = doc(db, 'users', userProfile.uid);
       const userDoc = await getDoc(userDocRef);
-      console.log("Profile update successful, AuthContext will refresh data.", userDoc.data());
     }
   };
 
@@ -186,10 +185,10 @@ function App() {
     <>
       <Hero onNavigate={navigateTo} onSearch={handleSearch} />
       <FeaturedProducts onNavigate={navigateTo} />
-      <div id="discover"><h2>Discover Section</h2></div>
+      <div id="discover"></div>
       <ExploreByRegion onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
       <FeaturedArtisans onNavigate={navigateTo} />
-      <div id="stories"><h2>Stories Section</h2></div>
+      <div id="stories"></div>
       <CuratedCollection onNavigate={navigateTo} />
     </>
   );
