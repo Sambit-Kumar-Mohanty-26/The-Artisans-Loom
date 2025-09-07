@@ -3,6 +3,8 @@ import './App.css';
 import { useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
+import { db } from './firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore'; 
 
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -97,6 +99,13 @@ function App() {
     setSearchResults(searchData);
     navigateTo('shop');
   };
+  const handleProfileUpdate = async () => {
+    if (userProfile) { 
+      const userDocRef = doc(db, 'users', userProfile.uid);
+      const userDoc = await getDoc(userDocRef);
+      console.log("Profile update successful, AuthContext will refresh data.", userDoc.data());
+    }
+  };
 
   const renderPage = () => {
     if (authLoading) {
@@ -150,7 +159,7 @@ function App() {
       case 'addProduct': return userProfile?.role === 'artisan' ? <AddProductPage /> : renderHomepage();
       case 'gifting-assistant': return <GiftingAssistantPage onNavigate={navigateTo} onSearch={handleSearch} />;
       case 'onboarding': return <OnboardingPage />;
-      case 'edit-profile': return <EditProfilePage onNavigate={navigateTo} />;
+      case 'edit-profile': return <EditProfilePage onProfileUpdate={handleProfileUpdate} onNavigate={navigateTo} />;
       case 'forum': return <ForumPage onNavigate={navigateTo} />;
       case 'create-post': return <CreatePostPage onNavigate={navigateTo} />;
       case 'home':
