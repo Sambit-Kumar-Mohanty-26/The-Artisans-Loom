@@ -1353,3 +1353,49 @@ exports.sendOrderEmails = onDocumentCreated({
   
   logger.info(`END: Finished processing order ${orderId}.`);
 });
+// ------------------ AI Curated Collections ----------------------
+exports.getAiCuratedCollection = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
+  const { theme, budget, language } = request.data;
+  if (!theme || !budget || !language) {
+    throw new HttpsError("invalid-argument", "Theme, budget, and language are required.");
+  }
+
+  try {
+    const prompt = `
+      You are an expert interior designer and storyteller for "The Artisan's Loom", an Indian craft marketplace.
+      A user wants to decorate a room with a budget of ₹${budget} and a theme of "${theme}".
+      
+      Your task is to act as their personal designer. Suggest 3 to 4 distinct TYPES of authentic Indian craft products that would fit this theme.
+
+      For your response, you MUST generate a cohesive "look book" narrative.
+      This entire response, including all names, regions, and reasons, must be in the ${language} language.
+      
+      Return your response as a single, raw JSON object with two main keys:
+      1.  "collectionTitle": A creative and inspiring title for this curated collection.
+      2.  "collectionDescription": A compelling paragraph describing how these craft types work together to create the desired theme.
+      3.  "suggestedCrafts": An array of objects. Each object must have these three keys:
+          - "name": The name of the craft TYPE (e.g., "Blue Pottery Vases", "Vasos de cerámica azul").
+          - "region": The primary region it's from (e.g., "from Jaipur, Rajasthan", "de Jaipur, Rajasthan").
+          - "reason": A short, evocative sentence explaining why this craft fits the theme.
+          - "searchTerm": A simple, effective search query for this craft, **always in English** (e.g., "blue pottery").
+      
+      Do not include any other text, markdown, or explanations outside of the JSON object.
+    `;
+    
+    const result = await generativeModel.generateContent(prompt);
+    const responseText = result.response.candidates[0].content.parts[0].text;
+    
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      logger.error("AI response for curated collection was not valid JSON. Response:", responseText);
+      throw new Error("AI response was not valid JSON.");
+    }
+    const aiResponse = JSON.parse(jsonMatch[0]);
+
+    return aiResponse;
+
+  } catch (error) {
+    logger.error("Error generating AI curated collection:", error);
+    throw new HttpsError("internal", "Failed to generate a curated collection.");
+  }
+});

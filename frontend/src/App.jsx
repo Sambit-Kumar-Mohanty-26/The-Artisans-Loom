@@ -214,7 +214,7 @@ function App() {
       case 'all-states': return <AllStatesPage onNavigate={navigateTo} />;
       case 'all-artisans': return <AllArtisansPage onNavigate={navigateTo} />;
       case 'addProduct': return userProfile?.role === 'artisan' ? <AddProductPage /> : renderHomepage();
-      case 'gifting-assistant': return <GiftingAssistantPage />;
+      case 'gifting-assistant': return <GiftingAssistantPage onNavigate={navigateTo} onSearch={handleSearch} />;
       case 'home':
       default:
         if (currentUser && !userProfile?.onboardingComplete && !loading) {
