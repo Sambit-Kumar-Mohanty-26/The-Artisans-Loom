@@ -48,7 +48,7 @@ const GlobeIcon = () => (
   </svg>
 );
 
-const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
+const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll, currentPage }) => {
   const { currentUser, logout } = useAuth();
   const { cartCount } = useCart();
   const { currentLanguage, changeLanguage, supportedLanguages } = useLanguage();
@@ -81,6 +81,10 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
       setUserProfile(null);
     }
   }, [currentUser]);
+   useEffect(() => {
+    setIsProfileDropdownOpen(false);
+    setIsLangDropdownOpen(false);
+  }, [currentPage]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -145,7 +149,6 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll }) => {
 
   const handleDropdownNavigate = (page) => {
     onNavigate(page);
-    setIsProfileDropdownOpen(false);
     setIsMobileMenuOpen(false);
   };
   

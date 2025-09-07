@@ -30,6 +30,9 @@ const englishContent = {
   recsLoading: "Generating personalized recommendations...",
   recsTitle: "A Weaver's Journey: Related Crafts",
   viewProductButton: "View Product",
+  backToHome: "Back to Home",
+  fallbackTitle: "No results found for your search.",
+  fallbackSubtitle: "But you might be interested in these popular crafts:",
 };
 
 const CloseIcon = () => (
@@ -38,9 +41,17 @@ const CloseIcon = () => (
   </svg>
 );
 
+const BackButton = ({ onNavigate, text }) => (
+  <button className="back-to-home-btn" onClick={() => onNavigate('home')}>
+    <span className="btn-icon">←</span>
+    <span className="btn-text">{text}</span>
+  </button>
+);
+
 const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) => {
   const { currentLanguage } = useLanguage();
   const [products, setProducts] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [aiRecommendations, setAiRecommendations] = useState([]);
   const [content, setContent] = useState(englishContent);
   const [isRecsLoading, setIsRecsLoading] = useState(false);
@@ -56,13 +67,9 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
     setLoading(true);
     setError('');
     setAiRecommendations([]);
+    setRecommendations([]);
     try {
-      const activeFilters = Object.fromEntries(
-        Object.entries(currentFilters).filter(([, value]) => value !== '' && value !== null)
-      );
-      if (activeFilters.minPrice) activeFilters.minPrice = Number(activeFilters.minPrice) * 100;
-      if (activeFilters.maxPrice) activeFilters.maxPrice = Number(activeFilters.maxPrice) * 100;
-      const result = await searchProducts(activeFilters);
+      const result = await searchProducts(currentFilters);
       setProducts(result.data.products);
     } catch (err) {
       setError('Could not fetch products. Please try again later.');
@@ -92,21 +99,23 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
 
   useEffect(() => {
     const performSearch = async () => {
-      setAiRecommendations([]); 
+      setAiRecommendations([]);
+      setRecommendations([]);
       if (initialSearch) {
         setLoading(true);
         setError('');
         setIsSearchResult(true);
-        if (initialSearch.type === 'visual') {
-          setProducts(initialSearch.payload);
-        } else if (initialSearch.type === 'text') {
-          try {
+        try {
+          if (initialSearch.type === 'visual') {
+            setProducts(initialSearch.payload);
+          } else if (initialSearch.type === 'text') {
             const result = await searchProducts({ q: initialSearch.payload });
             setProducts(result.data.products);
-          } catch (err) {
-            setError('Could not fetch products for your search.');
-            console.error("Text search error:", err);
+            setRecommendations(result.data.recommendations || []);
           }
+        } catch (err) {
+          setError('Could not fetch products for your search.');
+          console.error("Text search error:", err);
         }
         setLoading(false);
       } else {
@@ -138,7 +147,8 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
           priceRangeLabel: translations[9], minPlaceholder: translations[10], maxPlaceholder: translations[11],
           applyButton: translations[12], searchResultsTitle: translations[13], clearSearchButton: translations[14],
           loadingProducts: translations[15], noProducts: translations[16], recsLoading: translations[17],
-          recsTitle: translations[18], viewProductButton: translations[19],
+          recsTitle: translations[18], viewProductButton: translations[19], backToHome: translations[20],
+          fallbackTitle: translations[21], fallbackSubtitle: translations[22],
         });
       } catch (err) {
         console.error("Failed to translate ShopPage content:", err);
@@ -164,25 +174,32 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
   const handleClearSearch = () => {
     clearSearch(); 
     setAiRecommendations([]);
+    setRecommendations([]);
     setIsSearchResult(false);
   };
 
   const renderProductGrid = () => {
     if (loading) return <p>{content.loadingProducts}</p>;
     if (error) return <p className="error-message">{error}</p>;
+    if (products.length === 0 && recommendations.length > 0 && isSearchResult) {
+      return (
+        <div className="no-results-fallback">
+          <h3>{content.fallbackTitle}</h3>
+          <p>{content.fallbackSubtitle}</p>
+          <div className="shop-product-grid">
+            {recommendations.map(product => (
+              <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+            ))}
+          </div>
+        </div>
+      );
+    }
     if (products.length > 0) {
       return (
         <div className="shop-product-grid">
-          {products.map(product => {
-            const productCardData = {
-              id: product.id,
-              name: product.name,
-              artisan: product.artisanName,
-              price: product.price / 100,
-              image: product.imageUrl,
-            };
-            return <ProductCard key={product.id} product={productCardData} onNavigate={onNavigate} />;
-          })}
+          {products.map(product => (
+            <ProductCard key={product.id} product={product} onNavigate={onNavigate} />
+          ))}
         </div>
       );
     }
@@ -190,99 +207,94 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
   };
 
   return (
-    <div className={`shop-page ${isTranslating ? 'translating' : ''}`}>
-      <aside className="filter-sidebar">
-        <h3>{content.filtersTitle}</h3>
-        <form onSubmit={handleApplyFilters}>
-          <div className="filter-group">
-            <label>{content.sortByLabel}</label>
-            <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
-              <option value="createdAt_desc">{content.newestOption}</option>
-              <option value="price_asc">{content.priceLowHighOption}</option>
-              <option value="price_desc">{content.priceHighLowOption}</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>{content.categoryLabel}</label>
-            <select name="category" value={filters.category} onChange={handleFilterChange}>
-              <option value="">{content.allOption}</option>
-              <option value="weaving">Weaving</option>
-              <option value="pottery">Pottery</option>
-              <option value="painting">Painting</option>
-              <option value="carving">Carving</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>{content.materialLabel}</label>
-            <select name="materials" value={filters.materials} onChange={handleFilterChange}>
-              <option value="">{content.allOption}</option>
-              <option value="silk">Silk</option>
-              <option value="cotton">Cotton</option>
-              <option value="terracotta">Terracotta</option>
-              <option value="wood">Wood</option>
-              <option value="brass">Brass</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>{content.regionLabel}</label>
-            <select name="region" value={filters.region} onChange={handleFilterChange}>
-              <option value="">{content.allOption}</option>
-              <option value="rajasthan">Rajasthan</option>
-              <option value="gujarat">Gujarat</option>
-              <option value="odisha">Odisha</option>
-              <option value="uttar_pradesh">Uttar Pradesh</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>{content.priceRangeLabel}</label>
-            <div className="price-inputs">
-              <input type="number" name="minPrice" placeholder={content.minPlaceholder} value={filters.minPrice} onChange={handleFilterChange} />
-              <span>-</span>
-              <input type="number" name="maxPrice" placeholder={content.maxPlaceholder} value={filters.maxPrice} onChange={handleFilterChange} />
+    <div className={`shop-page-container ${isTranslating ? 'translating' : ''}`}>
+      <BackButton onNavigate={onNavigate} text={content.backToHome} />
+      <div className="shop-page">
+        <aside className="filter-sidebar">
+          <h3>{content.filtersTitle}</h3>
+          <form onSubmit={handleApplyFilters}>
+            <div className="filter-group">
+              <label>{content.sortByLabel}</label>
+              <select name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
+                <option value="createdAt_desc">{content.newestOption}</option>
+                <option value="price_asc">{content.priceLowHighOption}</option>
+                <option value="price_desc">{content.priceHighLowOption}</option>
+              </select>
             </div>
-          </div>
-          <button type="submit" className="apply-filters-btn">{content.applyButton}</button>
-        </form>
-      </aside>
+            <div className="filter-group">
+              <label>{content.categoryLabel}</label>
+              <select name="category" value={filters.category} onChange={handleFilterChange}>
+                <option value="">{content.allOption}</option>
+                <option value="weaving">Weaving</option> <option value="pottery">Pottery</option>
+                <option value="painting">Painting</option> <option value="carving">Carving</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>{content.materialLabel}</label>
+              <select name="materials" value={filters.materials} onChange={handleFilterChange}>
+                <option value="">{content.allOption}</option>
+                <option value="silk">Silk</option> <option value="cotton">Cotton</option>
+                <option value="terracotta">Terracotta</option> <option value="wood">Wood</option> <option value="brass">Brass</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>{content.regionLabel}</label>
+              <select name="region" value={filters.region} onChange={handleFilterChange}>
+                <option value="">{content.allOption}</option>
+                <option value="rajasthan">Rajasthan</option> <option value="gujarat">Gujarat</option>
+                <option value="odisha">Odisha</option> <option value="uttar_pradesh">Uttar Pradesh</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label>{content.priceRangeLabel}</label>
+              <div className="price-inputs">
+                <input type="number" name="minPrice" placeholder={content.minPlaceholder} value={filters.minPrice} onChange={handleFilterChange} />
+                <span>-</span>
+                <input type="number" name="maxPrice" placeholder={content.maxPlaceholder} value={filters.maxPrice} onChange={handleFilterChange} />
+              </div>
+            </div>
+            <button type="submit" className="apply-filters-btn">{content.applyButton}</button>
+          </form>
+        </aside>
+        <section className="product-grid-container">
+          {isSearchResult && (
+            <div className="search-result-header">
+              <h2>{content.searchResultsTitle}</h2>
+              <button onClick={handleClearSearch} className="clear-search-btn">
+                <CloseIcon /> {content.clearSearchButton}
+              </button>
+            </div>
+          )}
+          
+          {renderProductGrid()}
 
-      <section className="product-grid-container">
-        {isSearchResult && (
-          <div className="search-result-header">
-            <h2>{content.searchResultsTitle}</h2>
-            <button onClick={handleClearSearch} className="clear-search-btn">
-              <CloseIcon /> {content.clearSearchButton}
-            </button>
-          </div>
-        )}
-        
-        {renderProductGrid()}
+          {isRecsLoading && (
+            <div className="recommendations-loader">
+              <div className="spinner"></div>
+              {content.recsLoading}
+            </div>
+          )}
 
-        {isRecsLoading && (
-          <div className="recommendations-loader">
-            <div className="spinner"></div>
-            {content.recsLoading}
-          </div>
-        )}
-
-        {aiRecommendations.length > 0 && (
-          <div className="ai-recommendations-section">
-            <h2 className="recommendations-title">{content.recsTitle}</h2>
-            <div className="recommendation-cards-container">
-              {aiRecommendations.map(rec => (
-                <div key={rec.id} className="recommendation-card">
-                  <img src={rec.imageUrl} alt={rec.name} className="recommendation-image" />
-                  <div className="recommendation-content">
-                    <h3 className="recommendation-name">{rec.name}</h3>
-                    <p className="recommendation-artisan">from {rec.region}</p>
-                    <p className="recommendation-reason"><span className="reason-icon">✨</span> {rec.reason}</p>
-                    <button className="recommendation-button" onClick={() => onNavigate(`product/${rec.id}`)}>{content.viewProductButton}</button>
+          {aiRecommendations.length > 0 && (
+            <div className="ai-recommendations-section">
+              <h2 className="recommendations-title">{content.recsTitle}</h2>
+              <div className="recommendation-cards-container">
+                {aiRecommendations.map(rec => (
+                  <div key={rec.id} className="recommendation-card">
+                    <img src={rec.imageUrl} alt={rec.name} className="recommendation-image" />
+                    <div className="recommendation-content">
+                      <h3 className="recommendation-name">{rec.name}</h3>
+                      <p className="recommendation-artisan">from {rec.region}</p>
+                      <p className="recommendation-reason"><span className="reason-icon">✨</span> {rec.reason}</p>
+                      <button className="recommendation-button" onClick={() => onNavigate(`product/${rec.id}`)}>{content.viewProductButton}</button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      </div>
     </div>
   );
 };

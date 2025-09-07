@@ -69,15 +69,12 @@ function App() {
     if (!authLoading) {
       if (userProfile && !userProfile.onboardingComplete) {
         setCurrentPage('onboarding');
+      } else if (userProfile && currentPage === 'auth') {
+        const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
+        navigateTo(destination);
       }
     }
-  }, [userProfile, authLoading]);
-
-  useEffect(() => {
-    if (userProfile?.uid && currentPage === 'auth') {
-      navigateTo('home');
-    }
-  }, [userProfile, currentPage, navigateTo]);
+  }, [userProfile, authLoading, currentPage]);
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -166,7 +163,7 @@ function App() {
     <>
       <Hero onNavigate={navigateTo} onSearch={handleSearch} />
       <FeaturedProducts onNavigate={navigateTo} />
-      <ExploreByRegion onNavigate={navigateTo} />
+      <ExploreByRegion onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
       <FeaturedArtisans onNavigate={navigateTo} />
       <CuratedCollection onNavigate={navigateTo} />
     </>
@@ -176,11 +173,17 @@ function App() {
     <WishlistProvider>
       <CartProvider>
         <div className="app-wrapper">
-          <Header onSignInClick={() => navigateTo('auth')} onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
+          <Header onSignInClick={() => navigateTo('auth')} onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} 
+          currentPage={currentPage} />
           <main>{renderPage()}</main>
           <Footer onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
           <CraftMitraButton onClick={() => setIsMitraOpen(true)} />
-          <CraftMitraModal isOpen={isMitraOpen} onClose={() => setIsMitraOpen(false)} onNavigateToPage={navigateTo} />
+          <CraftMitraModal
+            isOpen={isMitraOpen}
+            onClose={() => setIsMitraOpen(false)}
+            onNavigateToPage={navigateTo}
+            userProfile={userProfile}
+          />
         </div>
       </CartProvider>
     </WishlistProvider>

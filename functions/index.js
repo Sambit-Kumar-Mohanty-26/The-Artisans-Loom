@@ -461,15 +461,24 @@ exports.searchProducts = onCall(corsOptions, async (request) => {
   
   let query = admin.firestore().collection("products");
 
+  let requiresManualSort = false;
+  if (minPrice || maxPrice) {
+      requiresManualSort = true;
+      if (minPrice) query = query.where("price", ">=", Number(minPrice));
+      if (maxPrice) query = query.where("price", "<=", Number(maxPrice));
+  }
+  
   if (category) query = query.where("category", "==", category.toLowerCase());
   if (region) query = query.where("region", "==", region.toLowerCase());
-  if (minPrice) query = query.where("price", ">=", Number(minPrice));
-  if (maxPrice) query = query.where("price", "<=", Number(maxPrice));
   if (materials) query = query.where("materials", "array-contains", materials.toLowerCase());
 
-  if (sortBy === 'price_asc') query = query.orderBy('price', 'asc');
-  else if (sortBy === 'price_desc') query = query.orderBy('price', 'desc');
-  else query = query.orderBy('createdAt', 'desc');
+  if (!requiresManualSort) {
+    if (sortBy === 'price_asc') query = query.orderBy('price', 'asc');
+    else if (sortBy === 'price_desc') query = query.orderBy('price', 'desc');
+    else query = query.orderBy('createdAt', 'desc');
+  } else {
+    query = query.orderBy('price', 'asc');
+  }
 
   try {
     const snap = await query.get();
@@ -477,7 +486,6 @@ exports.searchProducts = onCall(corsOptions, async (request) => {
 
     if (q) {
       const searchTerm = q.toLowerCase().trim();
-      
       products = products.filter((product) => {
         const productText = `
           ${product.name} 
@@ -487,19 +495,46 @@ exports.searchProducts = onCall(corsOptions, async (request) => {
           ${product.region || ''}
           ${(product.materials || []).join(' ')}
         `.toLowerCase();
-        
         return productText.includes(searchTerm);
       });
     }
+
+    if (requiresManualSort && sortBy) {
+        if (sortBy === 'price_desc') {
+            products.sort((a, b) => b.price - a.price);
+        }
+        if (sortBy === 'createdAt_desc') {
+            products.sort((a, b) => b.createdAt.toMillis() - b.createdAt.toMillis());
+        }
+    }
     
-    return { products: products };
+    if (products.length === 0) {
+      logger.info(`No results for query "${q || JSON.stringify(request.data)}", fetching fallback products.`);
+      
+      const productsRef = admin.firestore().collection("products");
+      const randomId = productsRef.doc().id;
+      const fallbackQuery = productsRef.where(admin.firestore.FieldPath.documentId(), '>=', randomId).limit(3);
+      const fallbackSnap = await fallbackQuery.get();
+      
+      let fallbackProducts = fallbackSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      
+      if (fallbackProducts.length < 3) {
+          const needed = 3 - fallbackProducts.length;
+          const wrapQuery = productsRef.where(admin.firestore.FieldPath.documentId(), '<', randomId).limit(needed);
+          const wrapSnap = await wrapQuery.get();
+          fallbackProducts = [...fallbackProducts, ...wrapSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))];
+      }
+
+      return { products: [], recommendations: fallbackProducts };
+    }
+    
+    return { products: products, recommendations: [] };
 
   } catch (error) {
     logger.error("Error searching products:", error);
-    throw new HttpsError("internal", "Failed to search products.", error);
+    throw new HttpsError("internal", "Failed to search products.", { details: error.message });
   }
 });
-
 // ------------------ Dashboard Summary ----------------------
 exports.getDashboardSummary = onCall(corsOptions, async (request) => {
   if (!request.auth) {
