@@ -1,0 +1,38 @@
+.about-us-container {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Arial', sans-serif;
+  color: #333;
+}
+
+.about-us-title {
+  font-size: 2.5rem;
+  color: #d96a3b;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.about-us-section {
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.about-us-section p {
+  margin-bottom: 1rem;
+}
+
+.team-title {
+  font-size: 1.8rem;
+  color: #3a3a58;
+  margin-bottom: 1rem;
+}
+
+.team-list {
+  list-style-type: disc;
+  margin-left: 20px;
+}
+
+.team-list li {
+  margin-bottom: 0.5rem;
+}

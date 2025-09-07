@@ -28,6 +28,12 @@ import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import ForumPage from './pages/ForumPage';
 import CreatePostPage from './pages/CreatePostPage';
 import ForumPostPage from './pages/ForumPostPage';
+import AboutUsPage from './pages/AboutUsPage';
+import StoriesPage from './pages/StoriesPage';
+import FaqPage from './pages/FaqPage';
+import ContactUsPage from './pages/ContactUsPage';
+import ShippingPage from './pages/ShippingPage';
+import ReturnsPage from './pages/ReturnsPage';
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -44,7 +50,9 @@ const normalizePage = (page) => {
     'add-product': 'addProduct', 'addProduct': 'addProduct', 'gifting-assistant': 'gifting-assistant',
     'cart': 'cart', 'checkout': 'checkout', 'auth': 'auth', 'map': 'map.html',
     'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 
-    'create-post': 'create-post', 'edit-profile': 'edit-profile'
+    'create-post': 'create-post', 'edit-profile': 'edit-profile',
+    'about-us': 'about-us', 'stories': 'stories', 'faq': 'faq', 
+    'contact-us': 'contact-us', 'contact': 'contact-us', 'shipping': 'shipping', 'returns': 'returns'
   };
   return pageAliases[normalized] || normalized;
 };
@@ -153,6 +161,12 @@ function App() {
       case 'edit-profile': return <EditProfilePage onNavigate={navigateTo} />;
       case 'forum': return <ForumPage onNavigate={navigateTo} />;
       case 'create-post': return <CreatePostPage onNavigate={navigateTo} />;
+      case 'about-us': return <AboutUsPage />;
+      case 'stories': return <StoriesPage />;
+      case 'faq': return <FaqPage />;
+      case 'contact-us': return <ContactUsPage />;
+      case 'shipping': return <ShippingPage />;
+      case 'returns': return <ReturnsPage />;
       case 'home':
       default:
         return renderHomepage();
@@ -163,8 +177,10 @@ function App() {
     <>
       <Hero onNavigate={navigateTo} onSearch={handleSearch} />
       <FeaturedProducts onNavigate={navigateTo} />
+      <div id="discover"><h2>Discover Section</h2></div>
       <ExploreByRegion onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
       <FeaturedArtisans onNavigate={navigateTo} />
+      <div id="stories"><h2>Stories Section</h2></div>
       <CuratedCollection onNavigate={navigateTo} />
     </>
   );
