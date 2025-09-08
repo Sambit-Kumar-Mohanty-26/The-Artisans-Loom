@@ -36,9 +36,11 @@ import FaqPage from './pages/FaqPage';
 import ContactUsPage from './pages/ContactUsPage';
 import ShippingPage from './pages/ShippingPage';
 import ReturnsPage from './pages/ReturnsPage';
+import TrendingPage from './pages/TrendingPage';
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
+import TrendingSection from './sections/TrendingSection';
 import ExploreByRegion from './sections/ExploreByRegion';
 import CuratedCollection from './sections/CuratedCollection';
 import FeaturedProducts from './sections/FeaturedProducts';
@@ -54,7 +56,7 @@ const normalizePage = (page) => {
     'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 
     'create-post': 'create-post', 'edit-profile': 'edit-profile',
     'about-us': 'about-us', 'stories': 'stories', 'faq': 'faq', 
-    'contact-us': 'contact-us', 'contact': 'contact-us', 'shipping': 'shipping', 'returns': 'returns'
+    'contact-us': 'contact-us', 'contact': 'contact-us', 'shipping': 'shipping', 'returns': 'returns', 'trending': 'trending' 
   };
   return pageAliases[normalized] || normalized;
 };
@@ -150,6 +152,7 @@ function App() {
     }
 
     switch (currentPage) {
+      case 'trending': return <TrendingPage onNavigate={navigateTo} />;
       case 'auth': return <AuthPage />;
       case 'shop': return <ShopPage initialSearch={searchResults} clearSearch={() => setSearchResults(null)} onNavigate={navigateTo} />;
       case 'cart': return <CartPage onNavigate={navigateTo} />;
@@ -185,6 +188,7 @@ function App() {
     <>
       <Hero onNavigate={navigateTo} onSearch={handleSearch} />
       <FeaturedProducts onNavigate={navigateTo} />
+      <TrendingSection onNavigate={navigateTo} />
       <div id="discover"></div>
       <ExploreByRegion onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
       <FeaturedArtisans onNavigate={navigateTo} />

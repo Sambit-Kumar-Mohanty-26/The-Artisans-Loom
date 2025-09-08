@@ -1514,7 +1514,7 @@ exports.checkForMitraMention = onDocumentCreated("forumPosts/{postId}/replies/{r
         content: aiResponse,
         authorId: authorId,
         authorName: authorName,
-        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", // Replace with your URL
+        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", 
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         isAiResponse: true,
       });
@@ -1527,10 +1527,144 @@ exports.checkForMitraMention = onDocumentCreated("forumPosts/{postId}/replies/{r
         content: "Sorry, I encountered an error and couldn't answer your question. Please try asking again.",
         authorId: authorId,
         authorName: authorName,
-        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", // Replace with your URL
+        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", 
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         isAiResponse: true,
       });
     }
+  }
+});
+
+// ------------------ Trending Products ----------------------
+exports.getTrendingProducts = onCall({ cors: true }, async (request) => {
+  const { filter, limit = 10 } = request.data; 
+  if (!filter) {
+    throw new HttpsError("invalid-argument", "A 'filter' must be provided.");
+  }
+
+  const firestore = admin.firestore();
+  const ordersRef = firestore.collection("orders");
+  let query = ordersRef;
+  const now = new Date();
+  let startTime;
+
+  if (filter === 'day') {
+    startTime = new Date(now.setDate(now.getDate() - 1));
+  } else if (filter === 'week') {
+    startTime = new Date(now.setDate(now.getDate() - 7));
+  } else if (filter === 'month') {
+    startTime = new Date(now.setMonth(now.getMonth() - 1));
+  } else if (filter === 'year') {
+    startTime = new Date(now.setFullYear(now.getFullYear() - 1));
+  }
+  
+  if (startTime) {
+    query = query.where("createdAt", ">=", startTime);
+  }
+  
+  try {
+    const ordersSnapshot = await query.get();
+
+    if (ordersSnapshot.empty) {
+      return { products: [] };
+    }
+    const productCounts = new Map();
+    
+    ordersSnapshot.forEach((doc) => {
+      const order = doc.data();
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item) => {
+          const currentCount = productCounts.get(item.productId) || 0;
+          productCounts.set(item.productId, currentCount + item.quantity);
+        });
+      }
+    });
+
+    if (productCounts.size === 0) {
+      return { products: [] };
+    }
+    const sortedProductIds = Array.from(productCounts.entries())
+      .sort((a, b) => b[1] - a[1]) 
+      .slice(0, limit) 
+      .map((entry) => entry[0]); 
+
+    if (sortedProductIds.length === 0) {
+        return { products: [] };
+    }
+    const trendingProducts = [];
+    const productPromises = [];
+    for (let i = 0; i < sortedProductIds.length; i += 30) {
+        const chunk = sortedProductIds.slice(i, i + 30);
+        const productsQuery = firestore.collection("products").where(admin.firestore.FieldPath.documentId(), 'in', chunk).get();
+        productPromises.push(productsQuery);
+    }
+    
+    const productSnapshots = await Promise.all(productPromises);
+    productSnapshots.forEach((snapshot) => {
+        snapshot.docs.forEach((doc) => {
+            trendingProducts.push({ id: doc.id, ...doc.data() });
+        });
+    });
+    const finalSortedProducts = trendingProducts.sort((a, b) => {
+        const countA = productCounts.get(a.id);
+        const countB = productCounts.get(b.id);
+        return countB - countA;
+    });
+
+    return { products: finalSortedProducts };
+
+  } catch (error) {
+    logger.error(`Error fetching trending products for filter "${filter}":`, error);
+    throw new HttpsError("internal", "Failed to fetch trending products.");
+  }
+});
+
+// ------------------ Trending Insights ----------------------
+exports.getTrendingInsights = onCall({ cors: true, timeoutSeconds: 60 }, async (request) => {
+  const { trendingProducts, filter, language } = request.data;
+  if (!Array.isArray(trendingProducts) || trendingProducts.length === 0 || !filter || !language) {
+    throw new HttpsError("invalid-argument", "Missing required parameters: trendingProducts, filter, and language.");
+  }
+
+  const productNames = trendingProducts.map((p) => `"${p.name}"`).join(', ');
+  const prompt = `
+    You are 'Craft Mitra', an AI market analyst and cultural expert for 'The Artisan's Loom', an Indian craft marketplace.
+    Your task is to write a short, insightful, and engaging market report (2-3 sentences) based on the current trending products.
+    The entire response must be in the ${language} language.
+
+    **Current Context:**
+    - The filter applied is: "${filter}"
+    - The top trending products are: ${productNames}
+    - The current date is: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+
+    **Your Instructions:**
+    - Analyze the list of trending products.
+    - Identify any potential seasonal, cultural, or regional themes. For example, if it's October and 'Diyas' are trending, explain the connection to Diwali. If 'Pashmina Shawls' are trending in winter, explain the seasonal demand. If 'Blue Pottery' and 'Block Printing' are trending for Rajasthan, explain their shared heritage.
+    - If no obvious theme exists, simply highlight the popularity of the craftsmanship.
+    - Your tone should be warm, insightful, and encouraging.
+    - **CRITICAL:** Respond with ONLY the single paragraph of the market report. Do not include greetings, titles, or any other text.
+  `;
+
+  try {
+    const result = await generativeModel.generateContent(prompt);
+    
+    let insightText = "Our artisans' incredible work continues to captivate our community. Discover the pieces everyone is talking about!";
+    if (
+      result.response &&
+      result.response.candidates &&
+      result.response.candidates[0] &&
+      result.response.candidates[0].content &&
+      result.response.candidates[0].content.parts &&
+      result.response.candidates[0].content.parts[0] &&
+      result.response.candidates[0].content.parts[0].text
+    ) {
+      insightText = result.response.candidates[0].content.parts[0].text;
+    }
+
+    return { insight: insightText };
+
+  } catch (error) {
+    logger.error("Error generating trending insights:", error);
+    throw new HttpsError("internal", "Failed to generate market insights.");
   }
 });
