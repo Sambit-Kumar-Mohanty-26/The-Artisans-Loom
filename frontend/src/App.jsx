@@ -138,7 +138,7 @@ function App() {
     if (currentPage.startsWith('state/')) {
       const stateSlug = currentPage.split('/')[1];
       const stateData = findStateData(stateSlug);
-      return <StateDetailPage stateData={stateData} onNavigate={navigateTo} />;
+      return <StateDetailPage stateData={stateData} onNavigate={navigateTo} onSearch={handleSearch} />;
     }
     if (currentPage.startsWith('order-success/')) {
       const orderId = currentPage.split('/')[1];

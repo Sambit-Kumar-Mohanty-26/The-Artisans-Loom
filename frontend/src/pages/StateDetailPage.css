@@ -3,9 +3,12 @@
   min-height: 100vh;
   transition: opacity 0.4s ease-in-out;
 }
-
+.state-detail-page.translating {
+  opacity: 0.7;
+}
 .state-banner {
-  height: 40vh;
+  height: 50vh;
+  min-height: 400px;
   background-size: cover;
   background-position: center;
   position: relative;
@@ -13,217 +16,214 @@
   align-items: flex-end;
   color: #fff;
 }
-
 .banner-overlay {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
-  padding: 2rem 4rem;
+  padding: 3rem 4rem;
   width: 100%;
 }
-
 .banner-title {
   font-family: 'Playfair Display', serif;
-  font-size: 4rem;
+  font-size: 4.5rem;
   font-weight: 700;
-  text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
 }
-
 .banner-microtext {
   font-size: 1.2rem;
   font-style: italic;
   opacity: 0.9;
+  max-width: 600px;
 }
-
+.swoop-divider {
+  width: 100%;
+  height: 80px;
+  background-color: #FDFBF8;
+  border-radius: 100% 100% 0 0 / 0 0 100% 100%;
+  transform: translateY(-40px);
+}
 .state-content {
-  padding: 2rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 4rem 4rem 4rem;
+  background-color: #FDFBF8;
 }
-
+.back-button-container {
+  text-align: center;
+  margin-bottom: 2rem;
+}
 .back-button {
   background: none;
   border: none;
   color: #a5805e;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 2rem;
   font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: background-color 0.2s;
 }
-
+.back-button:hover {
+  background-color: #f0ebe5;
+}
 .state-description {
-  font-size: 1.1rem;
-  line-height: 1.7;
+  font-size: 1.15rem;
+  line-height: 1.8;
   max-width: 800px;
-  margin-bottom: 3rem;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 4rem;
+  text-align: center;
   color: #555;
 }
-
 .gemini-features {
   background-color: #fff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 3rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 0 auto 4rem auto;
+  max-width: 900px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.07);
+  border: 1px solid #f0ebe5;
 }
-
 .gemini-features h2 {
   font-family: 'Playfair Display', serif;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  margin: 0 0 1.5rem 0;
   color: #333;
+  text-align: center;
 }
-
 .gemini-buttons {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
 }
-
 .gemini-button {
-  background-color: #f0ebe5;
+  background-color: #f7f3ef;
   color: #85603e;
-  border: 1px solid transparent;
-  padding: 0.75rem 1rem;
+  border: 1px solid #e5e0da;
+  padding: 0.75rem 1.25rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
-
 .gemini-button:hover {
   background-color: #e6e0da;
   border-color: #d9c6b4;
+  transform: translateY(-2px);
 }
-
 .crafts-title {
   font-family: 'Playfair Display', serif;
   font-size: 2.5rem;
   font-weight: 700;
   color: #333;
+  text-align: center;
   border-bottom: 2px solid #f0ebe5;
   padding-bottom: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
 }
-
 .crafts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2rem;
 }
-
 .craft-card {
   background-color: #fff;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
+  border: 1px solid #f0ebe5;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
+.craft-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
 .craft-image {
   width: 100%;
   height: 200px;
   object-fit: cover;
 }
-
 .craft-info {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
 }
-
 .craft-name {
   font-size: 1.25rem;
   font-weight: 600;
   color: #333;
 }
-
 .craft-description {
   font-size: 0.9rem;
   color: #666;
   margin-top: 0.5rem;
   flex-grow: 1;
 }
-
-.craft-button {
-  margin-top: 1rem;
-  background-color: #d96a3b;
-  color: #fff;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+.craft-card-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #f0ebe5;
+  text-align: right;
+  font-size: 0.9rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  color: #a5805e;
+  transition: color 0.2s;
 }
-
-.craft-button:hover {
-  background-color: #c85a2a;
+.craft-card:hover .craft-card-footer {
+  color: #d96a3b;
 }
-
-
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: 2000;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  animation: modalFadeIn 0.3s forwards;
 }
-
-.modal-overlay.open {
-  opacity: 1;
-}
-
+.modal-overlay.open { opacity: 1; }
 .modal-content {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-  transform: scale(0.95);
-  transition: transform 0.3s ease;
+  background: white; padding: 2rem; border-radius: 12px; max-width: 600px; width: 90%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95);
+  animation: modalFadeInScaleUp 0.3s 0.1s forwards;
 }
-
-.modal-overlay.open .modal-content {
-  transform: scale(1);
-}
-
+.modal-content.selection-modal { max-width: 500px; }
+@keyframes modalFadeIn { to { opacity: 1; } }
+@keyframes modalFadeInScaleUp { to { opacity: 1; transform: scale(1); } }
 .modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f0ebe5;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #f0ebe5; padding-bottom: 1rem; margin-bottom: 1rem;
 }
-
 .modal-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.75rem;
-  color: #333;
+  font-family: 'Playfair Display', serif; font-size: 1.75rem; color: #33210f; margin: 0;
 }
-
 .modal-close-button {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  line-height: 1;
-  color: #999;
-  cursor: pointer;
+  background: none; border: none; font-size: 2rem; line-height: 1;
+  color: #aaa; cursor: pointer; transition: color 0.2s, transform 0.2s;
 }
-
-.modal-body {
-  line-height: 1.7;
-  color: #555;
+.modal-close-button:hover { color: #333; transform: rotate(90deg); }
+.modal-body p { line-height: 1.7; font-size: 1.05rem; color: #5c4b38; }
+.craft-selection-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 600px) { .craft-selection-grid { grid-template-columns: 1fr 1fr; } }
+.craft-select-btn {
+  width: 100%; padding: 1rem; font-size: 1rem; font-weight: 600;
+  background-color: #f7f3ef; border: 1px solid #e5e0da; color: #442c13;
+  border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
 }
-.state-detail-page-container.translating {
-  opacity: 0.7;
-  transition: opacity 0.4s ease-in-out;
+.craft-select-btn:hover { background-color: #e5e0da; border-color: #d9c6b4; transform: translateY(-2px); }
+@media (max-width: 768px) {
+  .state-content { padding: 1.5rem; margin-top: 0; border-radius: 0; box-shadow: none; }
+  .banner-overlay { padding: 1.5rem; }
+  .banner-title { font-size: 3rem; }
+  .swoop-divider { display: none; }
 }

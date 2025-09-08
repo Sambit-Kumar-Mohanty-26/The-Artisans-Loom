@@ -9,36 +9,24 @@ const getTranslations = httpsCallable(functions, 'getTranslations');
 const englishContent = {
   backButton: "Back to All States",
   discoverTitle: "Discover More with AI",
-  factButton: "Did You Know?",
-  storyButton: "Story of the Craft",
-  cultureButton: "Cultural Heritage",
+  factButton: "💡 Did You Know?",
+  storyButton: "📖 Story of the Craft",
+  cultureButton: "🏛️ Cultural Heritage",
   featuredCraftsTitle: "Featured Crafts from",
   stateNotFound: "State Not Found",
   generatingTitle: "Generating...",
-  factModalTitle: "Did you know?",
+  factModalTitle: "A Fun Fact About",
   storyModalTitle: "A Story of",
   cultureModalTitle: "Cultural Connection",
   loadingModalText: "Weaving a story for you...",
+  craftSelectionTitle: "Which craft would you like to know more about?",
 };
-
-const CraftCard = ({ craft, onNavigate }) => (
-  <div 
-    className="craft-card"
-    onClick={() => onNavigate(`shop`)} 
-  >
-    <img src={craft.image} alt={craft.name} className="craft-image" />
-    <div className="craft-info">
-      <h3 className="craft-name">{craft.name}</h3>
-      <p className="craft-description">{craft.description}</p>
-    </div>
-  </div>
-);
 
 const GeminiModal = ({ isOpen, onClose, title, content, isLoading }) => {
   if (!isOpen) return null;
   return (
-    <div className={`modal-overlay ${isOpen ? 'open' : ''}`}>
-      <div className="modal-content">
+    <div className={`modal-overlay ${isOpen ? 'open' : ''}`} onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           <button onClick={onClose} className="modal-close-button">&times;</button>
@@ -51,12 +39,49 @@ const GeminiModal = ({ isOpen, onClose, title, content, isLoading }) => {
   );
 };
 
-const StateDetailPage = ({ stateData, onNavigate }) => {
+const CraftCard = ({ craft, onSearch }) => (
+  <div className="craft-card" onClick={() => onSearch({ type: 'text', payload: craft.name })}>
+    <img src={craft.image} alt={craft.name} className="craft-image" />
+    <div className="craft-info">
+      <h3 className="craft-name">{craft.name}</h3>
+      <p className="craft-description">{craft.description}</p>
+    </div>
+    <div className="craft-card-footer">
+      <span>Explore Products →</span>
+    </div>
+  </div>
+);
+
+const CraftSelectionModal = ({ isOpen, onClose, crafts, onSelect, title }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content selection-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">{title}</h2>
+          <button onClick={onClose} className="modal-close-button">&times;</button>
+        </div>
+        <div className="modal-body">
+          <div className="craft-selection-grid">
+            {crafts.map(craft => (
+              <button key={craft.name} className="craft-select-btn" onClick={() => onSelect(craft.name)}>
+                {craft.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StateDetailPage = ({ stateData, onNavigate, onSearch }) => {
   const { currentLanguage } = useLanguage();
   const [content, setContent] = useState(englishContent);
   const [translatedStateData, setTranslatedStateData] = useState(stateData);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [modalState, setModalState] = useState({ isOpen: false, title: '', content: '', isLoading: false });
+  const [geminiModalState, setGeminiModalState] = useState({ isOpen: false, title: '', content: '', isLoading: false });
+  const [selectionModalState, setSelectionModalState] = useState({ isOpen: false, type: '' });
 
   useEffect(() => {
     const translateAllContent = async () => {
@@ -88,17 +113,18 @@ const StateDetailPage = ({ stateData, onNavigate }) => {
           storyButton: translations[3], cultureButton: translations[4], featuredCraftsTitle: translations[5],
           stateNotFound: translations[6], generatingTitle: translations[7], factModalTitle: translations[8],
           storyModalTitle: translations[9], cultureModalTitle: translations[10], loadingModalText: translations[11],
+          craftSelectionTitle: translations[12],
         });
 
         setTranslatedStateData({
           ...stateData,
-          name: translations[12],
-          microtext: translations[13],
-          fullDescription: translations[14],
+          name: translations[13],
+          microtext: translations[14],
+          fullDescription: translations[15],
           crafts: stateData.crafts.map((craft, index) => ({
             ...craft,
-            name: translations[15 + index * 2],
-            description: translations[16 + index * 2],
+            name: translations[16 + index * 2],
+            description: translations[17 + index * 2],
           })),
         });
 
@@ -130,94 +156,82 @@ const StateDetailPage = ({ stateData, onNavigate }) => {
     }
   };
 
-  const handleGeminiClick = async (type) => {
+  const handleAiRequest = (type) => {
+    setSelectionModalState({ isOpen: true, type: type });
+  };
+
+  const handleCraftSelected = async (craftName) => {
+    const type = selectionModalState.type;
+    setSelectionModalState({ isOpen: false, type: '' });
+    
     let prompt = '';
     let title = '';
-    const craftName = translatedStateData.crafts[0].name;
     const stateName = translatedStateData.name;
 
-    setModalState({ isOpen: true, title: content.generatingTitle, content: content.loadingModalText, isLoading: true });
-
+    setGeminiModalState({ isOpen: true, title: content.generatingTitle, content: content.loadingModalText, isLoading: true });
     switch (type) {
       case 'fact':
-        title = content.factModalTitle;
-        prompt = `In ${currentLanguage.name}, tell me a surprising "Did you know?" fact about the cultural heritage or crafts of ${stateName}, India.`;
+        title = `${content.factModalTitle} ${craftName}`;
+        prompt = `You are a cultural storyteller. In ${currentLanguage.name}, tell me a surprising "Did you know?" fact about the traditional craft of ${craftName} from ${stateName}, India.`;
         break;
       case 'story':
         title = `${content.storyModalTitle} ${craftName}`;
-        prompt = `In ${currentLanguage.name}, tell me a short, engaging folk tale (around 150 words) related to the traditional craft of ${craftName} from ${stateName}.`;
+        prompt = `You are a cultural storyteller. In ${currentLanguage.name}, tell me a short, engaging folk tale (around 150 words) about the craft of ${craftName} from ${stateName}.`;
         break;
       case 'culture':
-        title = content.cultureModalTitle;
-        prompt = `In ${currentLanguage.name}, briefly explain the cultural significance of ${craftName} in the heritage of ${stateName}.`;
+        title = `${content.cultureModalTitle}: ${craftName}`;
+        prompt = `You are a cultural storyteller. In ${currentLanguage.name}, briefly explain the cultural significance of ${craftName} in the heritage of ${stateName}.`;
         break;
       default:
-        setModalState({ isOpen: false, title: '', content: '', isLoading: false });
+        setGeminiModalState({ isOpen: false, title: '', content: '', isLoading: false });
         return;
     }
     
     const response = await callGemini(prompt);
-    setModalState({ isOpen: true, title, content: response, isLoading: false });
+    setGeminiModalState({ isOpen: true, title, content: response, isLoading: false });
   };
 
   if (!translatedStateData) {
     return (
-      <div className="state-detail-page-container">
-        <div className="page-header">
-          <h1>{content.stateNotFound}</h1>
-          <button onClick={() => onNavigate('all-states')} className="back-button">
-            &larr; {content.backButton}
-          </button>
-        </div>
+      <div className="state-detail-page">
+        <h1>{content.stateNotFound}</h1>
+        <button onClick={() => onNavigate('all-states')} className="back-button">&larr; {content.backButton}</button>
       </div>
     );
   }
 
   return (
     <>
-      <GeminiModal 
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ ...modalState, isOpen: false })}
-        title={modalState.title}
-        content={modalState.content}
-        isLoading={modalState.isLoading}
-      />
-      <div className={`state-detail-page-container ${isTranslating ? 'translating' : ''}`}>
+      <GeminiModal isOpen={geminiModalState.isOpen} onClose={() => setGeminiModalState({ isOpen: false })} {...geminiModalState} />
+      <CraftSelectionModal isOpen={selectionModalState.isOpen} onClose={() => setSelectionModalState({ isOpen: false })} crafts={translatedStateData.crafts} onSelect={handleCraftSelected} title={content.craftSelectionTitle} />
+      
+      <div className={`state-detail-page ${isTranslating ? 'translating' : ''}`}>
         <div className="state-banner" style={{ backgroundImage: `url(${translatedStateData.image})` }}>
           <div className="banner-overlay">
             <h1 className="banner-title">{translatedStateData.name}</h1>
             <p className="banner-microtext">{translatedStateData.microtext}</p>
           </div>
         </div>
-        <div className="state-content-wrapper">
-          <div className="state-content">
-              <button onClick={() => onNavigate('all-states')} className="back-button">
-                &larr; {content.backButton}
-              </button>
-              <p className="state-description">{translatedStateData.fullDescription}</p>
-
-              <div className="gemini-features">
-                <h2>{content.discoverTitle}</h2>
-                <div className="gemini-buttons">
-                  <button onClick={() => handleGeminiClick('fact')} className="gemini-button">
-                    <span>💡</span> {content.factButton}
-                  </button>
-                  <button onClick={() => handleGeminiClick('story')} className="gemini-button">
-                    <span>📖</span> {content.storyButton}
-                  </button>
-                  <button onClick={() => handleGeminiClick('culture')} className="gemini-button">
-                    <span>🏛️</span> {content.cultureButton}
-                  </button>
-                </div>
+        <div className="swoop-divider"></div>
+        <div className="state-content">
+            <div className="back-button-container">
+                <button onClick={() => onNavigate('all-states')} className="back-button">&larr; {content.backButton}</button>
+            </div>
+            <p className="state-description">{translatedStateData.fullDescription}</p>
+            <div className="gemini-features">
+              <h2>{content.discoverTitle}</h2>
+              <div className="gemini-buttons">
+                <button onClick={() => handleAiRequest('fact')} className="gemini-button">{content.factButton}</button>
+                <button onClick={() => handleAiRequest('story')} className="gemini-button">{content.storyButton}</button>
+                <button onClick={() => handleAiRequest('culture')} className="gemini-button">{content.cultureButton}</button>
               </div>
-
-              <h2 className="crafts-title">{content.featuredCraftsTitle} {translatedStateData.name}</h2>
-              <div className="crafts-grid">
-                {translatedStateData.crafts.map(craft => (
-                  <CraftCard key={craft.name} craft={craft} onNavigate={onNavigate} />
-                ))}
-              </div>
-          </div>
+            </div>
+            <h2 className="crafts-title">{content.featuredCraftsTitle} {translatedStateData.name}</h2>
+            <div className="crafts-grid">
+              {translatedStateData.crafts.map(craft => (
+                <CraftCard key={craft.name} craft={craft} onNavigate={onNavigate} onSearch={onSearch} />
+              ))}
+            </div>
         </div>
       </div>
     </>
