@@ -37,7 +37,7 @@ const CraftCard = ({ craft, onNavigate }) => (
 const GeminiModal = ({ isOpen, onClose, title, content, isLoading }) => {
   if (!isOpen) return null;
   return (
-    <div className={`modal-overlay ${isOpen ? 'open' : ''}`}>
+    <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
@@ -121,22 +121,12 @@ const StateDetailPage = ({ stateData, onNavigate }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt })
       });
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`Proxy call failed: ${response.status} ${response.statusText}. Details: ${errorBody}`);
-      }
+      if (!response.ok) throw new Error(`Proxy call failed`);
       const result = await response.json();
       return result.response || "Sorry, I couldn't generate a response.";
     } catch (error) {
       console.error("Proxy function call error:", error);
-      // Provide a more user-friendly message, potentially suggesting browser issues
-      if (error.message.includes("TypeError: Failed to fetch") || error.message.includes("NetworkError")) {
-        return "It looks like there was a network issue or your browser's privacy settings might be blocking the AI service. Please check your browser console for details or try adjusting tracking prevention settings.";
-      } else if (error.message.includes("Proxy call failed")) {
-        return `The AI service encountered an error: ${error.message.split("Details:")[1] || "Unknown error"}.`;
-      } else {
-        return "An unexpected error occurred while contacting the AI.";
-      }
+      return "An error occurred while contacting the AI.";
     }
   };
 

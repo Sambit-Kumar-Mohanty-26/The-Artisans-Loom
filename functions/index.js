@@ -37,10 +37,7 @@ const generativeModel = vertexAi.getGenerativeModel({
 
         **CRITICAL RULE:** When a user asks to navigate, you MUST prioritize using the 'navigateTo' tool. Do NOT just say you will navigate in words; you MUST call the function.
 
-        **ABSOLUTELY CRITICAL CONTEXT RULE:** For every user message in our conversation (past and present), I will explicitly provide your current role and onboarding status within the message (e.g., "[CONTEXT: Role: artisan, Onboarding: complete] My query is: [user's actual query]"). You MUST rely on this explicit context as the SOLE AND AUTHORITATIVE source for the user's status for ALL responses in the conversation. You are explicitly instructed to IGNORE any internal assumptions or previous turns that might contradict this explicit context. If this explicit context indicates a logged-in user (artisan or customer), you MUST NOT ask them to log in or suggest they are unauthenticated. Your responses MUST always be consistent with the status provided in the current message's context.\n\n        **GUIDANCE BASED ON USER ROLE/STATUS (ALWAYS REFER TO THE EXPLICIT CONTEXT IN THE USER MESSAGE):**\n        - If the explicit context indicates an **unfamiliar artisan**: Provide a warm welcome to 'The Artisan's Loom', explain how the platform helps artisans showcase their craft, and offer to guide them through listing their first product. For example, you can say, "I can show you how to add a product if you like. Just ask, 'How do I add a product?'"\n        - If the explicit context indicates a **familiar artisan**: Provide a brief, welcoming message and offer assistance with product management, viewing their profile, or checking analytics.\n        - If the explicit context indicates a **customer**: Provide an engaging welcome to 'The Artisan's Loom', highlight the unique handcrafted products available, explain key sections like "curated collections", "artisans by region", and encourage exploration. For example, you can say, "Explore our diverse range of products by category or discover artisans from specific regions."
-        - If the explicit context indicates an **unauthenticated user**: Politey remind them that they need to log in or sign up to access the full features and personalized assistance of Craft Mitra.
-
-        **Additionally, when asked for 'Did you know?' facts, stories of crafts, or cultural heritage, especially in the context of a state or craft, you should generate a concise and engaging response based on the query.**
+        **ABSOLUTELY CRITICAL CONTEXT RULE:** For every user message in our conversation (past and present), I will explicitly provide your current role and onboarding status within the message (e.g., "[CONTEXT: Role: artisan, Onboarding: complete] My query is: [user's actual query]"). You MUST rely on this explicit context as the SOLE AND AUTHORITATIVE source for the user's status for ALL responses in the conversation. You are explicitly instructed to IGNORE any internal assumptions or previous turns that might contradict this explicit context. If this explicit context indicates a logged-in user (artisan or customer), you MUST NOT ask them to log in or suggest they are unauthenticated. Your responses MUST always be consistent with the status provided in the current message's context.\n\n        **GUIDANCE BASED ON USER ROLE/STATUS (ALWAYS REFER TO THE EXPLICIT CONTEXT IN THE USER MESSAGE):**\n        - If the explicit context indicates an **unfamiliar artisan**: Provide a warm welcome to 'The Artisan's Loom', explain how the platform helps artisans showcase their craft, and offer to guide them through listing their first product. For example, you can say, "I can show you how to add a product if you like. Just ask, 'How do I add a product?'"\n        - If the explicit context indicates a **familiar artisan**: Provide a brief, welcoming message and offer assistance with product management, viewing their profile, or checking analytics.\n        - If the explicit context indicates a **customer**: Provide an engaging welcome to 'The Artisan's Loom', highlight the unique handcrafted products available, explain key sections like "curated collections", "artisans by region", and encourage exploration. For example, you can say, "Explore our diverse range of products by category or discover artisans from specific regions."\n        - If the explicit context indicates an **unauthenticated user**: Politey remind them that they need to log in or sign up to access the full features and personalized assistance of Craft Mitra.
 
         - User says: "browse all products" -> Correct action: call \`navigateTo({ path: '/shop' })\`.
         - User says: "go to the craft atlas" -> Correct action: call \`navigateTo({ path: '/regions' })\`.
@@ -96,25 +93,8 @@ exports.getGeminiResponseProxy = onRequest((request, response) => {
       return response.status(405).send("Method Not Allowed");
     }
 
-    let requestBody = request.body;
-    if (typeof request.body === 'string') {
-      try {
-        requestBody = JSON.parse(request.body);
-      } catch (e) {
-        logger.error("Failed to parse request body as JSON:", e);
-        return response.status(400).json({ error: "Invalid JSON body." });
-      }
-    } else if (Buffer.isBuffer(request.body)) {
-      try {
-        requestBody = JSON.parse(request.body.toString());
-      } catch (e) {
-        logger.error("Failed to parse request body buffer as JSON:", e);
-        return response.status(400).json({ error: "Invalid JSON body." });
-      }
-    }
-
     try {
-      const userPrompt = requestBody.prompt;
+      const userPrompt = request.body.prompt;
       if (!userPrompt) {
         return response.status(400).json({ error: "Missing prompt." });
       }
@@ -123,12 +103,7 @@ exports.getGeminiResponseProxy = onRequest((request, response) => {
       const result = await chat.sendMessage(userPrompt);
 
       const aiResponseText =
-        (result.response.candidates &&
-          result.response.candidates[0] &&
-          result.response.candidates[0].content &&
-          result.response.candidates[0].content.parts &&
-          result.response.candidates[0].content.parts[0] &&
-          result.response.candidates[0].content.parts[0].text) ||
+        result.response.candidates[0].content.parts[0].text ||
         "Sorry, I couldn’t generate a response.";
 
       return response.status(200).json({ response: aiResponseText });
