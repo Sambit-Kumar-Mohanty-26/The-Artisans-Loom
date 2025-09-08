@@ -175,6 +175,10 @@
   transition: opacity 0.3s ease;
 }
 
+.modal-overlay.open {
+  opacity: 1;
+}
+
 .modal-content {
   background-color: #fff;
   border-radius: 12px;
@@ -185,6 +189,10 @@
   overflow-y: auto;
   transform: scale(0.95);
   transition: transform 0.3s ease;
+}
+
+.modal-overlay.open .modal-content {
+  transform: scale(1);
 }
 
 .modal-header {
