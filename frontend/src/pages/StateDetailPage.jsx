@@ -37,7 +37,7 @@ const CraftCard = ({ craft, onNavigate }) => (
 const GeminiModal = ({ isOpen, onClose, title, content, isLoading }) => {
   if (!isOpen) return null;
   return (
-    <div className="modal-overlay">
+    <div className={`modal-overlay ${isOpen ? 'open' : ''}`}>
       <div className="modal-content">
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
