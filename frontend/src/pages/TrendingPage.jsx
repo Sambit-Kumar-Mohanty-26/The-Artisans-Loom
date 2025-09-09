@@ -20,6 +20,7 @@ const englishContent = {
   noResults: "No trending products found for this period. Check back soon!",
   insightsTitle: "Mitra's Market Insights",
   backToHome: "Back to Home",
+  insightLoadingText: "Crafting an analysis for you...",
 };
 
 const BackButton = ({ onNavigate, text }) => {
@@ -49,35 +50,36 @@ const TrendingPage = ({ onNavigate }) => {
     { key: 'year', label: content.year },
   ];
 
-  const fetchTrendingData = useCallback(async (filter) => {
-    setLoading(true);
-    setLoadingInsight(true);
-    setProducts([]);
-    setInsight('');
-    try {
-      const productsResult = await getTrendingProducts({ filter: filter, limit: 12 });
-      const trendingProducts = productsResult.data.products;
-      setProducts(trendingProducts);
-
-      if (trendingProducts.length > 0) {
-        const insightResult = await getTrendingInsights({
-          trendingProducts: trendingProducts.slice(0, 3), 
-          filter: filters.find(f => f.key === filter)?.label || filter,
-          language: currentLanguage.name,
-        });
-        setInsight(insightResult.data.insight);
-      }
-    } catch (error) {
-      console.error(`Error fetching trending data for filter "${filter}":`, error);
-    } finally {
-      setLoading(false);
-      setLoadingInsight(false);
-    }
-  }, [currentLanguage.name]);
-
   useEffect(() => {
-    fetchTrendingData(activeFilter);
-  }, [activeFilter, fetchTrendingData]);
+    const fetchTrendingData = async () => {
+      setLoading(true);
+      setLoadingInsight(true);
+      setProducts([]);
+      setInsight('');
+      try {
+        const productsResult = await getTrendingProducts({ filter: activeFilter, limit: 12 });
+        const trendingProducts = productsResult.data.products;
+        setProducts(trendingProducts);
+
+        if (trendingProducts.length > 0) {
+          const filterLabel = filters.find(f => f.key === activeFilter)?.label || activeFilter;
+          const insightResult = await getTrendingInsights({
+            trendingProducts: trendingProducts.slice(0, 3), 
+            filter: filterLabel,
+            language: currentLanguage.name,
+          });
+          setInsight(insightResult.data.insight);
+        }
+      } catch (error) {
+        console.error(`Error fetching trending data for filter "${activeFilter}":`, error);
+      } finally {
+        setLoading(false);
+        setLoadingInsight(false);
+      }
+    };
+
+    fetchTrendingData();
+  }, [activeFilter, currentLanguage.name]);
 
   useEffect(() => {
     const translateContent = async () => {
@@ -93,9 +95,9 @@ const TrendingPage = ({ onNavigate }) => {
         setContent({
           title: translations[0], subtitle: translations[1], today: translations[2],
           week: translations[3], month: translations[4], year: translations[5],
-          loading: translations[6], noResults: translations[7], insightsTitle: translations[8], backToHome: translations[9],
+          loading: translations[6], noResults: translations[7], insightsTitle: translations[8], 
+          backToHome: translations[9], insightLoadingText: translations[10],
         });
-        fetchTrendingData(activeFilter);
       } catch (err) {
         console.error("Failed to translate TrendingPage content:", err);
         setContent(englishContent);
@@ -104,56 +106,54 @@ const TrendingPage = ({ onNavigate }) => {
       }
     };
     translateContent();
-  }, [currentLanguage, activeFilter, fetchTrendingData]);
+  }, [currentLanguage]);
 
   return (
-    <div className={`trending-page ${isTranslating ? 'translating' : ''}`}>
+    <div className={`trending-page-container ${isTranslating ? 'translating' : ''}`}>
       <BackButton onNavigate={onNavigate} text={content.backToHome} />
-
-      <div className="trending-hero">
-        <h1>{content.title}</h1>
-        <p>{content.subtitle}</p>
-      </div>
-
-      <div className="filter-bar-container">
-        <div className="filter-bar">
-          {filters.map(f => (
-            <button
-              key={f.key}
-              className={`filter-btn ${activeFilter === f.key ? 'active' : ''}`}
-              onClick={() => setActiveFilter(f.key)}
-            >
-              {f.label}
-            </button>
-          ))}
+      <div className="trending-page">
+        <div className="trending-hero">
+          <h1>{content.title}</h1>
+          <p>{content.subtitle}</p>
         </div>
-      </div>
-
-      <div className="trending-results">
-        {(loadingInsight || insight) && (
-            <div className="ai-insight-box">
-                <h3>{content.insightsTitle}</h3>
-                {loadingInsight ? (
-                    <p className="insight-loading">Crafting an analysis for you...</p>
-                ) : (
-                    <p>{insight}</p>
-                )}
-            </div>
-        )}
-
-        {loading ? (
-          <div className="page-loader">{content.loading}</div>
-        ) : products.length > 0 ? (
-          <div className="shop-product-grid">
-            {products.map((product, index) => (
-              <div key={product.id} className="grid-item-animated" style={{ animationDelay: `${index * 0.05}s` }}>
-                <ProductCard product={product} onNavigate={onNavigate} />
-              </div>
+        <div className="filter-bar-container">
+          <div className="filter-bar">
+            {filters.map(f => (
+              <button
+                key={f.key}
+                className={`filter-btn ${activeFilter === f.key ? 'active' : ''}`}
+                onClick={() => setActiveFilter(f.key)}
+              >
+                {f.label}
+              </button>
             ))}
           </div>
-        ) : (
-          <p className="no-results-message">{content.noResults}</p>
-        )}
+        </div>
+        <div className="trending-results">
+          {(loadingInsight || insight) && (
+              <div className="ai-insight-box">
+                  <h3>{content.insightsTitle}</h3>
+                  {loadingInsight ? (
+                      <p className="insight-loading">{content.insightLoadingText}</p>
+                  ) : (
+                      <p>{insight}</p>
+                  )}
+              </div>
+          )}
+          {loading ? (
+            <div className="page-loader">{content.loading}</div>
+          ) : products.length > 0 ? (
+            <div className="shop-product-grid">
+              {products.map((product, index) => (
+                <div key={product.id} className="grid-item-animated" style={{ animationDelay: `${index * 0.05}s` }}>
+                  <ProductCard product={product} onNavigate={onNavigate} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-results-message">{content.noResults}</p>
+          )}
+        </div>
       </div>
     </div>
   );

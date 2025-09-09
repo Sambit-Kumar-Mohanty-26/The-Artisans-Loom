@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useInView } from 'react-intersection-observer';
+import useCountUp from '../hooks/useCountUp';
 import { functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import './CuratedCollection.css';
@@ -27,10 +29,28 @@ const englishContent = {
   whyChoosePoint4: "Detailed stories about each artisan and technique.",
 };
 
-const CuratedCollection = () => {
+const StatBox = ({ value, label, inView }) => {
+  const cleanValue = parseInt(String(value).replace(/[^0-9]/g, ''), 10);
+  const count = useCountUp(inView ? cleanValue : 0, 2000);
+  const suffix = String(value).includes('%') ? '%' : String(value).includes('+') ? '+' : '';
+  
+  return (
+    <div className="stat-box">
+      {count.toLocaleString()}{suffix}
+      <span>{label}</span>
+    </div>
+  );
+};
+
+const CuratedCollection = ({ onNavigate }) => {
   const { currentLanguage } = useLanguage();
   const [content, setContent] = useState(englishContent);
   const [isTranslating, setIsTranslating] = useState(false);
+  
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold: 0.5,
+  });
 
   useEffect(() => {
     const translateContent = async () => {
@@ -47,22 +67,12 @@ const CuratedCollection = () => {
         });
         const translations = result.data.translations;
         setContent({
-          tag: translations[0],
-          title: translations[1],
-          subtitle: translations[2],
-          cardHeritageTag: translations[3],
-          cardTitle: translations[4],
-          cardDescription: translations[5],
-          cardButton: translations[6],
-          stat1Label: translations[7],
-          stat2Label: translations[8],
-          stat3Label: translations[9],
-          stat4Label: translations[10],
-          whyChooseTitle: translations[11],
-          whyChoosePoint1: translations[12],
-          whyChoosePoint2: translations[13],
-          whyChoosePoint3: translations[14],
-          whyChoosePoint4: translations[15],
+          tag: translations[0], title: translations[1], subtitle: translations[2],
+          cardHeritageTag: translations[3], cardTitle: translations[4], cardDescription: translations[5],
+          cardButton: translations[6], stat1Label: translations[7], stat2Label: translations[8],
+          stat3Label: translations[9], stat4Label: translations[10], whyChooseTitle: translations[11],
+          whyChoosePoint1: translations[12], whyChoosePoint2: translations[13],
+          whyChoosePoint3: translations[14], whyChoosePoint4: translations[15],
         });
       } catch (err) {
         console.error("Failed to translate CuratedCollection content:", err);
@@ -88,15 +98,19 @@ const CuratedCollection = () => {
             <p className="heritage-tag">{content.cardHeritageTag}</p>
             <h3>{content.cardTitle}</h3>
             <p className="card-description">{content.cardDescription}</p>
-            <Button text={content.cardButton} type="secondary" />
+            <Button 
+              text={content.cardButton} 
+              type="secondary" 
+              onClick={() => onNavigate('shop')}
+            />
           </div>
         </div>
         <div className="collection-info">
-          <div className="stats-grid">
-            <div className="stat-box">1,200+<span>{content.stat1Label}</span></div>
-            <div className="stat-box">15<span>{content.stat2Label}</span></div>
-            <div className="stat-box">98%<span>{content.stat3Label}</span></div>
-            <div className="stat-box">500+<span>{content.stat4Label}</span></div>
+          <div className="stats-grid" ref={ref}>
+            <StatBox value="1,200+" label={content.stat1Label} inView={inView} />
+            <StatBox value="15" label={content.stat2Label} inView={inView} />
+            <StatBox value="98%" label={content.stat3Label} inView={inView} />
+            <StatBox value="500+" label={content.stat4Label} inView={inView} />
           </div>
           <div className="why-choose-us">
             <h4>{content.whyChooseTitle}</h4>

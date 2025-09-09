@@ -30,7 +30,6 @@ const englishContent = {
   recsLoading: "Generating personalized recommendations...",
   recsTitle: "A Weaver's Journey: Related Crafts",
   viewProductButton: "View Product",
-  backToHome: "Back to Home",
   fallbackTitle: "No results found for your search.",
   fallbackSubtitle: "But you might be interested in these popular crafts:",
 };
@@ -39,13 +38,6 @@ const CloseIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
-);
-
-const BackButton = ({ onNavigate, text }) => (
-  <button className="back-to-home-btn" onClick={() => onNavigate('home')}>
-    <span className="btn-icon">←</span>
-    <span className="btn-text">{text}</span>
-  </button>
 );
 
 const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) => {
@@ -147,8 +139,8 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
           priceRangeLabel: translations[9], minPlaceholder: translations[10], maxPlaceholder: translations[11],
           applyButton: translations[12], searchResultsTitle: translations[13], clearSearchButton: translations[14],
           loadingProducts: translations[15], noProducts: translations[16], recsLoading: translations[17],
-          recsTitle: translations[18], viewProductButton: translations[19], backToHome: translations[20],
-          fallbackTitle: translations[21], fallbackSubtitle: translations[22],
+          recsTitle: translations[18], viewProductButton: translations[19], fallbackTitle: translations[20],
+          fallbackSubtitle: translations[21],
         });
       } catch (err) {
         console.error("Failed to translate ShopPage content:", err);
@@ -208,7 +200,6 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
 
   return (
     <div className={`shop-page-container ${isTranslating ? 'translating' : ''}`}>
-      <BackButton onNavigate={onNavigate} text={content.backToHome} />
       <div className="shop-page">
         <aside className="filter-sidebar">
           <h3>{content.filtersTitle}</h3>
@@ -225,24 +216,31 @@ const ShopPage = ({ initialSearch = null, clearSearch = () => {}, onNavigate }) 
               <label>{content.categoryLabel}</label>
               <select name="category" value={filters.category} onChange={handleFilterChange}>
                 <option value="">{content.allOption}</option>
-                <option value="weaving">Weaving</option> <option value="pottery">Pottery</option>
-                <option value="painting">Painting</option> <option value="carving">Carving</option>
+                <option value="weaving">Weaving</option>
+                <option value="pottery">Pottery</option>
+                <option value="painting">Painting</option>
+                <option value="carving">Carving</option>
               </select>
             </div>
             <div className="filter-group">
               <label>{content.materialLabel}</label>
               <select name="materials" value={filters.materials} onChange={handleFilterChange}>
                 <option value="">{content.allOption}</option>
-                <option value="silk">Silk</option> <option value="cotton">Cotton</option>
-                <option value="terracotta">Terracotta</option> <option value="wood">Wood</option> <option value="brass">Brass</option>
+                <option value="silk">Silk</option>
+                <option value="cotton">Cotton</option>
+                <option value="terracotta">Terracotta</option>
+                <option value="wood">Wood</option>
+                <option value="brass">Brass</option>
               </select>
             </div>
             <div className="filter-group">
               <label>{content.regionLabel}</label>
               <select name="region" value={filters.region} onChange={handleFilterChange}>
                 <option value="">{content.allOption}</option>
-                <option value="rajasthan">Rajasthan</option> <option value="gujarat">Gujarat</option>
-                <option value="odisha">Odisha</option> <option value="uttar_pradesh">Uttar Pradesh</option>
+                <option value="rajasthan">Rajasthan</option>
+                <option value="gujarat">Gujarat</option>
+                <option value="odisha">Odisha</option>
+                <option value="uttar_pradesh">Uttar Pradesh</option>
               </select>
             </div>
             <div className="filter-group">
