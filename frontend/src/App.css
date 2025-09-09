@@ -30,3 +30,7 @@
     width: 100%;
   overflow-x: hidden;
 }
+
+.app-wrapper {
+  position: relative;
+}
