@@ -1861,3 +1861,63 @@ exports.updateReplyCountOnDelete = onDocumentDeleted("forumPosts/{postId}/replie
         logger.error(`Error decrementing reply count for post ${event.params.postId}:`, error);
     }
 });
+// ------------------ Delete Product ----------------------
+exports.deleteProduct = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to delete a product.");
+  }
+  
+  const userId = request.auth.uid;
+  const { productId } = request.data;
+
+  if (!productId) {
+    throw new HttpsError("invalid-argument", "A 'productId' must be provided.");
+  }
+
+  const firestore = admin.firestore();
+  const storage = admin.storage();
+  const productRef = firestore.collection("products").doc(productId);
+
+  try {
+    const productDoc = await productRef.get();
+    if (!productDoc.exists) {
+      throw new HttpsError("not-found", "The product you are trying to delete does not exist.");
+    }
+    
+    const productData = productDoc.data();
+
+    if (productData.artisanId !== userId) {
+      throw new HttpsError("permission-denied", "You do not have permission to delete this product.");
+    }
+    const imageUrl = productData.imageUrl;
+    const filePathRegex = /o\/(.*?)\?/; 
+    const matches = imageUrl.match(filePathRegex);
+    
+    if (matches && matches[1]) {
+      const filePath = decodeURIComponent(matches[1]);
+      const fileRef = storage.bucket().file(filePath);
+      
+      try {
+        await fileRef.delete();
+        logger.info(`Successfully deleted image from Storage: ${filePath}`);
+      } catch (storageError) {
+        logger.error(`Failed to delete image from Storage: ${filePath}`, storageError);
+      }
+    } else {
+      logger.warn(`Could not extract file path from imageUrl for product ${productId}: ${imageUrl}`);
+    }
+
+    await productRef.delete();
+    
+    logger.info(`Successfully deleted product ${productId} by user ${userId}.`);
+    
+    return { success: true, message: "Product deleted successfully." };
+
+  } catch (error) {
+    logger.error(`Error deleting product ${productId} by user ${userId}:`, error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", "An unexpected error occurred while deleting the product.");
+  }
+});

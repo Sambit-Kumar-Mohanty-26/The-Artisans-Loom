@@ -34,12 +34,16 @@ import ForumPage from './pages/ForumPage';
 import CreatePostPage from './pages/CreatePostPage';
 import ForumPostPage from './pages/ForumPostPage';
 import TrendingPage from './pages/TrendingPage';
+<<<<<<< HEAD
 import StoriesPage from './pages/StoriesPage';
 import AboutUsPage from './pages/AboutUsPage';
 import ContactUsPage from './pages/ContactUsPage';
 import FaqPage from './pages/FaqPage';
 import ReturnsPage from './pages/ReturnsPage';
 import ShippingPage from './pages/ShippingPage';
+=======
+import EditProductPage from './pages/EditProductPage';
+>>>>>>> origin/main
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -187,6 +191,10 @@ const AppContent = () => {
       const artisanId = currentPage.split('/')[1];
       return <ArtisanProfilePage artisanId={artisanId} onNavigate={navigateTo} />;
     }
+    if (currentPage.startsWith('edit-product/')) {
+      const productId = currentPage.split('/')[1];
+      return <EditProductPage productId={productId} onNavigate={navigateTo} />;
+    }
     if (currentPage.startsWith('state/')) {
       const stateSlug = currentPage.split('/')[1];
       const stateData = findStateData(stateSlug);
@@ -247,7 +255,7 @@ const AppContent = () => {
 
   return (
     <div className="app-wrapper">
-      {currentPage !== 'home' && <AnimatedBackButton text={backButtonText} onClick={handleGoBack} />}
+      {currentPage !== 'home' && currentPage !== 'dashboard' && (<AnimatedBackButton text={backButtonText} onClick={handleGoBack} />)}
       <Header onSignInClick={() => navigateTo('auth')} onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} currentPage={currentPage} />
       <main>{renderPage()}</main>
       <Footer onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />

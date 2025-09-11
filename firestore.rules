@@ -5,15 +5,15 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow read: if true;
-      allow write: if false;
+      allow update: if request.auth != null && request.auth.uid == resource.data.artisanId;
+      allow create, delete: if false;
     }
 
     match /orders/{orderId} {
       allow read: if request.auth.uid == resource.data.userId;
-      allow write: if false;
+      allow create, update, delete: if false;
     }
 
-    // --- RULES FOR THE NEW FORUM FEATURE ---
     match /forumCategories/{categoryId} {
       // Allow any authenticated user to read the list of categories
       allow read: if request.auth != null;
