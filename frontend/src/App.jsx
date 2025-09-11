@@ -90,12 +90,15 @@ const AppContent = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [backButtonText, setBackButtonText] = useState('Back');
 
-  const navigateTo = (page) => {
+  const navigateTo = (page, options = {}) => {
     const normalizedPath = normalizePage(page);
     if (normalizedPath === 'map.html') {
       window.location.href = '/map.html';
     } else {
       setPageHistory(prevHistory => [...prevHistory, normalizedPath]);
+      if (options.section) {
+        setScrollToSection(options.section);
+      }
     }
   };
 
@@ -152,9 +155,10 @@ const AppContent = () => {
 
   const handleNavigateAndScroll = (sectionId) => {
     if (currentPage !== 'home') {
-      navigateTo('home');
+      navigateTo('home', { section: sectionId });
+    } else {
+      setScrollToSection(sectionId);
     }
-    setScrollToSection(sectionId);
   };
 
   const handleSearch = (searchData) => {

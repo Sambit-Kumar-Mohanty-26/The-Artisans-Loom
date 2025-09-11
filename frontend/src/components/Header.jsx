@@ -170,9 +170,9 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll, currentPage })
 
       <nav className={`navigation ${isMobileMenuOpen ? 'mobile-menu-active' : ''}`} ref={navigationRef}>
         <button onClick={() => handleScrollAndCloseMenu('discover')} className="nav-link">{content.discover}</button>
-        <button onClick={() => handleScrollAndCloseMenu('regions')} className="nav-link">{content.regions}</button>
-        <button onClick={() => handleScrollAndCloseMenu('artisans')} className="nav-link">{content.artisans}</button>
-        <button onClick={() => handleScrollAndCloseMenu('stories')} className="nav-link">{content.stories}</button>
+        <button onClick={() => onNavigate('all-states')} className="nav-link">{content.regions}</button>
+        <button onClick={() => onNavigate('all-artisans')} className="nav-link">{content.artisans}</button>
+        <button onClick={() => onNavigate('stories')} className="nav-link">{content.stories}</button>
       </nav>
 
       <button className="mobile-menu-icon" onClick={toggleMobileMenu} ref={mobileMenuIconRef}>
