@@ -49,12 +49,20 @@
   border-bottom: 1px solid #f0ebe5;
 }
 
+.post-header-with-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
 .post-title-main {
   font-family: 'Playfair Display', serif;
   font-size: 2.75rem;
   color: #33210f;
   line-height: 1.2;
   margin: 0 0 1rem 0;
+  flex-grow: 1;
 }
 
 .post-author-details {
@@ -108,6 +116,7 @@
   display: flex;
   gap: 1.25rem;
   animation: replyFadeIn 0.5s ease-out forwards;
+  position: relative;
 }
 
 .reply-avatar {
@@ -119,12 +128,15 @@
   flex-shrink: 0;
 }
 
+.reply-content-wrapper {
+  flex-grow: 1;
+}
+
 .reply-content {
   background-color: #f9f7f4;
   border: 1px solid #f0ebe5;
-  border-radius: 0 12px 12px 12px;
+  border-radius: 12px;
   padding: 1rem 1.5rem;
-  flex-grow: 1;
 }
 
 .reply-card.ai-reply {
@@ -132,6 +144,11 @@
   padding: 1rem;
   border-radius: 12px;
   border-left: 4px solid #90caf9;
+}
+
+.reply-card.user-ask-mitra .reply-content {
+  background-color: #fff9c4;
+  border-color: #fff176;
 }
 
 .reply-card.ai-reply .reply-content {
@@ -167,6 +184,66 @@
   color: #5c4b38;
   margin: 0;
   white-space: pre-wrap;
+}
+
+.reply-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.reply-card:hover .reply-actions {
+  opacity: 1;
+}
+
+.action-icon-btn {
+  position: relative;
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #8a6e51;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.action-icon-btn:hover {
+  background-color: #f0ebe5;
+  color: #33210f;
+}
+
+.action-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.action-icon-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #33210f;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.action-icon-btn:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-5px);
 }
 
 .reply-form-container {
@@ -219,6 +296,14 @@
   transform: translateY(-2px);
 }
 
+.reply-form button.ask-mitra-btn {
+  background-color: #1565c0;
+  box-shadow: 0 4px 15px rgba(21, 101, 192, 0.3);
+}
+.reply-form button.ask-mitra-btn:hover:not(:disabled) {
+  background-color: #0d47a1;
+}
+
 .reply-form button:disabled {
   background-color: #c9c9c9;
   cursor: not-allowed;
@@ -250,7 +335,141 @@
   border-color: #dcd1c4;
 }
 
-.reply-content .translate-btn {
-  margin-top: 0.75rem;
-  float: right;
+.options-dropdown-container {
+  position: relative;
+  margin-left: auto;
+  z-index: 1;
+}
+
+.options-btn {
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a6e51;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.options-btn:hover {
+  background-color: #f0ebe5;
+  color: #33210f;
+}
+
+.options-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.options-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+  padding: 0.5rem;
+  z-index: 2;
+  width: 120px;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.2s ease-out forwards;
+}
+
+.options-dropdown-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #442c13;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.options-dropdown-menu button:hover {
+  background-color: #f7f3ef;
+}
+
+.options-dropdown-menu button.delete {
+  color: #e53935;
+}
+
+.options-dropdown-menu button.delete:hover {
+  background-color: #ffebf0;
+}
+
+.modal-content.confirmation-modal {
+  max-width: 400px;
+  text-align: center;
+}
+
+.confirmation-modal p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #33210f;
+  margin: 1rem 0 2rem 0;
+}
+
+.confirmation-modal .modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.confirm-delete-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #e53935;
+  color: #fff;
+}
+
+.confirm-delete-btn:hover {
+  background-color: #c62828;
+}
+
+.nested-replies {
+  margin-left: 20px;
+  padding-left: 25px;
+  border-left: 2px solid #e5e0da;
+  margin-top: 1.5rem;
+}
+
+.nested-replies > .reply-thread:last-child {
+  margin-bottom: 0;
+}
+
+.cancel-reply-btn {
+  background: none;
+  border: none;
+  color: #d96a3b;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+.options-dropdown-container:focus-within,
+.options-dropdown-container:hover {
+  z-index: 101; 
+}
+
+.options-dropdown-container.is-active-dropdown {
+  z-index: 100;
 }
