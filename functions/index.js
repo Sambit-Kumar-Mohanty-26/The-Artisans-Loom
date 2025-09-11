@@ -1,5 +1,5 @@
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { logger} = require("firebase-functions");
 const admin = require("firebase-admin");
 const sgMail = require('@sendgrid/mail');
@@ -11,6 +11,7 @@ const {Translate} = require('@google-cloud/translate').v2;
 const cors = require("cors")({ origin: true });
 const { defineSecret } = require('firebase-functions/params');
 const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
+const { FieldValue } = require("firebase-admin/firestore");
 
 admin.initializeApp();
 
@@ -1477,64 +1478,96 @@ exports.checkForMitraMention = onDocumentCreated("forumPosts/{postId}/replies/{r
   const replyData = event.data.data();
   const replyContent = replyData.content || '';
 
-  if (replyContent.toLowerCase().includes("@mitra")) {
-    const postId = event.params.postId;
-    const authorName = "Craft Mitra (AI Assistant)";
-    const authorId = "craft-mitra-ai";
+  if (replyData.isAiResponse || !replyContent.toLowerCase().includes("@mitra")) {
+    return null;
+  }
+
+  const postId = event.params.postId;
+  const authorName = "Craft Mitra (AI Assistant)";
+  const authorId = "craft-mitra-ai";
+  const authorPhotoURL = "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7";
+
+  try {
+    const postRef = admin.firestore().collection('forumPosts').doc(postId);
+    const postDoc = await postRef.get();
+    if (!postDoc.exists) {
+      throw new Error(`Original post ${postId} not found.`);
+    }
+    const postTitle = postDoc.data().title;
+    const postContent = postDoc.data().content;
+
+    const repliesRef = postRef.collection('replies');
+    const repliesSnapshot = await repliesRef.orderBy('createdAt', 'asc').get();
+    
+    const conversationContext = repliesSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const role = data.isAiResponse ? "AI Assistant" : data.authorName;
+        return `${role}: ${data.content}`;
+    }).join('\n\n');
 
     const expertPrompt = `
-      You are Craft Mitra, a friendly and highly knowledgeable expert on Indian handicrafts, e-commerce, and small business practices for artisans.
-      An artisan has asked for your help in a community forum. Provide a helpful, encouraging, and detailed answer to their question.
-      Format your answer with clear paragraphs. If relevant, use bullet points or numbered lists.
-      
-      The artisan's question is: "${replyContent.replace(/@mitra/gi, "").trim()}"
+      You are Craft Mitra, a friendly expert on Indian handicrafts.
+      You are participating in a forum discussion. An artisan has asked for your opinion. 
+      Your task is to provide a helpful and encouraging answer based on the full context of the discussion.
+
+      **Original Post Title:**
+      "${postTitle}"
+
+      **Original Post Content:**
+      "${postContent}"
+
+      **Full Conversation History (from oldest to newest):**
+      ${conversationContext}
+
+      Based on the original post and the entire conversation so far, provide a detailed and insightful response to the very last message.
     `;
     
-    try {
-      const result = await generativeModel.generateContent(expertPrompt);
-      let aiResponse = null;
-      if (
-        result.response &&
-        result.response.candidates &&
-        result.response.candidates[0] &&
-        result.response.candidates[0].content &&
-        result.response.candidates[0].content.parts &&
-        result.response.candidates[0].content.parts[0] &&
-        result.response.candidates[0].content.parts[0].text
-      ) {
-        aiResponse = result.response.candidates[0].content.parts[0].text;
-      }
+    const result = await generativeModel.generateContent(expertPrompt);
 
-      if (!aiResponse) {
-        throw new Error("AI generated an empty response.");
-      }
-
-      const repliesRef = admin.firestore().collection(`forumPosts/${postId}/replies`);
-      await repliesRef.add({
-        content: aiResponse,
-        authorId: authorId,
-        authorName: authorName,
-        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", 
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        isAiResponse: true,
-      });
-      logger.info(`Craft Mitra successfully responded to a mention in post ${postId}.`);
-
-    } catch (error) {
-      logger.error(`Error handling @Mitra mention for post ${postId}:`, error);
-      const repliesRef = admin.firestore().collection(`forumPosts/${postId}/replies`);
-      await repliesRef.add({
-        content: "Sorry, I encountered an error and couldn't answer your question. Please try asking again.",
-        authorId: authorId,
-        authorName: authorName,
-        authorPhotoURL: "https://firebasestorage.googleapis.com/v0/b/annular-climate-469215-m0.firebasestorage.app/o/Assets%2FGemini_Generated_Image_jrn6ecjrn6ecjrn6.png?alt=media&token=9e112c5b-8d26-42a1-aa40-081b0ab21fa7", 
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        isAiResponse: true,
-      });
+    // --- THIS IS THE CORRECTED, "SAFER" WAY TO ACCESS THE RESPONSE ---
+    let aiResponse = null;
+    if (
+      result.response &&
+      result.response.candidates &&
+      result.response.candidates[0] &&
+      result.response.candidates[0].content &&
+      result.response.candidates[0].content.parts &&
+      result.response.candidates[0].content.parts[0] &&
+      result.response.candidates[0].content.parts[0].text
+    ) {
+      aiResponse = result.response.candidates[0].content.parts[0].text;
     }
+    // ------------------------------------------------------------------
+
+    if (!aiResponse) {
+      throw new Error("AI generated an empty response.");
+    }
+
+    await repliesRef.add({
+      content: aiResponse,
+      authorId: authorId,
+      authorName: authorName,
+      authorPhotoURL: authorPhotoURL,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      isAiResponse: true,
+      parentId: replyData.parentId,
+    });
+    logger.info(`Craft Mitra successfully responded in post ${postId}.`);
+
+  } catch (error) {
+    logger.error(`Error handling @Mitra mention for post ${postId}:`, error);
+    const repliesRef = admin.firestore().collection(`forumPosts/${postId}/replies`);
+    await repliesRef.add({
+      content: "Sorry, I encountered an error and couldn't answer your question. Please try asking again.",
+      authorId: authorId,
+      authorName: authorName,
+      authorPhotoURL: authorPhotoURL,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      isAiResponse: true,
+      parentId: replyData.parentId,
+    });
   }
 });
-
 // ------------------ Trending Products ----------------------
 exports.getTrendingProducts = onCall({ cors: true }, async (request) => {
   const { filter, limit = 10 } = request.data; 
@@ -1801,4 +1834,24 @@ exports.getListingSuggestions = onCall({ cors: true, timeoutSeconds: 120 }, asyn
     }
     throw new HttpsError("internal", error.message || "An unexpected error occurred while generating suggestions.");
   }
+});
+// ------------------ Update Reply Count on New Reply ----------------------
+exports.updateReplyCountOnCreate = onDocumentCreated("forumPosts/{postId}/replies/{replyId}", async (event) => {
+    const postRef = admin.firestore().collection('forumPosts').doc(event.params.postId);
+    try {
+        await postRef.update({ replyCount: FieldValue.increment(1) });
+        logger.info(`Successfully incremented reply count for post ${event.params.postId}.`);
+    } catch (error) {
+        logger.error(`Error incrementing reply count for post ${event.params.postId}:`, error);
+    }
+});
+// ------------------ Update Reply Count on Reply Deletion ----------------------
+exports.updateReplyCountOnDelete = onDocumentDeleted("forumPosts/{postId}/replies/{replyId}", async (event) => {
+    const postRef = admin.firestore().collection('forumPosts').doc(event.params.postId);
+    try {
+        await postRef.update({ replyCount: FieldValue.increment(-1) });
+        logger.info(`Successfully decremented reply count for post ${event.params.postId}.`);
+    } catch (error) {
+        logger.error(`Error decrementing reply count for post ${event.params.postId}:`, error);
+    }
 });

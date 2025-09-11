@@ -63,7 +63,7 @@ const PostOptions = ({ authorId, onEdit, onDelete, content }) => {
   }
 
   return (
-    <div className="options-dropdown-container" ref={dropdownRef}>
+    <div className={`options-dropdown-container ${isOpen ? 'is-active-dropdown' : ''}`} ref={dropdownRef}>
       <button className="options-btn action-icon-btn" onClick={() => setIsOpen(prev => !prev)} data-tooltip="Options">
         <MoreIcon />
       </button>
@@ -306,7 +306,7 @@ const ForumPostPage = ({ postId, onNavigate }) => {
   const mainPostContent = post.content;
   const isAskingMitra = newReply.toLowerCase().includes('@mitra');
 
-    return (
+  return (
     <>
       <EditPostModal 
         isOpen={!!editingContent}
@@ -391,6 +391,6 @@ const ForumPostPage = ({ postId, onNavigate }) => {
       </div>
     </>
   );
-}
+};
 
 export default ForumPostPage;
