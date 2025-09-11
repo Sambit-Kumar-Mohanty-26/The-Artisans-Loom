@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StatCard from '../components/StatCard';
-import MarketingCopyGenerator from '../components/MarketingCopyGenerator'; 
+import MarketingCopyGenerator from '../components/MarketingCopyGenerator';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { functions } from '../firebaseConfig';
-import { httpsCallable } from 'firebase/functions'; 
-import { useAuth } from '../context/AuthContext'; 
+import { httpsCallable } from 'firebase/functions';
+import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import './DashboardPage.css';
 
 const getDashboardSummary = httpsCallable(functions, 'getDashboardSummary');
 const getArtisanProducts = httpsCallable(functions, 'getArtisanProducts');
 const getArtisanOrders = httpsCallable(functions, 'getArtisanOrders');
+const deleteProduct = httpsCallable(functions, 'deleteProduct');
 const getTranslations = httpsCallable(functions, 'getTranslations');
 
 const englishContent = {
@@ -17,7 +19,6 @@ const englishContent = {
   dashboardError: "Failed to load your dashboard. Please try refreshing the page.",
   dashboardTitle: "Dashboard",
   addProductButton: "+ Add New Product",
-  backToHomeButton: "Back to Home",
   communityForumButton: "Community Forum",
   totalSalesStat: "Total Sales",
   totalProductsStat: "Total Products",
@@ -31,9 +32,13 @@ const englishContent = {
   itemsOrderedLabel: "Items Ordered:",
   noOrdersMessage: "You have no new orders.",
   myProductsTitle: "My Products",
-  stockLabel: "Stock:",
-  priceLabel: "Price:",
   noProductsMessage: "You haven't added any products yet. Click 'Add New Product' to get started!",
+  edit: "Edit",
+  delete: "Delete",
+  confirmDeleteTitle: "Confirm Deletion",
+  confirmDeleteMessage: "Are you sure you want to permanently delete this product? This action cannot be undone.",
+  cancel: "Cancel",
+  backToHomeButton: "Back to Home",
 };
 
 const CommunityIcon = () => (
@@ -42,40 +47,77 @@ const CommunityIcon = () => (
   </svg>
 );
 
+const MoreIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg> );
+
+const ProductOptions = ({ onEdit, onDelete, content }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  return (
+    <div className={`product-options-container ${isOpen ? 'is-active-dropdown' : ''}`} ref={dropdownRef}>
+      <button className="options-btn" onClick={() => setIsOpen(p => !p)}><MoreIcon /></button>
+      {isOpen && (
+        <div className="options-dropdown-menu">
+          <button onClick={() => { onEdit(); setIsOpen(false); }}>{content.edit}</button>
+          <button onClick={() => { onDelete(); setIsOpen(false); }} className="delete">{content.delete}</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DashboardBackButton = ({ onNavigate, text }) => {
+  return (
+    <button className="dashboard-back-btn" onClick={() => onNavigate('home')}>
+      <span className="back-btn-icon">←</span>
+      <span className="back-btn-text">{text}</span>
+    </button>
+  );
+};
+
 const DashboardPage = ({ onNavigate }) => {
- const { currentUser } = useAuth();
- const { currentLanguage } = useLanguage();
- const [summaryData, setSummaryData] = useState(null);
- const [products, setProducts] = useState([]);
- const [orders, setOrders] = useState([]);
- const [content, setContent] = useState(englishContent);
- const [isLoading, setIsLoading] = useState(true);
- const [isTranslating, setIsTranslating] = useState(false);
- const [error, setError] = useState('');
+  const { currentUser } = useAuth();
+  const { currentLanguage } = useLanguage();
+  const [summaryData, setSummaryData] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [content, setContent] = useState(englishContent);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [error, setError] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, productId: null });
 
- useEffect(() => {
-  const fetchData = async () => {
-   if (!currentUser) return;
-   setIsLoading(true);
-   setError('');
-   try {
-    const [summaryResult, productsResult, ordersResult] = await Promise.all([
-     getDashboardSummary(), getArtisanProducts(), getArtisanOrders()
-    ]);
-    setSummaryData(summaryResult.data.summaryStats);
-    setProducts(productsResult.data.products);
-    setOrders(ordersResult.data.orders);
-   } catch (err) {
-    console.error("Error fetching dashboard data:", err);
-    setError(content.dashboardError);
-   } finally {
-    setIsLoading(false);
-   }
-  };
-  fetchData();
- }, [currentUser]);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser) return;
+      setIsLoading(true);
+      setError('');
+      try {
+        const [summaryResult, productsResult, ordersResult] = await Promise.all([
+         getDashboardSummary(), getArtisanProducts(), getArtisanOrders()
+        ]);
+        setSummaryData(summaryResult.data.summaryStats);
+        setProducts(productsResult.data.products);
+        setOrders(ordersResult.data.orders);
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError(content.dashboardError);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentUser, content.dashboardError]);
 
- useEffect(() => {
+  useEffect(() => {
     const translateContent = async () => {
       if (currentLanguage.code === 'en') {
         setContent(englishContent);
@@ -90,12 +132,13 @@ const DashboardPage = ({ onNavigate }) => {
         const translations = result.data.translations;
         setContent({
           loadingDashboard: translations[0], dashboardError: translations[1], dashboardTitle: translations[2],
-          addProductButton: translations[3], backToHomeButton: translations[4], totalSalesStat: translations[5],
+          addProductButton: translations[3], communityForumButton: translations[4], totalSalesStat: translations[5],
           totalProductsStat: translations[6], activeArtisansStat: translations[7], totalOrdersStat: translations[8],
           recentOrdersTitle: translations[9], orderIdLabel: translations[10], customerLabel: translations[11],
           dateLabel: translations[12], statusLabel: translations[13], itemsOrderedLabel: translations[14],
-          noOrdersMessage: translations[15], myProductsTitle: translations[16], stockLabel: translations[17],
-          priceLabel: translations[18], noProductsMessage: translations[19], communityForumButton: translations[20],
+          noOrdersMessage: translations[15], myProductsTitle: translations[16], noProductsMessage: translations[17],
+          edit: translations[18], delete: translations[19], confirmDeleteTitle: translations[20], 
+          confirmDeleteMessage: translations[21], cancel: translations[22], backToHomeButton: translations[23],
         });
       } catch (err) {
         console.error("Failed to translate DashboardPage content:", err);
@@ -107,94 +150,133 @@ const DashboardPage = ({ onNavigate }) => {
     translateContent();
   }, [currentLanguage]);
 
- const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
- }
+  const handleDeleteRequest = (productId) => {
+    setDeleteConfirmation({ isOpen: true, productId: productId });
+  };
+  
+  const handleConfirmDelete = async () => {
+    const { productId } = deleteConfirmation;
+    if (!productId) return;
+    try {
+      await deleteProduct({ productId });
+      setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      alert(error.message);
+    } finally {
+      setDeleteConfirmation({ isOpen: false, productId: null });
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  }
  
- if (isLoading) return <div className="page-loader">{content.loadingDashboard}</div>;
- if (error) return <div className="page-error">{error}</div>;
+  if (isLoading) return <div className="page-loader">{content.loadingDashboard}</div>;
+  if (error) return <div className="page-error">{error}</div>;
 
- return (
-  <div className={`dashboard-page ${isTranslating ? 'translating' : ''}`}>
-   <div className="dashboard-header">
-    <h1>{content.dashboardTitle}</h1>
-    <div className="dashboard-actions">
-      <button onClick={() => onNavigate('forum')} className="dashboard-btn-forum">
-            {content.communityForumButton}
-          </button>
-     <button onClick={() => onNavigate('addProduct')} className="dashboard-btn">
-      {content.addProductButton}
-     </button>
-     <button onClick={() => onNavigate('home')} className="dashboard-btn-secondary">
-      {content.backToHomeButton}
-     </button>
-    </div>
-   </div>
+  return (
+    <>
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, productId: null })}
+        onConfirm={handleConfirmDelete}
+        title={content.confirmDeleteTitle}
+        message={content.confirmDeleteMessage}
+        confirmText={content.delete}
+        cancelText={content.cancel}
+      />
+      <div className={`dashboard-page ${isTranslating ? 'translating' : ''}`}>
+        <DashboardBackButton onNavigate={onNavigate} text={content.backToHomeButton} />
+        <div className="dashboard-header">
+          <h1>{content.dashboardTitle}</h1>
+          <div className="dashboard-actions">
+            <button onClick={() => onNavigate('forum')} className="dashboard-btn-forum">
+              <CommunityIcon />
+              <span>{content.communityForumButton}</span>
+            </button>
+            <button onClick={() => onNavigate('addProduct')} className="dashboard-btn">
+              {content.addProductButton}
+            </button>
+          </div>
+        </div>
    
-   <div className="stats-grid">
-    <StatCard title={content.totalSalesStat} value={summaryData ? formatCurrency(summaryData.totalSales) : '₹0.00'} />
-    <StatCard title={content.totalProductsStat} value={products.length} />
-    <StatCard title={content.activeArtisansStat} value={summaryData ? summaryData.activeArtisans : 1} /> 
-    <StatCard title={content.totalOrdersStat} value={orders.length} />
-   </div>
+        <div className="stats-grid">
+          <StatCard title={content.totalSalesStat} value={summaryData ? formatCurrency(summaryData.totalSales) : '₹0.00'} />
+          <StatCard title={content.totalProductsStat} value={products.length} />
+          <StatCard title={content.activeArtisansStat} value={summaryData ? summaryData.activeArtisans : 1} /> 
+          <StatCard title={content.totalOrdersStat} value={orders.length} />
+        </div>
 
-    <div className="artisan-orders-section">
-      <h2>{content.recentOrdersTitle}</h2>
-      {orders.length > 0 ? (
-        <div className="orders-list">
-          {orders.map(order => (
-            <div key={order.id} className="dashboard-order-card">
-              <div className="order-summary">
-                 <p><strong>{content.orderIdLabel}</strong> {order.id}</p>
-                 <p><strong>{content.customerLabel}</strong> {order.shippingInfo.name}</p>
-                 <p><strong>{content.dateLabel}</strong> {order.createdAt && typeof order.createdAt._seconds === 'number'
-                    ? new Date(order.createdAt._seconds * 1000).toLocaleDateString() : 'N/A'}</p>
-                 <p><strong>{content.statusLabel}</strong> <span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span></p>
-              </div>
-              <div className="order-items">
-                <h4>{content.itemsOrderedLabel}</h4>
-                <ul>
-                  {order.items.map(item => (
-                    <li key={item.productId}>
-                      <img src={item.imageUrl} alt={item.name} />
-                      <span>{item.name} (Qty: {item.quantity})</span>
-                      <strong>{formatCurrency(item.price / 100)}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        <div className="dashboard-section">
+          <h2>{content.myProductsTitle}</h2>
+          {products.length > 0 ? (
+            <div className="products-list">
+              {products.map(product => (
+                <div key={product.id} className="dashboard-product-card">
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name} 
+                    className="dashboard-product-image"
+                    onClick={() => onNavigate(`product/${product.id}`)}
+                  />
+                  <div className="product-info" onClick={() => onNavigate(`product/${product.id}`)}>
+                    <h3>{product.name}</h3>
+                    <p>Stock: {product.stock}</p>
+                    <p>Price: {formatCurrency(product.price / 100)}</p>
+                  </div>
+                  <div className="card-actions">
+                    <div className="product-marketing-tool">
+                      <MarketingCopyGenerator product={product} />
+                    </div>
+                    <ProductOptions 
+                      content={content}
+                      onEdit={() => onNavigate(`edit-product/${product.id}`)}
+                      onDelete={() => handleDeleteRequest(product.id)}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <p>{content.noProductsMessage}</p>
+          )}
         </div>
-      ) : (
-        <p>{content.noOrdersMessage}</p>
-      )}
-    </div>
 
-   <div className="artisan-products-section">
-    <h2>{content.myProductsTitle}</h2>
-     {products.length > 0 ? (
-     <div className="products-list">
-      {products.map(product => (
-       <div key={product.id} className="dashboard-product-card" onClick={() => onNavigate(`product/${product.id}`)}>
-        <img src={product.imageUrl} alt={product.name} className="dashboard-product-image" />
-        <div className="product-info">
-         <h3>{product.name}</h3>
-         <p>{content.stockLabel} {product.stock}</p>
-         <p>{content.priceLabel} {formatCurrency(product.price / 100)}</p>
+        <div className="dashboard-section">
+          <h2>{content.recentOrdersTitle}</h2>
+          {orders.length > 0 ? (
+            <div className="orders-list">
+              {orders.map(order => (
+                <div key={order.id} className="dashboard-order-card">
+                  <div className="order-summary">
+                     <p><strong>{content.orderIdLabel}</strong> {order.id.substring(0,8)}...</p>
+                     <p><strong>{content.customerLabel}</strong> {order.shippingInfo.name}</p>
+                     <p><strong>{content.dateLabel}</strong> {order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
+                     <p><strong>{content.statusLabel}</strong> <span className={`order-status ${order.status.toLowerCase()}`}>{order.status}</span></p>
+                  </div>
+                  <div className="order-items">
+                    <h4>{content.itemsOrderedLabel}</h4>
+                    <ul>
+                      {order.items.map(item => (
+                        <li key={item.productId}>
+                          <img src={item.imageUrl} alt={item.name} />
+                          <span>{item.name} (Qty: {item.quantity})</span>
+                          <strong>{formatCurrency(item.price / 100)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>{content.noOrdersMessage}</p>
+          )}
         </div>
-        <div className="product-marketing-tool" onClick={(e) => e.stopPropagation()}>
-         <MarketingCopyGenerator product={product} />
-        </div>
-       </div>
-      ))}
-     </div>
-    ) : (
-     <p>{content.noProductsMessage}</p>
-    )}
-   </div>
-  </div>
- );
+      </div>
+    </>
+  );
 };
 
 export default DashboardPage;
