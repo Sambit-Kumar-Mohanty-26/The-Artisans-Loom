@@ -141,3 +141,128 @@
 .status-message.error {
   color: #c00;
 }
+
+.voice-listing-cta {
+  text-align: center;
+  margin-bottom: 2rem;
+  background-color: #f9f7f4;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #f0ebe5;
+}
+
+.voice-listing-cta p {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #6d543b;
+}
+
+.voice-btn {
+  background-color: #442c13;
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-btn:hover {
+  background-color: #33210f;
+  transform: translateY(-2px);
+}
+
+.loading-suggestions {
+  text-align: center;
+  font-style: italic;
+  color: #6d543b;
+  margin: 2rem 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ai-copilot-container {
+  background: linear-gradient(135deg, #fdfbf8, #f7f3ef);
+  border: 1px solid #e5e0da;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.ai-copilot-container h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem;
+  color: #442c13;
+  text-align: center;
+  margin: 0 0 1.5rem 0;
+}
+
+.copilot-section {
+  margin-bottom: 1.5rem;
+}
+
+.copilot-section h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #33210f;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f0ebe5;
+}
+
+.titles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.suggestion-btn {
+  background-color: #fff;
+  border: 1px solid #dcd1c4;
+  color: #6d543b;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.suggestion-btn:hover {
+  background-color: #f0ebe5;
+  border-color: #a5805e;
+  transform: translateY(-2px);
+}
+
+.suggestion-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #5c4b38;
+  white-space: pre-wrap;
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #f0ebe5;
+}
+
+.use-btn {
+  background-color: #6d543b;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.use-btn:hover {
+  background-color: #5c4b38;
+}
