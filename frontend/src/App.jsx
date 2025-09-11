@@ -34,6 +34,12 @@ import ForumPage from './pages/ForumPage';
 import CreatePostPage from './pages/CreatePostPage';
 import ForumPostPage from './pages/ForumPostPage';
 import TrendingPage from './pages/TrendingPage';
+import StoriesPage from './pages/StoriesPage';
+import AboutUsPage from './pages/AboutUsPage';
+import ContactUsPage from './pages/ContactUsPage';
+import FaqPage from './pages/FaqPage';
+import ReturnsPage from './pages/ReturnsPage';
+import ShippingPage from './pages/ShippingPage';
 import EditProductPage from './pages/EditProductPage';
 
 import Hero from './sections/Hero';
@@ -54,7 +60,11 @@ const normalizePage = (page) => {
     'add-product': 'addProduct', 'addProduct': 'addProduct', 'gifting-assistant': 'gifting-assistant',
     'cart': 'cart', 'checkout': 'checkout', 'auth': 'auth', 'map': 'map.html',
     'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 
-    'create-post': 'create-post', 'edit-profile': 'edit-profile', 'trending': 'trending'
+    'create-post': 'create-post', 'edit-profile': 'edit-profile', 'trending': 'trending',
+    'about-us': 'about-us', 'contact-us': 'contact-us', 'faq': 'faq', 
+    'returns': 'returns', 'shipping': 'shipping', 'stories': 'stories',
+    'dashboard/forum': 'forum',
+    'edit-product': 'editProduct'
   };
   return pageAliases[normalized] || page;
 };
@@ -109,11 +119,14 @@ const AppContent = () => {
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
-      const sectionElement = document.getElementById(scrollToSection);
-      if (sectionElement) {
-        sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      setScrollToSection(null);
+      const scrollTimer = setTimeout(() => {
+        const sectionElement = document.getElementById(scrollToSection);
+        if (sectionElement) {
+          sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        setScrollToSection(null);
+      }, 100); // Small delay to allow element to render
+      return () => clearTimeout(scrollTimer);
     }
   }, [currentPage, scrollToSection]);
 
@@ -215,6 +228,12 @@ const AppContent = () => {
       case 'edit-profile': return <EditProfilePage onProfileUpdate={handleProfileUpdate} onNavigate={navigateTo} />;
       case 'forum': return <ForumPage onNavigate={navigateTo} />;
       case 'create-post': return <CreatePostPage onNavigate={navigateTo} />;
+      case 'stories': return <StoriesPage onNavigate={navigateTo} />;
+      case 'about-us': return <AboutUsPage onNavigate={navigateTo} />;
+      case 'contact-us': return <ContactUsPage onNavigate={navigateTo} />;
+      case 'faq': return <FaqPage onNavigate={navigateTo} />;
+      case 'returns': return <ReturnsPage onNavigate={navigateTo} />;
+      case 'shipping': return <ShippingPage onNavigate={navigateTo} />;
       case 'home':
       default:
         return renderHomepage();
