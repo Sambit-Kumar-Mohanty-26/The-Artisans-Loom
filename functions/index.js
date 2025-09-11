@@ -1668,3 +1668,137 @@ exports.getTrendingInsights = onCall({ cors: true, timeoutSeconds: 60 }, async (
     throw new HttpsError("internal", "Failed to generate market insights.");
   }
 });
+// ------------------ Process Voice Listing ----------------------
+exports.processVoiceListing = onCall({ cors: true, timeoutSeconds: 180 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
+  }
+  
+  const { audioData, languageCode } = request.data;
+  if (!audioData || !languageCode) {
+    throw new HttpsError("invalid-argument", "Missing audioData or languageCode.");
+  }
+
+  try {
+    logger.info(`Transcribing audio for language: ${languageCode}`);
+    const transcriptionRequest = {
+      audio: { content: audioData },
+      config: {
+        encoding: "WEBM_OPUS",
+        sampleRateHertz: 48000,
+        languageCode: languageCode,
+        enableAutomaticPunctuation: true,
+      },
+    };
+    const [transcriptionResponse] = await speechClient.recognize(transcriptionRequest);
+    const originalTranscript = transcriptionResponse.results
+      .map((result) => result.alternatives[0].transcript)
+      .join('\n');
+
+    if (!originalTranscript) {
+      throw new HttpsError("not-found", "Could not understand the audio. Please try speaking more clearly.");
+    }
+    logger.info(`Original transcript (${languageCode}): ${originalTranscript}`);
+
+    let englishTranscript = originalTranscript;
+    if (languageCode !== 'en-IN') {
+        logger.info("Translating transcript to English...");
+        const [translateResponse] = await translate.translate(originalTranscript, 'en');
+        englishTranscript = translateResponse;
+        logger.info(`Translated transcript (en): ${englishTranscript}`);
+    }
+
+    logger.info("Extracting product data with Gemini AI...");
+
+    const extractionPrompt = `
+      You are an AI assistant for an e-commerce platform. Your task is to extract structured product information from the following text, which is a spoken description from an artisan. Extract the data into a valid JSON object.
+
+      **Artisan's Description:**
+      "${englishTranscript}"
+
+      **Instructions:**
+      - "name": A concise, marketable product name.
+      - "description": A well-written, engaging product description based on the artisan's words.
+      - "price": An integer representing the price in Indian Rupees (₹). If they say "two thousand eight hundred", extract 2800.
+      - "stock": An integer representing the available quantity.
+      - "category": Intelligently determine the most appropriate craft category (e.g., "Pottery", "Weaving", "Pashmina Shawl", "Wood Carving"). This should be a human-readable string.
+      - "region": Extract the specific region, state, or city of origin mentioned (e.g., "Kashmir", "Uttar Pradesh", "Jaipur"). This should be a human-readable string.
+      - "materials": An array of strings of the raw materials mentioned (e.g., ["silk", "zari", "cotton"]).
+      
+      Respond with ONLY the raw JSON object. Do not include any other text, greetings, or markdown formatting.
+    `;
+
+    const result = await generativeModel.generateContent(extractionPrompt);
+    const responseText = result.response.candidates[0].content.parts[0].text;
+    
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      logger.error("AI data extraction failed to return valid JSON. Response:", responseText);
+      throw new Error("Could not structure the product information from your description.");
+    }
+    
+    const extractedData = JSON.parse(jsonMatch[0]);
+    return { productData: extractedData };
+
+  } catch (error) {
+    logger.error("Error in processVoiceListing function:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", error.message || "An unexpected error occurred.");
+  }
+});
+// ------------------ AI Listing Suggestions ----------------------
+exports.getListingSuggestions = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
+  }
+  
+  const { productDraft, language } = request.data;
+  if (!productDraft || !language) {
+    throw new HttpsError("invalid-argument", "A 'productDraft' object and 'language' must be provided.");
+  }
+
+  try {
+    logger.info("Generating listing suggestions for:", productDraft.name);
+    const expertPrompt = `
+      You are an expert e-commerce copywriter and market analyst for "The Artisan's Loom," a marketplace for authentic Indian handicrafts. Your task is to help an artisan improve their product listing.
+
+      **Artisan's Draft Listing:**
+      - Title: "${productDraft.name}"
+      - Description: "${productDraft.description}"
+      - Category: "${productDraft.category}"
+      - Materials: "${productDraft.materials.join(', ')}"
+      - Region: "${productDraft.region}"
+
+      **Your Instructions:**
+      Based on the draft, generate the following content in the **${language}** language. Your tone should be warm, encouraging, and professional.
+
+      1.  **"suggestedTitles"**: Provide an array of exactly 3 creative, evocative, and SEO-friendly alternative titles. These should be more descriptive and appealing than the original.
+      2.  **"improvedDescription"**: Rewrite the description to be more story-driven. Focus on the heritage, the artisan's skill, and the sensory experience of the product. Keep it concise (around 2-3 short paragraphs).
+      3.  **"pricingAnalysis"**: Provide a short paragraph of friendly pricing advice. Based on the product type, materials, and category, suggest a typical market price range in Indian Rupees (₹). Conclude with a suggested price for this platform that is fair to both the artisan and the customer.
+
+      **CRITICAL:** Respond with ONLY the raw JSON object containing the three keys: "suggestedTitles", "improvedDescription", and "pricingAnalysis". Do not include any other text, greetings, or markdown formatting.
+    `;
+
+    const result = await generativeModel.generateContent(expertPrompt);
+    const responseText = result.response.candidates[0].content.parts[0].text;
+    
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      logger.error("AI suggestions failed to return valid JSON. Response:", responseText);
+      throw new Error("Could not generate suggestions from your product description.");
+    }
+    
+    const suggestions = JSON.parse(jsonMatch[0]);
+
+    return { suggestions };
+
+  } catch (error) {
+    logger.error("Error in getListingSuggestions function:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", error.message || "An unexpected error occurred while generating suggestions.");
+  }
+});
