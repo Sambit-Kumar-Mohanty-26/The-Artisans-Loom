@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
@@ -46,11 +47,25 @@ const MoreIcon = () => (
 const PostOptions = ({ authorId, onEdit, onDelete, content }) => {
   const { userProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  const handleToggle = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY + 5,
+        left: rect.right + window.scrollX - 120,
+      });
+      setIsOpen(prev => !prev);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+          buttonRef.current && !buttonRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -63,17 +78,20 @@ const PostOptions = ({ authorId, onEdit, onDelete, content }) => {
   }
 
   return (
-
-    <div className={`options-dropdown-container ${isOpen ? 'is-active-dropdown' : ''}`} ref={dropdownRef}>
-
-      <button className="options-btn action-icon-btn" onClick={() => setIsOpen(prev => !prev)} data-tooltip="Options">
+    <div className="options-dropdown-container">
+      <button className="options-btn action-icon-btn" onClick={handleToggle} ref={buttonRef} data-tooltip="Options">
         <MoreIcon />
       </button>
-      {isOpen && (
-        <div className="options-dropdown-menu">
+      {isOpen && ReactDOM.createPortal(
+        <div 
+          className="options-dropdown-menu" 
+          ref={dropdownRef} 
+          style={{ top: `${position.top}px`, left: `${position.left}px` }}
+        >
           <button onClick={() => { onEdit(); setIsOpen(false); }}>{content.editLabel}</button>
           <button onClick={() => { onDelete(); setIsOpen(false); }} className="delete">{content.deleteLabel}</button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -308,9 +326,7 @@ const ForumPostPage = ({ postId, onNavigate }) => {
   const mainPostContent = post.content;
   const isAskingMitra = newReply.toLowerCase().includes('@mitra');
 
-
   return (
-
     <>
       <EditPostModal 
         isOpen={!!editingContent}
@@ -395,6 +411,6 @@ const ForumPostPage = ({ postId, onNavigate }) => {
       </div>
     </>
   );
-}
+};
 
 export default ForumPostPage;
