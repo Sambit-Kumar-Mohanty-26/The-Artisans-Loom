@@ -45,6 +45,7 @@ const generativeModel = vertexAi.getGenerativeModel({
         - User says: "take me to my dashboard" -> Correct action: call \`navigateTo({ path: '/dashboard' })\`.
         - User says: "I need to sign in" -> Correct action: call \`navigateTo({ path: '/auth' })\`.
         - User says: "How do I add a product?" (and is an unfamiliar artisan) -> Correct action: call \`navigateTo({ path: '/add-product' })\` and provide a helpful response like "Certainly, I'll take you to the Add Product page. There you can enter details about your craft."
+        - User says: "Take me to the community forum" -> Correct action: call \`navigateTo({ path: '/dashboard/forum' })\`.
         
         **INCORRECT BEHAVIOR (DO NOT DO THIS):**
         - User: "Take me to the shop."
@@ -61,7 +62,7 @@ const generativeModel = vertexAi.getGenerativeModel({
       functionDeclarations: [
         {
           name: "navigateTo",
-          description: "Navigates the user to a specific page. Use only the following valid paths: '/shop', '/artisans', '/regions', '/gifting-assistant', '/dashboard', '/add-product', '/cart', '/map.html'. The '/regions' path is also called the 'Craft Atlas'.",
+          description: "Navigates the user to a specific page. Use only the following valid paths: '/shop', '/artisans', '/regions', '/gifting-assistant', '/dashboard', '/add-product', '/cart', '/map.html', '/dashboard/forum'. The '/regions' path is also called the 'Craft Atlas'.",
           parameters: {
             type: "OBJECT",
             properties: {
@@ -105,7 +106,7 @@ exports.getGeminiResponseProxy = onRequest((request, response) => {
 
       const aiResponseText =
         result.response.candidates[0].content.parts[0].text ||
-        "Sorry, I couldn’t generate a response.";
+        "Sorry, I couldn't generate a response.";
 
       return response.status(200).json({ response: aiResponseText });
     } catch (error) {
@@ -235,7 +236,12 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
       } else if (candidate.content.parts[0].functionCall) {
         functionCall = candidate.content.parts[0].functionCall;
         if (functionCall.name === "navigateTo" && functionCall.args.path) {
-          const pageName = functionCall.args.path.replace(/\//g, ' ').trim() || 'home';
+          let pageName = functionCall.args.path.replace(/\//g, ' ').trim();
+          if (functionCall.args.path === '/dashboard/forum') {
+            pageName = 'Community Forum';
+          } else if (pageName === '') {
+            pageName = 'home';
+          }
           aiResponseText = `Navigating you to the ${pageName} page.`;
         } else if (functionCall.name === "getArtisanAnalytics") {
           logger.info("Calling getArtisanAnalytics function...");
