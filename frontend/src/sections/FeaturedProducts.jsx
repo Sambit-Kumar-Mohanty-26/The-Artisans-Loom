@@ -85,7 +85,7 @@ const FeaturedProducts = ({ onNavigate }) => {
   }
 
   return (
-    <section className="featured-products-section">
+    <section className="featured-products-section" id="discover">
       <div className={`section-header ${isTranslating ? 'translating' : ''}`}>
         <h2>{content.title}</h2>
         <p>{content.subtitle}</p>

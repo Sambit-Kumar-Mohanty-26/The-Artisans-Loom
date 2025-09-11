@@ -85,14 +85,14 @@ const Footer = ({ onNavigate, onNavigateAndScroll }) => {
               <li><a href="#" onClick={(e) => handleScrollLinkClick(e, 'discover')}>{content.discoverLink}</a></li>
               <li><a href="#" onClick={(e) => handleLinkClick(e, 'all-artisans')}>{content.artisansLink}</a></li>
               <li><a href="#" onClick={(e) => handleLinkClick(e, 'about-us')}>{content.aboutUsLink}</a></li>
-              <li><a href="#" onClick={(e) => handleScrollLinkClick(e, 'stories')}>{content.storiesLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'stories')}>{content.storiesLink}</a></li>
             </ul>
           </div>
           <div className="footer-section links">
             <h3>{content.supportTitle}</h3>
             <ul>
               <li><a href="#" onClick={(e) => handleLinkClick(e, 'faq')}>{content.faqLink}</a></li>
-              <li><a href="#" onClick={(e) => handleLinkClick(e, 'contact')}>{content.contactLink}</a></li>
+              <li><a href="#" onClick={(e) => handleLinkClick(e, 'contact-us')}>{content.contactLink}</a></li>
               <li><a href="#" onClick={(e) => handleLinkClick(e, 'shipping')}>{content.shippingLink}</a></li>
               <li><a href="#" onClick={(e) => handleLinkClick(e, 'returns')}>{content.returnsLink}</a></li>
             </ul>
