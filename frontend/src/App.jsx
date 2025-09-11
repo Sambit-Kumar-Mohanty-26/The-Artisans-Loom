@@ -34,16 +34,13 @@ import ForumPage from './pages/ForumPage';
 import CreatePostPage from './pages/CreatePostPage';
 import ForumPostPage from './pages/ForumPostPage';
 import TrendingPage from './pages/TrendingPage';
-<<<<<<< HEAD
 import StoriesPage from './pages/StoriesPage';
 import AboutUsPage from './pages/AboutUsPage';
 import ContactUsPage from './pages/ContactUsPage';
 import FaqPage from './pages/FaqPage';
 import ReturnsPage from './pages/ReturnsPage';
 import ShippingPage from './pages/ShippingPage';
-=======
 import EditProductPage from './pages/EditProductPage';
->>>>>>> origin/main
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -66,7 +63,8 @@ const normalizePage = (page) => {
     'create-post': 'create-post', 'edit-profile': 'edit-profile', 'trending': 'trending',
     'about-us': 'about-us', 'contact-us': 'contact-us', 'faq': 'faq', 
     'returns': 'returns', 'shipping': 'shipping', 'stories': 'stories',
-    'dashboard/forum': 'forum'
+    'dashboard/forum': 'forum',
+    'edit-product': 'editProduct'
   };
   return pageAliases[normalized] || page;
 };
