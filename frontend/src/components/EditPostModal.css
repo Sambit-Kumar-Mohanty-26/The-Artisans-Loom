@@ -1,0 +1,125 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: modalFadeIn 0.3s forwards;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content.edit-modal {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 700px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  transform: scale(0.95);
+  animation: modalFadeInScaleUp 0.3s 0.1s forwards;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalFadeInScaleUp {
+  to { opacity: 1; transform: scale(1); }
+}
+
+.edit-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0ebe5;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.edit-modal .modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem;
+  color: #33210f;
+  margin: 0;
+}
+
+.edit-modal .modal-close-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.edit-modal .modal-close-button:hover {
+  color: #333;
+}
+
+.edit-modal .edit-textarea {
+  width: 100%;
+  border: 1px solid #dcd1c4;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 200px;
+}
+
+.edit-modal .edit-textarea:focus {
+  outline: none;
+  border-color: #a5805e;
+  box-shadow: 0 0 0 3px rgba(165, 128, 94, 0.2);
+}
+
+.edit-modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0ebe5;
+}
+
+.edit-modal .save-btn,
+.edit-modal .cancel-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-modal .save-btn {
+  background-color: #d96a3b;
+  color: #fff;
+}
+
+.edit-modal .save-btn:hover:not(:disabled) {
+  background-color: #c05a2b;
+}
+
+.edit-modal .cancel-btn {
+  background-color: #f0ebe5;
+  color: #6d543b;
+}
+
+.edit-modal .cancel-btn:hover {
+  background-color: #e5e0da;
+}
+
+.edit-modal .save-btn:disabled {
+  background-color: #c9c9c9;
+  cursor: not-allowed;
+}
