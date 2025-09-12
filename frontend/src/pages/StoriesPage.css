@@ -1,0 +1,155 @@
+.stories-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem 1rem;
+  transition: opacity 0.4s ease-in-out;
+}
+.stories-page.translating {
+  opacity: 0.7;
+}
+
+.stories-header {
+  text-align: center;
+  margin: 2rem 0 3rem 0;
+}
+.stories-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.5rem;
+  color: #33210f;
+  margin: 0;
+}
+.stories-header p {
+  font-size: 1.2rem;
+  color: #6d543b;
+  margin-top: 0.5rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- THIS IS THE CORRECTED LAYOUT FOR THE FEATURED CARD --- */
+.featured-story-card {
+  display: flex; /* Use Flexbox for robust layout */
+  flex-direction: column; /* Stack on mobile */
+  background-color: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.featured-story-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 45px rgba(0,0,0,0.12);
+}
+
+.featured-image-container {
+  width: 100%;
+  height: 300px;
+  background-size: cover;
+  background-position: center;
+  min-height: 300px;
+}
+
+.featured-content {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* On larger screens, switch to a horizontal layout */
+@media (min-width: 992px) {
+  .featured-story-card {
+    flex-direction: row; /* Go side-by-side */
+    max-height: 400px;
+  }
+  .featured-image-container {
+    height: 100%;
+    flex-basis: 55%; /* Image takes up 55% of the width */
+  }
+  .featured-content {
+    flex-basis: 45%; /* Text takes up the remaining 45% */
+  }
+}
+
+.story-category {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #d96a3b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+.featured-content h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.25rem;
+  color: #33210f;
+  margin: 0 0 1rem 0;
+  line-height: 1.2;
+}
+.featured-content p {
+  font-size: 1.05rem;
+  color: #5c4b38;
+  line-height: 1.7;
+  margin: 0 0 2rem 0;
+}
+.read-story-link {
+  font-weight: 600;
+  color: #33210f;
+  transition: color 0.2s;
+}
+.featured-story-card:hover .read-story-link {
+  color: #d96a3b;
+}
+
+.more-stories-section {
+  margin-top: 4rem;
+}
+.more-stories-section h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #33210f;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.stories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+.story-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.06);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.story-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+.story-card-image {
+  height: 200px;
+}
+.story-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.story-card-content {
+  padding: 1.5rem;
+}
+.story-card-content h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  color: #33210f;
+  margin: 0.5rem 0 0 0;
+}
+.no-stories-message {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #6d543b;
+  padding: 4rem 0;
+}

@@ -14,6 +14,11 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /stories/{storyId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /forumCategories/{categoryId} {
       // Allow any authenticated user to read the list of categories
       allow read: if request.auth != null;

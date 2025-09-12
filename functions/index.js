@@ -12,6 +12,7 @@ const cors = require("cors")({ origin: true });
 const { defineSecret } = require('firebase-functions/params');
 const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
 const { FieldValue } = require("firebase-admin/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 admin.initializeApp();
 
@@ -1919,5 +1920,135 @@ exports.deleteProduct = onCall({ cors: true }, async (request) => {
       throw error;
     }
     throw new HttpsError("internal", "An unexpected error occurred while deleting the product.");
+  }
+});
+
+// ------------------ Automated Story Generation ----------------------
+exports.generateAutomatedStory = onSchedule("every 3 hours", async (event) => {
+  logger.info("Starting automated story generation job...");
+  
+  const firestore = admin.firestore();
+
+  try {
+    const storiesSnapshot = await firestore.collection('stories').get();
+    const featuredArtisanIds = storiesSnapshot.docs.map((doc) => doc.data().featuredArtisanId).filter(Boolean);
+    const artisansSnapshot = await firestore.collection('users').where('role', '==', 'artisan').get();
+    
+    const eligibleArtisans = artisansSnapshot.docs.filter((doc) => !featuredArtisanIds.includes(doc.id));
+
+    if (eligibleArtisans.length === 0) {
+      logger.info("No new artisans to feature. Exiting job.");
+      return null;
+    }
+    const randomArtisanDoc = eligibleArtisans[Math.floor(Math.random() * eligibleArtisans.length)];
+    const artisan = { id: randomArtisanDoc.id, ...randomArtisanDoc.data() };
+    logger.info(`Selected artisan to feature: ${artisan.displayName} (ID: ${artisan.id})`);
+    const productsSnapshot = await firestore.collection('products').where('artisanId', '==', artisan.id).limit(3).get();
+    const featuredProducts = productsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    const storytellerPrompt = `
+      You are a professional storyteller and journalist for "The Artisan's Loom" magazine.
+      Your task is to write a beautiful, engaging, 400-word "Artisan Spotlight" article based on the following notes about an artisan.
+      The tone should be respectful, evocative, and focus on their personal journey and the soul of their craft.
+
+      **Artisan's Profile Notes:**
+      - Name: ${artisan.displayName}
+      - Craft: ${artisan.specialization}
+      - From: ${artisan.location}
+      - Personal Story: "${artisan.story}"
+      
+      **Instructions:**
+      - Weave the artisan's personal story into a compelling narrative.
+      - Create an inspiring title for the article.
+      - Write a short, 1-2 sentence excerpt for the article summary.
+      
+      **CRITICAL:** Respond with ONLY a raw JSON object with three keys: "title", "excerpt", and "body".
+      Do not include any other text, greetings, or markdown formatting.
+    `;
+    
+    const result = await generativeModel.generateContent(storytellerPrompt);
+    const responseText = result.response.candidates[0].content.parts[0].text;
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("AI Storyteller failed to return valid JSON.");
+    }
+    const storyContent = JSON.parse(jsonMatch[0]);
+    logger.info(`Successfully generated story: "${storyContent.title}"`);
+
+    const storyId = `spotlight-${artisan.displayName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+    const newStory = {
+      title: storyContent.title,
+      excerpt: storyContent.excerpt,
+      body: storyContent.body,
+      category: "Artisan Spotlights",
+      author: "The Artisan's Loom",
+      heroImageURL: featuredProducts.length > 0 ? featuredProducts[0].imageUrl : artisan.photoURL, // Use first product image or profile photo
+      featuredProductIds: featuredProducts.map((p) => p.id),
+      featuredArtisanId: artisan.id,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await firestore.collection('stories').doc(storyId).set(newStory);
+    logger.info(`Successfully published new story with ID: ${storyId}`);
+    return null;
+
+  } catch (error) {
+    logger.error("Error in generateAutomatedStory function:", error);
+    return null;
+  }
+});
+// ------------------ Document Translation ----------------------
+exports.getTranslatedDocument = onCall({ cors: true }, async (request) => {
+  const { collectionPath, docId, targetLanguageCode } = request.data;
+  if (!collectionPath || !docId || !targetLanguageCode) {
+    throw new HttpsError("invalid-argument", "Missing required parameters.");
+  }
+  
+  // Define which fields are translatable for each collection to prevent abuse
+  const translatableFields = {
+    stories: ['title', 'excerpt', 'body', 'category'],
+    products: ['name', 'description', 'category', 'region'],
+    // Add other collections here in the future
+  };
+
+  const fieldsToTranslate = translatableFields[collectionPath];
+  if (!fieldsToTranslate) {
+    throw new HttpsError("invalid-argument", "This collection is not configured for translation.");
+  }
+
+  const docRef = admin.firestore().collection(collectionPath).doc(docId);
+  try {
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new HttpsError("not-found", "Document not found.");
+    }
+    const originalData = docSnap.data();
+
+    // Check if a translation for this language is already cached on the document
+    if (originalData.translations && originalData.translations[targetLanguageCode]) {
+      logger.info(`Returning cached translation for ${collectionPath}/${docId} in ${targetLanguageCode}`);
+      return { ...originalData, ...originalData.translations[targetLanguageCode] };
+    }
+    
+    // If not cached, prepare the texts and call the Translate API
+    const textsToTranslate = fieldsToTranslate.map((field) => originalData[field] || '');
+    const [translations] = await translate.translate(textsToTranslate, targetLanguageCode);
+
+    const translatedData = {};
+    fieldsToTranslate.forEach((field, index) => {
+      translatedData[field] = translations[index];
+    });
+
+    // Save the new translation back to the document for future requests
+    await docRef.update({
+      [`translations.${targetLanguageCode}`]: translatedData
+    });
+
+    // Return the full original document merged with the new translated fields
+    return { ...originalData, ...translatedData };
+
+  } catch (error) {
+    logger.error(`Error translating document ${collectionPath}/${docId}:`, error);
+    throw new HttpsError("internal", "Failed to translate document.");
   }
 });

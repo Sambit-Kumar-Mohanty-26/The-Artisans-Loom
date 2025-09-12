@@ -35,12 +35,12 @@ import CreatePostPage from './pages/CreatePostPage';
 import ForumPostPage from './pages/ForumPostPage';
 import TrendingPage from './pages/TrendingPage';
 import StoriesPage from './pages/StoriesPage';
+import StoryDetailPage from './pages/StoryDetailPage';
 import AboutUsPage from './pages/AboutUsPage';
 import ContactUsPage from './pages/ContactUsPage';
 import FaqPage from './pages/FaqPage';
 import ReturnsPage from './pages/ReturnsPage';
 import ShippingPage from './pages/ShippingPage';
-import EditProductPage from './pages/EditProductPage';
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -53,6 +53,9 @@ const getTranslations = httpsCallable(functions, 'getTranslations');
 
 const normalizePage = (page) => {
   let normalized = page.startsWith('/') ? page.substring(1) : page;
+  if (normalized.includes('/')) {
+    return normalized;
+  }
   const pageAliases = {
     'home': 'home', 'shop': 'shop', 'products': 'shop', 'browse-all-products': 'shop',
     'artisans': 'all-artisans', 'all-artisans': 'all-artisans', 'regions': 'all-states',
@@ -61,10 +64,8 @@ const normalizePage = (page) => {
     'cart': 'cart', 'checkout': 'checkout', 'auth': 'auth', 'map': 'map.html',
     'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 
     'create-post': 'create-post', 'edit-profile': 'edit-profile', 'trending': 'trending',
-    'about-us': 'about-us', 'contact-us': 'contact-us', 'faq': 'faq', 
-    'returns': 'returns', 'shipping': 'shipping', 'stories': 'stories',
-    'dashboard/forum': 'forum',
-    'edit-product': 'editProduct'
+    'stories': 'stories', 'about-us': 'about-us', 'contact-us': 'contact-us', 
+    'faq': 'faq', 'returns': 'returns', 'shipping': 'shipping'
   };
   return pageAliases[normalized] || page;
 };
@@ -79,7 +80,6 @@ function App() {
   );
 }
 
-
 const AppContent = () => {
   const { userProfile, loading: authLoading } = useAuth();
   const { currentLanguage } = useLanguage();
@@ -90,15 +90,12 @@ const AppContent = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [backButtonText, setBackButtonText] = useState('Back');
 
-  const navigateTo = (page, options = {}) => {
+  const navigateTo = (page) => {
     const normalizedPath = normalizePage(page);
     if (normalizedPath === 'map.html') {
       window.location.href = '/map.html';
     } else {
       setPageHistory(prevHistory => [...prevHistory, normalizedPath]);
-      if (options.section) {
-        setScrollToSection(options.section);
-      }
     }
   };
 
@@ -128,7 +125,7 @@ const AppContent = () => {
           sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         setScrollToSection(null);
-      }, 100); // Small delay to allow element to render
+      }, 100); 
       return () => clearTimeout(scrollTimer);
     }
   }, [currentPage, scrollToSection]);
@@ -155,10 +152,9 @@ const AppContent = () => {
 
   const handleNavigateAndScroll = (sectionId) => {
     if (currentPage !== 'home') {
-      navigateTo('home', { section: sectionId });
-    } else {
-      setScrollToSection(sectionId);
+      navigateTo('home');
     }
+    setScrollToSection(sectionId);
   };
 
   const handleSearch = (searchData) => {
@@ -210,6 +206,10 @@ const AppContent = () => {
       const postId = currentPage.split('/')[1];
       return <ForumPostPage postId={postId} onNavigate={navigateTo} />;
     }
+    if (currentPage.startsWith('story/')) {
+      const storyId = currentPage.split('/')[1];
+      return <StoryDetailPage storyId={storyId} onNavigate={navigateTo} />;
+    }
 
     switch (currentPage) {
       case 'trending': return <TrendingPage onNavigate={navigateTo} />;
@@ -233,11 +233,11 @@ const AppContent = () => {
       case 'forum': return <ForumPage onNavigate={navigateTo} />;
       case 'create-post': return <CreatePostPage onNavigate={navigateTo} />;
       case 'stories': return <StoriesPage onNavigate={navigateTo} />;
-      case 'about-us': return <AboutUsPage onNavigate={navigateTo} />;
-      case 'contact-us': return <ContactUsPage onNavigate={navigateTo} />;
-      case 'faq': return <FaqPage onNavigate={navigateTo} />;
-      case 'returns': return <ReturnsPage onNavigate={navigateTo} />;
-      case 'shipping': return <ShippingPage onNavigate={navigateTo} />;
+      case 'about-us': return <AboutUsPage />;
+      case 'contact-us': return <ContactUsPage />;
+      case 'faq': return <FaqPage />;
+      case 'returns': return <ReturnsPage />;
+      case 'shipping': return <ShippingPage />;
       case 'home':
       default:
         return renderHomepage();
@@ -247,28 +247,30 @@ const AppContent = () => {
   const renderHomepage = () => (
     <>
       <Hero onNavigate={navigateTo} onSearch={handleSearch} />
-      <FeaturedProducts onNavigate={navigateTo} />
-      <TrendingSection onNavigate={navigateTo} />
-      <ExploreByRegion onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
-      <FeaturedArtisans onNavigate={navigateTo} />
-      <CuratedCollection onNavigate={navigateTo} />
+      <div id="discover"><FeaturedProducts onNavigate={navigateTo} /></div>
+      <div id="trending"><TrendingSection onNavigate={navigateTo} /></div>
+      <div id="regions"><ExploreByRegion onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} /></div>
+      <div id="artisans"><FeaturedArtisans onNavigate={navigateTo} /></div>
+      <div id="stories"><CuratedCollection onNavigate={navigateTo} /></div>
     </>
   );
 
   return (
-    <div className="app-wrapper">
+    <>
       {currentPage !== 'home' && currentPage !== 'dashboard' && (<AnimatedBackButton text={backButtonText} onClick={handleGoBack} />)}
-      <Header onSignInClick={() => navigateTo('auth')} onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} currentPage={currentPage} />
-      <main>{renderPage()}</main>
-      <Footer onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
-      <CraftMitraButton onClick={() => setIsMitraOpen(true)} />
-      <CraftMitraModal
-        isOpen={isMitraOpen}
-        onClose={() => setIsMitraOpen(false)}
-        onNavigateToPage={navigateTo}
-        userProfile={userProfile}
-      />
-    </div>
+      <div className="app-wrapper">
+        <Header onSignInClick={() => navigateTo('auth')} onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} currentPage={currentPage} />
+        <main>{renderPage()}</main>
+        <Footer onNavigate={navigateTo} onNavigateAndScroll={handleNavigateAndScroll} />
+        <CraftMitraButton onClick={() => setIsMitraOpen(true)} />
+        <CraftMitraModal
+          isOpen={isMitraOpen}
+          onClose={() => setIsMitraOpen(false)}
+          onNavigateToPage={navigateTo}
+          userProfile={userProfile}
+        />
+      </div>
+    </>
   );
 };
 
