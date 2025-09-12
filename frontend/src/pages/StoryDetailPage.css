@@ -1,0 +1,86 @@
+.story-detail-page {
+  background-color: #fff;
+  transition: opacity 0.4s ease-in-out;
+}
+
+.story-detail-page.translating {
+  opacity: 0.7;
+}
+
+.story-hero-banner {
+  height: 50vh;
+  min-height: 400px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  color: #fff;
+  text-align: center;
+}
+
+.story-hero-overlay {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+  padding: 4rem 2rem;
+  width: 100%;
+}
+
+.story-hero-category {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+
+.story-hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 3.5rem;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.6);
+  max-width: 800px;
+  margin: 0.5rem auto 1rem auto;
+}
+
+.story-hero-author {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.story-content-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+}
+
+.story-body {
+  font-size: 1.2rem;
+  line-height: 2;
+  color: #333;
+}
+
+.story-body h2, .story-body h3 {
+  font-family: 'Playfair Display', serif;
+  color: #33210f;
+  margin: 2.5rem 0 1rem 0;
+}
+
+.shop-the-story-section {
+  margin-top: 5rem;
+  padding-top: 3rem;
+  border-top: 2px solid #f0ebe5;
+}
+
+.shop-the-story-section h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: #33210f;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+.shop-the-story-section .shop-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
