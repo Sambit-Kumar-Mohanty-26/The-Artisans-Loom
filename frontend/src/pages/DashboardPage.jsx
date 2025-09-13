@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import StatCard from '../components/StatCard';
 import MarketingCopyGenerator from '../components/MarketingCopyGenerator';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ReelScriptModal from '../components/ReelScriptModal';
 import { functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +13,7 @@ const getDashboardSummary = httpsCallable(functions, 'getDashboardSummary');
 const getArtisanProducts = httpsCallable(functions, 'getArtisanProducts');
 const getArtisanOrders = httpsCallable(functions, 'getArtisanOrders');
 const deleteProduct = httpsCallable(functions, 'deleteProduct');
+const getReelScript = httpsCallable(functions, 'getReelScript');
 const getTranslations = httpsCallable(functions, 'getTranslations');
 
 const englishContent = {
@@ -39,15 +41,12 @@ const englishContent = {
   confirmDeleteMessage: "Are you sure you want to permanently delete this product? This action cannot be undone.",
   cancel: "Cancel",
   backToHomeButton: "Back to Home",
+  createReelScriptTooltip: "Create Reel Script",
 };
 
-const CommunityIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962a3.75 3.75 0 015.962 0L14.25 6h5.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-  </svg>
-);
-
+const CommunityIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962a3.75 3.75 0 015.962 0L14.25 6h5.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg> );
 const MoreIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg> );
+const ReelIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z" /></svg> );
 
 const ProductOptions = ({ onEdit, onDelete, content }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -94,6 +93,10 @@ const DashboardPage = ({ onNavigate }) => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState({ isOpen: false, productId: null });
+  const [reelScript, setReelScript] = useState(null);
+  const [isReelModalOpen, setIsReelModalOpen] = useState(false);
+  const [loadingScript, setLoadingScript] = useState(false);
+  const [activeProductForReel, setActiveProductForReel] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -139,6 +142,7 @@ const DashboardPage = ({ onNavigate }) => {
           noOrdersMessage: translations[15], myProductsTitle: translations[16], noProductsMessage: translations[17],
           edit: translations[18], delete: translations[19], confirmDeleteTitle: translations[20], 
           confirmDeleteMessage: translations[21], cancel: translations[22], backToHomeButton: translations[23],
+          createReelScriptTooltip: translations[24],
         });
       } catch (err) {
         console.error("Failed to translate DashboardPage content:", err);
@@ -167,6 +171,24 @@ const DashboardPage = ({ onNavigate }) => {
       setDeleteConfirmation({ isOpen: false, productId: null });
     }
   };
+  
+  const handleCreateReelScript = async (product) => {
+    setActiveProductForReel(product);
+    setIsReelModalOpen(true);
+    setLoadingScript(true);
+    setReelScript(null);
+    try {
+      const result = await getReelScript({
+        productId: product.id,
+        language: currentLanguage.name
+      });
+      setReelScript(result.data.script);
+    } catch (error) {
+      console.error("Error generating reel script:", error);
+    } finally {
+      setLoadingScript(false);
+    }
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
@@ -177,6 +199,13 @@ const DashboardPage = ({ onNavigate }) => {
 
   return (
     <>
+      <ReelScriptModal
+        isOpen={isReelModalOpen}
+        onClose={() => setIsReelModalOpen(false)}
+        script={reelScript}
+        isLoading={loadingScript}
+        productName={activeProductForReel?.name || ''}
+      />
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}
         onClose={() => setDeleteConfirmation({ isOpen: false, productId: null })}
@@ -229,6 +258,9 @@ const DashboardPage = ({ onNavigate }) => {
                     <div className="product-marketing-tool">
                       <MarketingCopyGenerator product={product} />
                     </div>
+                    <button className="action-icon-btn" onClick={() => handleCreateReelScript(product)} data-tooltip={content.createReelScriptTooltip}>
+                      <ReelIcon />
+                    </button>
                     <ProductOptions 
                       content={content}
                       onEdit={() => onNavigate(`edit-product/${product.id}`)}

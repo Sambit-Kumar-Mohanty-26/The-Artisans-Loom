@@ -1789,36 +1789,55 @@ exports.processVoiceListing = onCall({ cors: true, timeoutSeconds: 180 }, async 
   }
 });
 // ------------------ AI Listing Suggestions ----------------------
-exports.getListingSuggestions = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
+exports.getListingSuggestions = onCall({ cors: true, timeoutSeconds: 180 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
   }
   
-  const { productDraft, language } = request.data;
-  if (!productDraft || !language) {
-    throw new HttpsError("invalid-argument", "A 'productDraft' object and 'language' must be provided.");
+  const { productDraft, languageCode } = request.data; 
+  if (!productDraft || !languageCode) {
+    throw new HttpsError("invalid-argument", "A 'productDraft' object and 'languageCode' must be provided.");
   }
 
   try {
-    logger.info("Generating listing suggestions for:", productDraft.name);
+    const englishDraft = { ...productDraft };
+    const targetLanguage = languageCode.split('-')[0]; 
+
+    if (targetLanguage !== 'en') {
+      logger.info(`Translating draft from ${targetLanguage} to English...`);
+      const textsToTranslate = [
+        productDraft.name,
+        productDraft.description,
+        productDraft.category,
+        productDraft.region,
+      ];
+      const [translations] = await translate.translate(textsToTranslate, 'en');
+      englishDraft.name = translations[0];
+      englishDraft.description = translations[1];
+      englishDraft.category = translations[2];
+      englishDraft.region = translations[3];
+    }
+
+    logger.info("Generating listing suggestions in English for:", englishDraft.name);
+
     const expertPrompt = `
       You are an expert e-commerce copywriter and market analyst for "The Artisan's Loom," a marketplace for authentic Indian handicrafts. Your task is to help an artisan improve their product listing.
 
-      **Artisan's Draft Listing:**
-      - Title: "${productDraft.name}"
-      - Description: "${productDraft.description}"
-      - Category: "${productDraft.category}"
-      - Materials: "${productDraft.materials.join(', ')}"
-      - Region: "${productDraft.region}"
+      **Artisan's Draft Listing (Translated to English):**
+      - Title: "${englishDraft.name}"
+      - Description: "${englishDraft.description}"
+      - Category: "${englishDraft.category}"
+      - Materials: "${Array.isArray(englishDraft.materials) ? englishDraft.materials.join(', ') : ''}"
+      - Region: "${englishDraft.region}"
 
       **Your Instructions:**
-      Based on the draft, generate the following content in the **${language}** language. Your tone should be warm, encouraging, and professional.
+      Based on the draft, generate the following content **in English**. Your tone should be warm, encouraging, and professional.
 
-      1.  **"suggestedTitles"**: Provide an array of exactly 3 creative, evocative, and SEO-friendly alternative titles. These should be more descriptive and appealing than the original.
-      2.  **"improvedDescription"**: Rewrite the description to be more story-driven. Focus on the heritage, the artisan's skill, and the sensory experience of the product. Keep it concise (around 2-3 short paragraphs).
-      3.  **"pricingAnalysis"**: Provide a short paragraph of friendly pricing advice. Based on the product type, materials, and category, suggest a typical market price range in Indian Rupees (₹). Conclude with a suggested price for this platform that is fair to both the artisan and the customer.
+      1.  "suggestedTitles": Provide an array of exactly 3 creative, evocative, and SEO-friendly alternative titles.
+      2.  "improvedDescription": Completely rewrite the description to be more story-driven and compelling for a customer.
+      3.  "pricingAnalysis": Provide a short paragraph of friendly pricing advice in Indian Rupees (₹), suggesting a typical market price range and a fair price for this platform.
 
-      **CRITICAL:** Respond with ONLY the raw JSON object containing the three keys: "suggestedTitles", "improvedDescription", and "pricingAnalysis". Do not include any other text, greetings, or markdown formatting.
+      **CRITICAL:** Respond with ONLY the raw JSON object containing the three keys: "suggestedTitles", "improvedDescription", and "pricingAnalysis".
     `;
 
     const result = await generativeModel.generateContent(expertPrompt);
@@ -1831,6 +1850,19 @@ exports.getListingSuggestions = onCall({ cors: true, timeoutSeconds: 120 }, asyn
     }
     
     const suggestions = JSON.parse(jsonMatch[0]);
+    if (targetLanguage !== 'en') {
+      logger.info(`Translating suggestions from English back to ${targetLanguage}...`);
+      const suggestionTextsToTranslate = [
+        ...suggestions.suggestedTitles,
+        suggestions.improvedDescription,
+        suggestions.pricingAnalysis,
+      ];
+      const [backTranslations] = await translate.translate(suggestionTextsToTranslate, targetLanguage);
+      
+      suggestions.suggestedTitles = backTranslations.slice(0, 3);
+      suggestions.improvedDescription = backTranslations[3];
+      suggestions.pricingAnalysis = backTranslations[4];
+    }
 
     return { suggestions };
 
@@ -2163,5 +2195,70 @@ exports.deleteStory = onCall({ cors: true }, async (request) => {
       throw error; 
     }
     throw new HttpsError("internal", "An unexpected error occurred while deleting the story.");
+  }
+});
+// ------------------ Reel Script Generation ----------------------
+exports.getReelScript = onCall({ cors: true, timeoutSeconds: 120 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to use this feature.");
+  }
+  
+  const { productId, language } = request.data;
+  if (!productId || !language) {
+    throw new HttpsError("invalid-argument", "A 'productId' and 'language' must be provided.");
+  }
+
+  const firestore = admin.firestore();
+  const productRef = firestore.collection("products").doc(productId);
+
+  try {
+    const productDoc = await productRef.get();
+    if (!productDoc.exists) {
+      throw new HttpsError("not-found", "The specified product could not be found.");
+    }
+    const productData = productDoc.data();
+
+    logger.info(`Generating Reel script for product: ${productData.name}`);
+
+    const scriptPrompt = `
+      You are an expert social media video producer for 'The Artisan's Loom', a marketplace for authentic Indian handicrafts.
+      Your task is to create a script for a 15-second Instagram Reel or YouTube Short about the following product.
+      The script must be visually engaging, emotionally resonant, and easy for an artisan to film themselves.
+      The entire response MUST be in the ${language} language, but keep the JSON keys in English.
+
+      **Product Details:**
+      - Name: "${productData.name}"
+      - Description: "${productData.description}"
+      - Artisan: "${productData.artisanName}"
+      - Region: "${productData.region}"
+      - Materials: "${productData.materials.join(', ')}"
+
+      **CRITICAL:** Respond with ONLY a raw JSON object with the single key "scenes".
+      "scenes" must be an array of exactly 3 scene objects.
+      Each scene object must have these three string keys:
+      1.  "visual": A short, descriptive instruction for the video shot (e.g., "Slow-motion shot of the artisan's hands weaving the textile," "Extreme close-up on the intricate brush strokes.").
+      2.  "voiceover": The text the artisan should speak as a voiceover during this scene.
+      3.  "onScreenText": A short, punchy text overlay for the video (e.g., "A Timeless Tradition," "Handmade with Love," "Pure Pashmina Wool").
+    `;
+
+    const result = await generativeModel.generateContent(scriptPrompt);
+    const responseText = result.response.candidates[0].content.parts[0].text;
+    
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      logger.error("AI script generation failed to return valid JSON. Response:", responseText);
+      throw new Error("Could not generate a script from the product details.");
+    }
+    
+    const scriptData = JSON.parse(jsonMatch[0]);
+
+    return { script: scriptData };
+
+  } catch (error) {
+    logger.error(`Error generating Reel script for product ${productId}:`, error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", error.message || "An unexpected error occurred while generating the script.");
   }
 });
