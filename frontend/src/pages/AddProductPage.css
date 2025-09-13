@@ -266,3 +266,43 @@
 .use-btn:hover {
   background-color: #5c4b38;
 }
+
+.get-suggestions-cta {
+  text-align: center;
+  margin: 2rem 0 1rem 0;
+  padding-top: 2rem;
+  border-top: 1px solid #f0ebe5;
+}
+
+.suggestion-generator-btn {
+  border: none;
+  cursor: pointer;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #4a4a68, #3a3a58);
+  background-size: 200% 200%;
+  box-shadow: 0 4px 15px rgba(58, 58, 88, 0.2);
+  transition: all 0.3s ease-out;
+}
+
+.suggestion-generator-btn:hover:not(:disabled) {
+  background-position: 100% 0; 
+  box-shadow: 0 7px 20px rgba(58, 58, 88, 0.3);
+  transform: translateY(-2px); 
+}
+
+.suggestion-generator-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4px 15px rgba(58, 58, 88, 0.2);
+}
+
+.suggestion-generator-btn:disabled {
+  background: #b0aab5; 
+  color: #f9f7f4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}

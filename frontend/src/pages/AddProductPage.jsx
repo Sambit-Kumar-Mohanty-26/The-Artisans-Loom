@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import { storage, functions } from '../firebaseConfig';
+import { storage, functions, db } from '../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { httpsCallable } from 'firebase/functions';
+import { doc, updateDoc } from 'firebase/firestore';
 import VoiceListingModal from '../components/VoiceListingModal';
 import './AddProductPage.css';
 
@@ -14,7 +15,7 @@ const getTranslations = httpsCallable(functions, 'getTranslations');
 
 const englishContent = {
   pageTitle: "Add a New Product",
-  subtitle: "This form is for artisans to list their creations on the platform.",
+  subtitle: "Describe your creation, and let our AI help you perfect the listing.",
   nameLabel: "Product Name",
   descriptionLabel: "Description",
   priceLabel: "Price (in ₹)",
@@ -22,11 +23,6 @@ const englishContent = {
   stockLabel: "Available Stock",
   stockPlaceholder: "e.g., 10",
   categoryLabel: "Category",
-  categoryPottery: "Pottery",
-  categoryWeaving: "Weaving",
-  categoryPainting: "Painting",
-  categoryCarving: "Carving",
-  categoryEmbroidery: "Embroidery",
   regionLabel: "Region / State",
   materialsLabel: "Materials (comma separated)",
   materialsPlaceholder: "e.g., silk, zari, cotton",
@@ -35,16 +31,19 @@ const englishContent = {
   submittingButton: "Submitting...",
   uploadImageError: "Please upload a product image.",
   authError: "Error: User not found. Please try logging in again.",
-  authInvalidError: "Authentication Error: Your session is invalid. Please log out and log back in.",
   genericError: "An error occurred:",
   successMessage: "Product created successfully! Add another?",
-  voiceCtaText: "Don't want to type? Try our new AI-powered voice listing!",
+  voiceCtaText: "Prefer to speak?",
   voiceButtonText: "🎙️ List with Voice",
-  voiceSuccessMessage: "Your form has been filled with your voice description. Please upload an image and submit.",
+  voiceSuccessMessage: "Your form has been filled. Now, ask Mitra for suggestions or add an image and submit!",
   copilotTitle: "✨ Mitra's Suggestions",
-  useThisTitle: "Use this title",
-  useThisDescription: "Use this description",
+  useThisDescription: "Use This Description",
   pricingAdvice: "Pricing Advice",
+  getSuggestionsButton: "✨ Ask Mitra for Suggestions",
+  thinkingButton: "Mitra is thinking...",
+  suggestionPrompt: "Please fill in at least the name and description before getting suggestions.",
+  categoryPlaceholder: "e.g., Pottery, Weaving...",
+  regionPlaceholder: "e.g., Rajasthan, West Bengal...",
   loadingSuggestions: "Mitra is generating suggestions for you...",
 };
 
@@ -55,7 +54,6 @@ const AiCopilot = ({ suggestions, onSelectTitle, onSelectDescription, content })
   return (
     <div className="ai-copilot-container">
       <h3>{content.copilotTitle}</h3>
-      
       <div className="copilot-section">
         <h4>Suggested Titles</h4>
         <div className="titles-grid">
@@ -66,7 +64,6 @@ const AiCopilot = ({ suggestions, onSelectTitle, onSelectDescription, content })
           ))}
         </div>
       </div>
-
       <div className="copilot-section">
         <h4>Improved Description</h4>
         <p className="suggestion-text">{suggestions.improvedDescription}</p>
@@ -74,7 +71,6 @@ const AiCopilot = ({ suggestions, onSelectTitle, onSelectDescription, content })
           {content.useThisDescription}
         </button>
       </div>
-
       <div className="copilot-section">
         <h4>{content.pricingAdvice}</h4>
         <p className="suggestion-text">{suggestions.pricingAnalysis}</p>
@@ -117,14 +113,14 @@ const AddProductPage = () => {
           pageTitle: translations[0], subtitle: translations[1], nameLabel: translations[2],
           descriptionLabel: translations[3], priceLabel: translations[4], pricePlaceholder: translations[5],
           stockLabel: translations[6], stockPlaceholder: translations[7], categoryLabel: translations[8],
-          categoryPottery: translations[9], categoryWeaving: translations[10], categoryPainting: translations[11],
-          categoryCarving: translations[12], categoryEmbroidery: translations[13], regionLabel: translations[14],
-          materialsLabel: translations[15], materialsPlaceholder: translations[16], imageLabel: translations[17],
-          submitButton: translations[18], submittingButton: translations[19], uploadImageError: translations[20],
-          authError: translations[21], authInvalidError: translations[22], genericError: translations[23],
-          successMessage: translations[24], voiceCtaText: translations[25], voiceButtonText: translations[26],
-          voiceSuccessMessage: translations[27], copilotTitle: translations[28], useThisTitle: translations[29],
-          useThisDescription: translations[30], pricingAdvice: translations[31], loadingSuggestions: translations[32],
+          regionLabel: translations[9], materialsLabel: translations[10], materialsPlaceholder: translations[11],
+          imageLabel: translations[12], submitButton: translations[13], submittingButton: translations[14],
+          uploadImageError: translations[15], authError: translations[16], genericError: translations[17],
+          successMessage: translations[18], voiceCtaText: translations[19], voiceButtonText: translations[20],
+          voiceSuccessMessage: translations[21], copilotTitle: translations[22], useThisDescription: translations[23],
+          pricingAdvice: translations[24], getSuggestionsButton: translations[25], thinkingButton: translations[26],
+          suggestionPrompt: translations[27], categoryPlaceholder: translations[28], regionPlaceholder: translations[29],
+          loadingSuggestions: translations[30],
         });
       } catch (err) {
         console.error("Failed to translate AddProductPage content:", err);
@@ -151,10 +147,39 @@ const AddProductPage = () => {
     }
   };
 
+  const handleGetSuggestions = async () => {
+    if (!product.name.trim() || !product.description.trim()) {
+      setMessage(content.suggestionPrompt);
+      return;
+    }
+    setLoadingSuggestions(true);
+    setSuggestions(null);
+    setMessage('');
+    try {
+      const suggestionsResult = await getListingSuggestions({ 
+          productDraft: {
+              name: product.name,
+              description: product.description,
+              category: product.category,
+              materials: product.materials.split(',').map(m => m.trim()),
+              region: product.region,
+          },
+          languageCode: currentLanguage.code,
+      });
+      setSuggestions(suggestionsResult.data.suggestions);
+    } catch (error) {
+        console.error("Error getting suggestions:", error);
+        setMessage(error.message);
+    } finally {
+        setLoadingSuggestions(false);
+    }
+  };
+
   const handleVoiceDataExtracted = async (audioBlob, languageCode) => {
     setMessage('Processing your description...');
     setSuggestions(null);
     setLoadingSuggestions(true);
+    setIsVoiceModalOpen(false);
     
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
@@ -167,26 +192,17 @@ const AddProductPage = () => {
                 name: productData.name || '',
                 description: productData.description || '',
                 price: productData.price || '',
-                category: productData.category || 'pottery',
+                category: productData.category || '',
                 stock: productData.stock || '',
-                region: productData.region || 'rajasthan',
+                region: productData.region || '',
                 materials: Array.isArray(productData.materials) ? productData.materials.join(', ') : '',
             };
             setProduct(filledProduct);
-            setIsVoiceModalOpen(false);
             setMessage(content.voiceSuccessMessage);
-            const suggestionsResult = await getListingSuggestions({ 
-                productDraft: {
-                    ...productData,
-                    materials: Array.isArray(productData.materials) ? productData.materials : [],
-                },
-                language: currentLanguage.name 
-            });
-            setSuggestions(suggestionsResult.data.suggestions);
+            await handleGetSuggestions();
         } catch (error) {
-            console.error("Error processing voice listing or getting suggestions:", error);
+            console.error("Error processing voice listing:", error);
             setMessage(`Error: ${error.message}`);
-            setIsVoiceModalOpen(false);
         } finally {
             setLoadingSuggestions(false);
         }
@@ -205,32 +221,39 @@ const AddProductPage = () => {
     }
     setLoading(true);
     setMessage('');
+
     try {
+      let finalProductData = { ...product };
+      if (currentLanguage.code !== 'en') {
+        const texts = [finalProductData.name, finalProductData.description];
+        const result = await getTranslations({ texts, targetLanguageCode: 'en' });
+        finalProductData.name = result.data.translations[0];
+        finalProductData.description = result.data.translations[1];
+      }
+
       const imageRef = ref(storage, `products/${currentUser.uid}/${Date.now()}_${imageFile.name}`);
       const snapshot = await uploadBytes(imageRef, imageFile);
       const imageUrl = await getDownloadURL(snapshot.ref);
       
       const newProductData = {
-        ...product,
-        materials: product.materials.split(',').map(item => item.trim()).filter(Boolean),
+        ...finalProductData,
+        price: Number(finalProductData.price) * 100,
+        stock: Number(finalProductData.stock),
+        materials: finalProductData.materials.split(',').map(item => item.trim()).filter(Boolean),
         imageUrl
       };
       
       await createProduct(newProductData);
 
       setMessage(content.successMessage);
-      setProduct({ name: '', description: '', price: '', category: 'pottery', stock: '', region: 'rajasthan', materials: '' });
+      setProduct({ name: '', description: '', price: '', category: '', stock: '', region: '', materials: '' });
       setImageFile(null);
       setImagePreview(null);
       setSuggestions(null);
       e.target.reset();
     } catch (error) {
       console.error("Detailed error from createProduct call:", error);
-      if (error.code === 'functions/unauthenticated') {
-        setMessage(content.authInvalidError);
-      } else {
-        setMessage(`${content.genericError} ${error.message}`);
-      }
+      setMessage(`${content.genericError} ${error.message}`);
     }
     setLoading(false);
   };
@@ -253,17 +276,6 @@ const AddProductPage = () => {
             </button>
           </div>
           
-          {loadingSuggestions ? (
-            <p className="loading-suggestions">{content.loadingSuggestions}</p>
-          ) : (
-            <AiCopilot 
-              suggestions={suggestions}
-              onSelectTitle={(title) => setProduct(p => ({ ...p, name: title }))}
-              onSelectDescription={(desc) => setProduct(p => ({ ...p, description: desc }))}
-              content={content}
-            />
-          )}
-
           <form className="add-product-form" onSubmit={handleSubmit}>
               <div className="form-group">
                   <label htmlFor="name">{content.nameLabel}</label>
@@ -286,51 +298,20 @@ const AddProductPage = () => {
               <div className="form-row">
                   <div className="form-group">
                       <label htmlFor="category">{content.categoryLabel}</label>
-                      <input 
-                        id="category" 
-                        type="text" 
-                        name="category" 
-                        value={product.category} 
-                        onChange={handleChange} 
-                        placeholder={content.categoryPlaceholder}
-                        list="category-suggestions"
-                        required 
-                      />
+                      <input id="category" type="text" name="category" value={product.category} onChange={handleChange} placeholder={content.categoryPlaceholder} list="category-suggestions" required />
                       <datalist id="category-suggestions">
-                          <option value="Pottery" />
-                          <option value="Weaving" />
-                          <option value="Painting" />
-                          <option value="Carving" />
-                          <option value="Embroidery" />
-                          <option value="Textile" />
-                          <option value="Jewelry" />
-                          <option value="Metalwork" />
-                          <option value="Woodwork" />
+                          <option value="Pottery" /> <option value="Weaving" /> <option value="Painting" />
+                          <option value="Carving" /> <option value="Embroidery" /> <option value="Textile" />
+                          <option value="Jewelry" /> <option value="Metalwork" /> <option value="Woodwork" />
                       </datalist>
                   </div>
-                  {/* --- THIS IS THE UPGRADED REGION INPUT --- */}
                   <div className="form-group">
                       <label htmlFor="region">{content.regionLabel}</label>
-                       <input 
-                        id="region" 
-                        type="text" 
-                        name="region" 
-                        value={product.region} 
-                        onChange={handleChange} 
-                        placeholder={content.regionPlaceholder}
-                        list="region-suggestions"
-                        required 
-                      />
+                       <input id="region" type="text" name="region" value={product.region} onChange={handleChange} placeholder={content.regionPlaceholder} list="region-suggestions" required />
                       <datalist id="region-suggestions">
-                          <option value="Rajasthan" />
-                          <option value="Gujarat" />
-                          <option value="Odisha" />
-                          <option value="Uttar Pradesh" />
-                          <option value="West Bengal" />
-                          <option value="Tamil Nadu" />
-                          <option value="Karnataka" />
-                          <option value="Bihar" />
-                          <option value="Assam" />
+                          <option value="Rajasthan" /> <option value="Gujarat" /> <option value="Odisha" />
+                          <option value="Uttar Pradesh" /> <option value="West Bengal" /> <option value="Tamil Nadu" />
+                          <option value="Karnataka" /> <option value="Bihar" /> <option value="Assam" />
                       </datalist>
                   </div>
               </div>
@@ -338,6 +319,24 @@ const AddProductPage = () => {
                   <label htmlFor="materials">{content.materialsLabel}</label>
                   <input id="materials" type="text" name="materials" placeholder={content.materialsPlaceholder} value={product.materials} onChange={handleChange} />
               </div>
+
+              <div className="get-suggestions-cta">
+                <button type="button" className="suggestion-generator-btn" onClick={handleGetSuggestions} disabled={loadingSuggestions}>
+                  {loadingSuggestions ? content.thinkingButton : content.getSuggestionsButton}
+                </button>
+              </div>
+
+              {loadingSuggestions ? (
+                <p className="loading-suggestions">{content.loadingSuggestions}</p>
+              ) : (
+                <AiCopilot 
+                  suggestions={suggestions}
+                  onSelectTitle={(title) => setProduct(p => ({ ...p, name: title }))}
+                  onSelectDescription={(desc) => setProduct(p => ({ ...p, description: desc }))}
+                  content={content}
+                />
+              )}
+
               <div className="form-group">
                   <label htmlFor="image">{content.imageLabel}</label>
                   <input id="image" type="file" onChange={handleImageChange} accept="image/png, image/jpeg" required />
