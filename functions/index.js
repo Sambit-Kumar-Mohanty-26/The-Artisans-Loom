@@ -2047,3 +2047,121 @@ exports.getTranslatedDocument = onCall({ cors: true }, async (request) => {
     throw new HttpsError("internal", "Failed to translate document.");
   }
 });
+// ------------------ Delete User Account ----------------------
+exports.deleteUserAccount = onCall({ cors: true, timeoutSeconds: 300 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to delete your account.");
+  }
+  
+  const userId = request.auth.uid;
+  const firestore = admin.firestore();
+  const storage = admin.storage().bucket();
+  const auth = admin.auth();
+
+  logger.info(`Starting account deletion process for user: ${userId}`);
+
+  try {
+    const userDocRef = firestore.collection("users").doc(userId);
+    const userDoc = await userDocRef.get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+
+      if (userData.role === 'artisan') {
+        logger.info(`User is an artisan. Preparing for bulk deletion.`);
+        
+        const collectionsToDelete = ['products', 'stories'];
+        const fieldNameToMatch = {
+          'products': 'artisanId',
+          'stories': 'featuredArtisanId'
+        };
+
+        for (const collectionName of collectionsToDelete) {
+          const query = firestore.collection(collectionName).where(fieldNameToMatch[collectionName], "==", userId);
+          const snapshot = await query.get();
+          if (snapshot.empty) continue;
+
+          logger.info(`Found ${snapshot.size} documents in '${collectionName}' to delete.`);
+          
+          const batch = firestore.batch();
+          const imageDeletePromises = [];
+
+          snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+            if (collectionName === 'products') {
+              const imageUrl = doc.data().imageUrl;
+              const filePathRegex = /o\/(.*?)\?/;
+              const matches = imageUrl.match(filePathRegex);
+              if (matches && matches[1]) {
+                const filePath = decodeURIComponent(matches[1]);
+                imageDeletePromises.push(storage.file(filePath).delete().catch((e) => logger.error(`Failed to delete image ${filePath}`, e)));
+              }
+            }
+          });
+          
+          await Promise.all([
+              batch.commit(),
+              ...imageDeletePromises
+          ]);
+          logger.info(`  - Bulk deleted ${snapshot.size} documents from '${collectionName}'.`);
+        }
+      }
+      
+      await userDocRef.delete();
+      logger.info(`  - Deleted user document from Firestore.`);
+
+    } else {
+       logger.warn(`User document not found for user ${userId}, proceeding to delete auth user.`);
+    }
+    
+    await auth.deleteUser(userId);
+    logger.info(`Successfully deleted user from Firebase Authentication.`);
+
+    return { success: true };
+
+  } catch (error) {
+    logger.error(`Error deleting account for user ${userId}:`, error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", "An error occurred while deleting the account.");
+  }
+});
+// ------------------ Delete Story ----------------------
+exports.deleteStory = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to delete a story.");
+  }
+  
+  const userId = request.auth.uid;
+  const { storyId } = request.data;
+
+  if (!storyId) {
+    throw new HttpsError("invalid-argument", "A 'storyId' must be provided.");
+  }
+
+  const firestore = admin.firestore();
+  const storyRef = firestore.collection("stories").doc(storyId);
+
+  try {
+    const storyDoc = await storyRef.get();
+    if (!storyDoc.exists) {
+      throw new HttpsError("not-found", "The story you are trying to delete does not exist.");
+    }
+    
+    const storyData = storyDoc.data();
+    if (storyData.featuredArtisanId !== userId) {
+      logger.warn(`User ${userId} attempted to delete story ${storyId} owned by ${storyData.featuredArtisanId}.`);
+      throw new HttpsError("permission-denied", "You do not have permission to delete this story.");
+    }
+    await storyRef.delete();
+    
+    logger.info(`Successfully deleted story ${storyId} by artisan ${userId}.`);
+    
+    return { success: true, message: "Story deleted successfully." };
+
+  } catch (error) {
+    logger.error(`Error deleting story ${storyId} by user ${userId}:`, error);
+    if (error instanceof HttpsError) {
+      throw error; 
+    }
+    throw new HttpsError("internal", "An unexpected error occurred while deleting the story.");
+  }
+});

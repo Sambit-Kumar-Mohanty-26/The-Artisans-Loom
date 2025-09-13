@@ -90,12 +90,17 @@ const AppContent = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [backButtonText, setBackButtonText] = useState('Back');
 
-  const navigateTo = (page) => {
+  const navigateTo = (page, replace = false) => {
     const normalizedPath = normalizePage(page);
     if (normalizedPath === 'map.html') {
       window.location.href = '/map.html';
     } else {
-      setPageHistory(prevHistory => [...prevHistory, normalizedPath]);
+      setPageHistory(prevHistory => {
+        if (replace) {
+          return [...prevHistory.slice(0, -1), normalizedPath];
+        }
+        return [...prevHistory, normalizedPath];
+      });
     }
   };
 
@@ -109,13 +114,13 @@ const AppContent = () => {
   useEffect(() => {
     if (!authLoading) {
       if (userProfile && !userProfile.onboardingComplete) {
-        navigateTo('onboarding');
+        navigateTo('onboarding', true);
       } else if (userProfile && currentPage === 'auth') {
         const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
-        navigateTo(destination);
+        navigateTo(destination, true);
       }
     }
-  }, [userProfile, authLoading]);
+  }, [userProfile, authLoading, currentPage]);
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -174,13 +179,11 @@ const AppContent = () => {
     if (authLoading) {
       return <div className="loading-fullscreen">Loading...</div>;
     }
+
     if (userProfile && !userProfile.onboardingComplete) {
-      const handleOnboardingComplete = () => {
-        const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
-        navigateTo(destination);
-      };
-      return <OnboardingPage userProfile={userProfile} onComplete={handleOnboardingComplete} />;
+      return <OnboardingPage onNavigate={navigateTo} />;
     }
+    
     if (currentPage.startsWith('product/')) {
       const productId = currentPage.split('/')[1];
       return <ProductDetailPage productId={productId} onNavigate={navigateTo} />;

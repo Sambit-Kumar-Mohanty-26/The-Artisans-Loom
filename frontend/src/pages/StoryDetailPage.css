@@ -84,3 +84,28 @@
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
 }
+
+.story-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f0ebe5;
+}
+
+.delete-story-btn {
+  background-color: transparent;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-story-btn:hover {
+  background-color: #e53935;
+  color: #fff;
+  border-color: #e53935;
+}
