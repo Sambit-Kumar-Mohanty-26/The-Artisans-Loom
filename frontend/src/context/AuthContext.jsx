@@ -20,7 +20,19 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const fetchUserProfile = async (user) => {
+    if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setUserProfile({ uid: user.uid, ...userDoc.data() });
+      } else {
+        setUserProfile(null);
+      }
+    } else {
+      setUserProfile(null);
+    }
+  };
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -94,6 +106,7 @@ export function AuthProvider({ children }) {
     currentUser,
     userProfile,
     loading,
+    refetchUserProfile: () => fetchUserProfile(currentUser),
     signup,
     login,
     logout,

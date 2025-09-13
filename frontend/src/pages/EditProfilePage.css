@@ -142,3 +142,57 @@
   margin-top: 1rem;
   font-weight: 500;
 }
+
+.danger-zone {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #ffcdd2;
+}
+
+.danger-zone h3 {
+  color: #c62828; 
+  font-size: 1.25rem;
+}
+
+.danger-zone p {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+.delete-account-btn {
+  background-color: #e53935;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-account-btn:hover {
+  background-color: #c62828;
+}
+
+.confirm-prompt {
+  font-size: 0.9rem !important;
+  color: #333 !important;
+  font-style: italic;
+  margin: 1.5rem 0 0.5rem 0 !important;
+}
+
+.confirm-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.confirm-input:focus {
+  outline: none;
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.2);
+}
