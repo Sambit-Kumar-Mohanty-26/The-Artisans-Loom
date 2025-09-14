@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { functions } from '../firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
@@ -39,9 +39,27 @@ const ExploreByRegion = ({ onNavigate }) => {
   const [content, setContent] = useState(englishContent);
   const [isLoading, setIsLoading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const journeysGridRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
 
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768); // Adjust breakpoint as needed
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+  
   const navigateToMap = () => {
     window.location.href = '/map.html';
+  };
+
+  const handleScrollToJourneys = () => {
+    if (journeysGridRef.current) {
+      journeysGridRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const fetchNewJourneys = async () => {
@@ -72,6 +90,9 @@ const ExploreByRegion = ({ onNavigate }) => {
       setJourneys(initialCraftJourneys); 
     } finally {
       setIsLoading(false);
+      if (isMobile) {
+        handleScrollToJourneys();
+      }
     }
   };
 
@@ -131,7 +152,7 @@ const ExploreByRegion = ({ onNavigate }) => {
             onClick={navigateToMap} 
           />
         </div>
-        <div className={`category-grid ${isLoading ? 'loading-journeys' : ''}`}>
+        <div ref={journeysGridRef} className={`category-grid ${isLoading ? 'loading-journeys' : ''}`}>
           {journeys.map((journey, index) => (
             <JourneyCard key={index} journey={journey} onNavigate={onNavigate} />
           ))}
