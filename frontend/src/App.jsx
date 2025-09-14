@@ -115,12 +115,21 @@ const AppContent = () => {
     if (!authLoading) {
       if (userProfile && !userProfile.onboardingComplete) {
         navigateTo('onboarding', true);
+      } else if (userProfile && userProfile.onboardingComplete && currentPage === 'onboarding') {
+        const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
+        navigateTo(destination, true);
       } else if (userProfile && currentPage === 'auth') {
         const destination = userProfile.role === 'artisan' ? 'dashboard' : 'home';
         navigateTo(destination, true);
       }
     }
   }, [userProfile, authLoading, currentPage]);
+
+  useEffect(() => {
+    if (!scrollToSection) {
+      window.scrollTo(0, 0);
+    }
+  }, [currentPage]);
 
   useEffect(() => {
     if (currentPage === 'home' && scrollToSection) {
@@ -179,11 +188,9 @@ const AppContent = () => {
     if (authLoading) {
       return <div className="loading-fullscreen">Loading...</div>;
     }
-
     if (userProfile && !userProfile.onboardingComplete) {
       return <OnboardingPage onNavigate={navigateTo} />;
     }
-    
     if (currentPage.startsWith('product/')) {
       const productId = currentPage.split('/')[1];
       return <ProductDetailPage productId={productId} onNavigate={navigateTo} />;
