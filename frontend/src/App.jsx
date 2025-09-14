@@ -83,8 +83,10 @@ function App() {
 const AppContent = () => {
   const { userProfile, loading: authLoading } = useAuth();
   const { currentLanguage } = useLanguage();
-  const [pageHistory, setPageHistory] = useState(['home']);
-  const currentPage = pageHistory[pageHistory.length - 1];
+  const [currentPage, setCurrentPage] = useState(() => {
+    const path = window.location.pathname.substring(1);
+    return normalizePage(path) || 'home';
+  });
   const [isMitraOpen, setIsMitraOpen] = useState(false);
   const [scrollToSection, setScrollToSection] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
@@ -94,22 +96,33 @@ const AppContent = () => {
     const normalizedPath = normalizePage(page);
     if (normalizedPath === 'map.html') {
       window.location.href = '/map.html';
-    } else {
-      setPageHistory(prevHistory => {
-        if (replace) {
-          return [...prevHistory.slice(0, -1), normalizedPath];
-        }
-        return [...prevHistory, normalizedPath];
-      });
+      return;
+    }
+    if (normalizedPath !== currentPage) {
+      setCurrentPage(normalizedPath);
+      const url = normalizedPath === 'home' ? '/' : `/${normalizedPath}`;
+      if (replace) {
+        window.history.replaceState({ page: normalizedPath }, '', url);
+      } else {
+        window.history.pushState({ page: normalizedPath }, '', url);
+      }
     }
   };
 
   const handleGoBack = () => {
-    setPageHistory(prevHistory => {
-      if (prevHistory.length <= 1) return prevHistory;
-      return prevHistory.slice(0, -1);
-    });
+    window.history.back();
   };
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const newPage = event.state?.page || 'home';
+      setCurrentPage(newPage);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -139,7 +152,7 @@ const AppContent = () => {
           sectionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         setScrollToSection(null);
-      }, 100); 
+      }, 100);
       return () => clearTimeout(scrollTimer);
     }
   }, [currentPage, scrollToSection]);
