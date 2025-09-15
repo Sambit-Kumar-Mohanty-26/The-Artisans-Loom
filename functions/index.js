@@ -66,7 +66,7 @@ const generativeModel = vertexAi.getGenerativeModel({
       functionDeclarations: [
         {
           name: "navigateTo",
-          description: "Navigates the user to a specific page. Use only the following valid paths: '/shop', '/artisans', '/regions', '/gifting-assistant', '/dashboard', '/add-product', '/cart', '/map.html', '/dashboard/forum'. The '/regions' path is also called the 'Craft Atlas'.",
+          description: "Navigates the user to a specific page. Use only the following valid paths: '/shop', '/artisans', '/regions', '/gifting-assistant', '/dashboard', '/add-product', '/cart', '/map.html', '/dashboard/forum', '/stories', '/trending', '/edit-profile'. The '/regions' path is also called the 'Craft Atlas'.",
           parameters: {
             type: "OBJECT",
             properties: {
@@ -166,6 +166,9 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
             "interactive map",
             "add product",
             "my cart",
+            "stories",
+            "trending",
+            "edit profile",
             "go to",
             "take me to",
             "show me"
@@ -243,6 +246,12 @@ exports.getCraftMitraResponse = onCall(corsOptions, async (request) => {
           let pageName = functionCall.args.path.replace(/\//g, ' ').trim();
           if (functionCall.args.path === '/dashboard/forum') {
             pageName = 'Community Forum';
+          } else if (functionCall.args.path === '/stories') {
+            pageName = 'Stories';
+          } else if (functionCall.args.path === '/trending') {
+            pageName = 'Trending Section';
+          } else if (functionCall.args.path === '/edit-profile') {
+            pageName = 'Edit Profile';
           } else if (pageName === '') {
             pageName = 'home';
           }
