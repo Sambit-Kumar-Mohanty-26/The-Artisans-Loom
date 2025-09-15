@@ -52,22 +52,32 @@ import FeaturedProducts from './sections/FeaturedProducts';
 const getTranslations = httpsCallable(functions, 'getTranslations');
 
 const normalizePage = (page) => {
+  console.log('normalizePage - original page:', page);
   let normalized = page.startsWith('/') ? page.substring(1) : page;
-  if (normalized.includes('/')) {
-    return normalized;
-  }
+
   const pageAliases = {
     'home': 'home', 'shop': 'shop', 'products': 'shop', 'browse-all-products': 'shop',
     'artisans': 'all-artisans', 'all-artisans': 'all-artisans', 'regions': 'all-states',
     'craft-atlas': 'all-states', 'all-states': 'all-states', 'dashboard': 'dashboard',
     'add-product': 'addProduct', 'addProduct': 'addProduct', 'gifting-assistant': 'gifting-assistant',
     'cart': 'cart', 'checkout': 'checkout', 'auth': 'auth', 'map': 'map.html',
-    'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 
+    'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 'dashboard/forum': 'forum',
     'create-post': 'create-post', 'edit-profile': 'edit-profile', 'trending': 'trending',
     'stories': 'stories', 'about-us': 'about-us', 'contact-us': 'contact-us', 
     'faq': 'faq', 'returns': 'returns', 'shipping': 'shipping'
   };
-  return pageAliases[normalized] || page;
+
+  // Check for alias first
+  if (pageAliases[normalized]) {
+    return pageAliases[normalized];
+  }
+
+  // If no alias, and it contains a slash, return as is (for dynamic routes)
+  if (normalized.includes('/')) {
+    return normalized;
+  }
+
+  return page;
 };
 
 function App() {
@@ -93,12 +103,14 @@ const AppContent = () => {
   const [backButtonText, setBackButtonText] = useState('Back');
 
   const navigateTo = (page, replace = false) => {
+    console.log('navigateTo - received page:', page);
     const normalizedPath = normalizePage(page);
     if (normalizedPath === 'map.html') {
       window.location.href = '/map.html';
       return;
     }
     if (normalizedPath !== currentPage) {
+      console.log('navigateTo - setting currentPage to:', normalizedPath);
       setCurrentPage(normalizedPath);
       const url = normalizedPath === 'home' ? '/' : `/${normalizedPath}`;
       if (replace) {

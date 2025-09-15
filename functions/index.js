@@ -47,6 +47,9 @@ const generativeModel = vertexAi.getGenerativeModel({
         - User says: "I need to sign in" -> Correct action: call \`navigateTo({ path: '/auth' })\`.
         - User says: "How do I add a product?" (and is an unfamiliar artisan) -> Correct action: call \`navigateTo({ path: '/add-product' })\` and provide a helpful response like "Certainly, I'll take you to the Add Product page. There you can enter details about your craft."
         - User says: "Take me to the community forum" -> Correct action: call \`navigateTo({ path: '/dashboard/forum' })\`.
+        - User says: "Go to the community forum" -> Correct action: call \`navigateTo({ path: '/dashboard/forum' })\`.
+        - User says: "Show me the forum" -> Correct action: call \`navigateTo({ path: '/dashboard/forum' })\`.
+        - User says: "I want to see the discussions" -> Correct action: call \`navigateTo({ path: '/dashboard/forum' })\`.
         
         **INCORRECT BEHAVIOR (DO NOT DO THIS):**
         - User: "Take me to the shop."
