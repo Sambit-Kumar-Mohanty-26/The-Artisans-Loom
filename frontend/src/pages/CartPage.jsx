@@ -13,9 +13,9 @@ const englishContent = {
   emptyCartMessage: "Your cart is currently empty.",
   continueShoppingButton: "Continue Shopping",
   priceLabel: "Price:",
-  subtotalLabel: "Subtotal",
   removeButton: "Remove",
   summaryTitle: "Summary",
+  subtotalLabel: "Subtotal",
   shippingLabel: "Shipping",
   shippingValue: "FREE",
   totalLabel: "Total",
@@ -23,13 +23,16 @@ const englishContent = {
   clearCartButton: "Clear Cart",
 };
 
+const MinusIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" /></svg> );
+const PlusIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" /></svg> );
+
 const CartPage = ({ onNavigate }) => {
   const { cartItems, updateItemQuantity, removeItem, clearCart, cartTotal, loading } = useCart();
   const { currentLanguage } = useLanguage();
-  const [content, setContent] = useState(englishContent);
-  const [isTranslating, setIsTranslating] = useState(false);
+  const [content, setContent] = React.useState(englishContent);
+  const [isTranslating, setIsTranslating] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const translateContent = async () => {
       if (currentLanguage.code === 'en') {
         setContent(englishContent);
@@ -45,8 +48,8 @@ const CartPage = ({ onNavigate }) => {
         const translations = result.data.translations;
         setContent({
           loadingCart: translations[0], pageTitle: translations[1], emptyCartMessage: translations[2],
-          continueShoppingButton: translations[3], priceLabel: translations[4], subtotalLabel: translations[5],
-          removeButton: translations[6], summaryTitle: translations[7], shippingLabel: translations[8],
+          continueShoppingButton: translations[3], priceLabel: translations[4], removeButton: translations[5],
+          summaryTitle: translations[6], subtotalLabel: translations[7], shippingLabel: translations[8],
           shippingValue: translations[9], totalLabel: translations[10], checkoutButton: translations[11],
           clearCartButton: translations[12],
         });
@@ -73,7 +76,7 @@ const CartPage = ({ onNavigate }) => {
 
   return (
     <div className={`cart-page-container ${isTranslating ? 'translating' : ''}`}>
-      <h2>{content.pageTitle}</h2>
+      <h2 className="page-title">{content.pageTitle}</h2>
       {cartItems.length === 0 ? (
         <div className="empty-cart">
           <p>{content.emptyCartMessage}</p>
@@ -89,11 +92,23 @@ const CartPage = ({ onNavigate }) => {
                 <img src={item.imageUrl} alt={item.name} className="cart-item-image" />
                 <div className="cart-item-details">
                   <h3>{item.name}</h3>
-                  <p>{content.priceLabel} {formatCurrency(item.price)}</p>
+                  <p className="item-price">{content.priceLabel} {formatCurrency(item.price)}</p>
                   <div className="quantity-selector">
-                    <button onClick={() => updateItemQuantity(item.productId, item.quantity - 1)} disabled={item.quantity <= 1 || loading}>-</button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => updateItemQuantity(item.productId, item.quantity + 1)} disabled={loading}>+</button>
+                    <button 
+                      onClick={() => updateItemQuantity(item.productId, item.quantity - 1)} 
+                      disabled={item.quantity <= 1 || loading}
+                      className="quantity-btn"
+                    >
+                      <MinusIcon />
+                    </button>
+                    <span className="quantity-display">{item.quantity}</span>
+                    <button 
+                      onClick={() => updateItemQuantity(item.productId, item.quantity + 1)} 
+                      disabled={loading}
+                      className="quantity-btn"
+                    >
+                      <PlusIcon />
+                    </button>
                   </div>
                 </div>
                 <div className="cart-item-actions">
