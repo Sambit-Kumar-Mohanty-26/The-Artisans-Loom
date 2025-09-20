@@ -35,6 +35,7 @@
   padding: 0 8px 0 20px;
   transition: box-shadow 0.3s ease;
   border: 1px solid #f0ebe5;
+  position: relative;
 }
 
 .search-bar:focus-within {
@@ -102,4 +103,23 @@
 }
 .action-btn .h-6 {
   height: 24px;
+}
+
+.search-bar.loading .search-input {
+  color: transparent;
+  text-shadow: none;
+}
+.search-bar.loading .search-input::placeholder {
+  color: transparent;
+}
+
+.search-bar.loading::after {
+  content: "Searching...";
+  position: absolute;
+  left: 56px; 
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8a6e51;
+  font-style: italic;
+  pointer-events: none;
 }
