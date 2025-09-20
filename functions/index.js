@@ -476,7 +476,7 @@ exports.createProduct = onCall(corsOptions, async (request) => {
 });
 
 // -------------------- Product Search ------------------------
-exports.searchProducts = onCall(corsOptions, async (request) => {
+exports.searchProducts = onCall({ cors: true }, async (request) => {
   const { q, category, region, minPrice, maxPrice, sortBy, materials } = request.data;
   
   let query = admin.firestore().collection("products");
@@ -484,8 +484,8 @@ exports.searchProducts = onCall(corsOptions, async (request) => {
   let requiresManualSort = false;
   if (minPrice || maxPrice) {
       requiresManualSort = true;
-      if (minPrice) query = query.where("price", ">=", Number(minPrice));
-      if (maxPrice) query = query.where("price", "<=", Number(maxPrice));
+      if (minPrice) query = query.where("price", ">=", Number(minPrice) * 100);
+      if (maxPrice) query = query.where("price", "<=", Number(maxPrice) * 100);
   }
   
   if (category) query = query.where("category", "==", category.toLowerCase());
@@ -505,26 +505,29 @@ exports.searchProducts = onCall(corsOptions, async (request) => {
     let products = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
     if (q) {
-      const searchTerm = q.toLowerCase().trim();
-      products = products.filter((product) => {
-        const productText = `
-          ${product.name} 
-          ${product.description} 
-          ${product.category} 
-          ${product.artisanName || ''}
-          ${product.region || ''}
-          ${(product.materials || []).join(' ')}
-        `.toLowerCase();
-        return productText.includes(searchTerm);
-      });
+      const searchKeywords = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      if (searchKeywords.length > 0) {
+        products = products.filter((product) => {
+          const productText = `
+            ${product.name} 
+            ${product.description} 
+            ${product.category} 
+            ${product.artisanName || ''}
+            ${product.region || ''}
+            ${(product.materials || []).join(' ')}
+          `.toLowerCase();
+
+          return searchKeywords.every((keyword) => productText.includes(keyword));
+        });
+      }
     }
 
     if (requiresManualSort && sortBy) {
         if (sortBy === 'price_desc') {
             products.sort((a, b) => b.price - a.price);
         }
-        if (sortBy === 'createdAt_desc') {
-            products.sort((a, b) => b.createdAt.toMillis() - b.createdAt.toMillis());
+         if (sortBy === 'createdAt_desc' && products.length > 0 && products[0].createdAt && typeof products[0].createdAt.toMillis === 'function') {
+            products.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
         }
     }
     
