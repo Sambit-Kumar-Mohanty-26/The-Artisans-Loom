@@ -16,6 +16,7 @@ const englishContent = {
   adding: "Adding...",
   addToCart: "Add to Cart",
   loginError: "Please log in to add items.",
+  verifiedTooltip: "Verified Artisan",
 };
 
 const ProductCard = ({ product, onNavigate }) => {
@@ -50,6 +51,7 @@ const ProductCard = ({ product, onNavigate }) => {
           adding: translations[3],
           addToCart: translations[4],
           loginError: translations[5],
+          verifiedTooltip: translations[6],
         });
       } catch (err) {
         console.error("Failed to translate ProductCard content:", err);
@@ -124,7 +126,14 @@ const ProductCard = ({ product, onNavigate }) => {
       <div className="product-details">
         <h3 className="product-name">{product.name || 'Untitled Product'}</h3>
         {product.artisanName && (
-          <p className="product-artisan">{content.by} {product.artisanName}</p>
+          <div className="artisan-info-badge">
+            <p className="product-artisan">{content.by} {product.artisanName}</p>
+            {product.artisanIsVerified && (
+              <span className="verified-badge-small" data-tooltip={content.verifiedTooltip}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.06 0l4-5.5z" clipRule="evenodd" /></svg>
+              </span>
+            )}
+          </div>
         )}
         {product.reviews > 0 && (
           <div className="product-rating">

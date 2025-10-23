@@ -67,6 +67,8 @@ export function AuthProvider({ children }) {
           role: role, 
           createdAt: new Date(),
           onboardingComplete: false,
+          isVerified: false,
+          verificationSubmissionURL: '',
         };
         await setDoc(userDocRef, newUserProfile);
         setUserProfile(newUserProfile);
@@ -88,6 +90,8 @@ export function AuthProvider({ children }) {
       role: role,
       createdAt: new Date(),
       onboardingComplete: false,
+      isVerified: false,
+      verificationSubmissionURL: '',
     };
     await setDoc(doc(db, "users", user.uid), newUserProfile);
     setUserProfile(newUserProfile);
@@ -115,7 +119,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

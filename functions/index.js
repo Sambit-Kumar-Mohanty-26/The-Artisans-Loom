@@ -516,7 +516,7 @@ exports.searchProducts = onCall({ cors: true }, async (request) => {
             ${product.region || ''}
             ${(product.materials || []).join(' ')}
           `.toLowerCase();
-
+          
           return searchKeywords.every((keyword) => productText.includes(keyword));
         });
       }
@@ -526,8 +526,8 @@ exports.searchProducts = onCall({ cors: true }, async (request) => {
         if (sortBy === 'price_desc') {
             products.sort((a, b) => b.price - a.price);
         }
-         if (sortBy === 'createdAt_desc' && products.length > 0 && products[0].createdAt && typeof products[0].createdAt.toMillis === 'function') {
-            products.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        if (sortBy === 'createdAt_desc' && products.length > 0 && products[0].createdAt && typeof products[0].createdAt.toMillis === 'function') {
+            products.sort((a, b) => b.createdAt.toMillis() - b.createdAt.toMillis());
         }
     }
     
@@ -547,11 +547,13 @@ exports.searchProducts = onCall({ cors: true }, async (request) => {
           const wrapSnap = await wrapQuery.get();
           fallbackProducts = [...fallbackProducts, ...wrapSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))];
       }
-
-      return { products: [], recommendations: fallbackProducts };
+      
+      const finalFallbacks = await joinArtisanVerification(fallbackProducts);
+      return { products: [], recommendations: finalFallbacks };
     }
     
-    return { products: products, recommendations: [] };
+    const finalProducts = await joinArtisanVerification(products);
+    return { products: finalProducts, recommendations: [] };
 
   } catch (error) {
     logger.error("Error searching products:", error);
@@ -702,27 +704,38 @@ exports.generateMarketingCopy = onCall(corsOptions, async (request) => {
 });
 
 // ------------------ Get Artisan's Products------------------------
-exports.getArtisanProducts = onCall(corsOptions, async (request) => {
+exports.getArtisanProducts = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "You must be logged in to view your products.");
   }
   const userId = request.auth.uid;
+  
   const userDoc = await admin.firestore().collection("users").doc(userId).get();
   if (!userDoc.exists || userDoc.data().role !== "artisan") {
     throw new HttpsError("permission-denied", "Only artisans can view their products.");
   }
+  
   try {
     const productsRef = admin.firestore().collection("products");
     const q = productsRef.where("artisanId", "==", userId).orderBy("createdAt", "desc");
     const snapshot = await q.get();
+    
     if (snapshot.empty) {
       return { products: [] };
     }
+    
     const products = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
-    return { products: products };
+    
+    // Since all products are from the same artisan, we know their verification status
+    // is the same for all products. This is a small optimization.
+    const artisanIsVerified = userDoc.data().isVerified === true;
+    const finalProducts = products.map((p) => ({ ...p, artisanIsVerified }));
+
+    return { products: finalProducts };
+
   } catch (error) {
     logger.error("Error fetching artisan products:", error);
     throw new HttpsError("internal", "Failed to fetch products.");
@@ -908,14 +921,17 @@ exports.visualSearchForProducts = onCall(corsOptions, async (request) => {
     const searchTerms = labels.slice(0, 5).map((label) => label.description.toLowerCase());
     logger.info("Visual search terms detected:", searchTerms);
 
-    // This is a simplified search. For production, Algolia is better.
     const productsRef = admin.firestore().collection("products");
     const snapshot = await productsRef.get();
     
     const matchedProducts = [];
     snapshot.forEach((doc) => {
       const product = { id: doc.id, ...doc.data() };
-      const productText = `${product.name} ${product.description} ${product.category} ${product.artisanName || ''}
+      const productText = `
+          ${product.name} 
+          ${product.description} 
+          ${product.category} 
+          ${product.artisanName || ''}
           ${product.region || ''}
           ${(product.materials || []).join(' ')}
         `.toLowerCase();
@@ -925,7 +941,9 @@ exports.visualSearchForProducts = onCall(corsOptions, async (request) => {
       }
     });
     
-    return { products: matchedProducts };
+    const finalProducts = await joinArtisanVerification(matchedProducts);
+    
+    return { products: finalProducts };
 
   } catch (error) {
     logger.error("Error during visual search:", error);
@@ -1003,10 +1021,33 @@ exports.getAiRecommendations = onCall(
   }
 );
 // ----------------Dynamic Featured Products-------------------
-exports.getFeaturedProducts = onCall(corsOptions, async (request) => {
+const joinArtisanVerification = async (products) => {
+    if (!products || products.length === 0) {
+        return [];
+    }
+    const artisanIds = [...new Set(products.map((p) => p.artisanId).filter(Boolean))];
+    if (artisanIds.length === 0) {
+        return products.map((p) => ({ ...p, artisanIsVerified: false }));
+    }
+    const artisansSnapshot = await admin.firestore().collection('users').where(admin.firestore.FieldPath.documentId(), 'in', artisanIds).get();
+    const artisansData = {};
+    artisansSnapshot.forEach((doc) => {
+        artisansData[doc.id] = doc.data();
+    });
+    return products.map((product) => {
+        const artisan = artisansData[product.artisanId];
+        return {
+            ...product,
+            artisanIsVerified: artisan ? artisan.isVerified === true : false,
+        };
+    });
+};
+
+
+exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
   try {
     const productsRef = admin.firestore().collection("products");
-    const limitNum = 3; 
+    const limitNum = 4; // Fetch 4 for a nice grid layout
     const randomId = productsRef.doc().id;
     const query1 = productsRef
       .where(admin.firestore.FieldPath.documentId(), '>=', randomId)
@@ -1014,6 +1055,7 @@ exports.getFeaturedProducts = onCall(corsOptions, async (request) => {
       
     const snapshot1 = await query1.get();
     let products = snapshot1.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
     if (products.length < limitNum) {
       const needed = limitNum - products.length;
       const query2 = productsRef
@@ -1025,7 +1067,9 @@ exports.getFeaturedProducts = onCall(corsOptions, async (request) => {
       products = [...products, ...moreProducts];
     }
 
-    return { products };
+    const finalProducts = await joinArtisanVerification(products);
+
+    return { products: finalProducts };
 
   } catch (error) {
     logger.error("Error fetching featured products:", error);
