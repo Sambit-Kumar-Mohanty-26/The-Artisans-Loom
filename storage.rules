@@ -18,5 +18,15 @@ service firebase.storage {
       // Allow an authenticated user to WRITE to their own avatar folder
       allow write: if request.auth != null && request.auth.uid == userId;
     }
+    
+    // --- NEW RULE BLOCK FOR AUCTION PIECES ---
+    // This allows artisans to upload their masterpiece images for auction
+    match /auction_pieces/{userId}/{allPaths=**} {
+      // Allow anyone to read auction piece images (for auction page display)
+      allow read: if true;
+      
+      // Allow an authenticated artisan to WRITE to their own auction_pieces folder
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

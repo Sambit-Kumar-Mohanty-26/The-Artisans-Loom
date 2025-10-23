@@ -13,6 +13,7 @@ const { defineSecret } = require('firebase-functions/params');
 const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
 const { FieldValue } = require("firebase-admin/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const axios = require('axios'); // Import axios
 
 admin.initializeApp();
 
@@ -22,13 +23,32 @@ const speechClient = new SpeechClient();
 const textToSpeechClient = new TextToSpeechClient();
 const translate = new Translate();
 const corsOptions = { cors: true };
-const vertexAi = new VertexAI({
-  project: process.env.GCLOUD_PROJECT,
-  location: "us-central1",
-});
-const visionClient = new ImageAnnotatorClient();
 
-const model = "gemini-2.5-pro";
+let vertexAi; 
+let visionClient; // Declare these with 'let' so they can be initialized in try-catch
+
+try {
+  vertexAi = new VertexAI({
+    project: process.env.GCLOUD_PROJECT,
+    location: "us-central1",
+  });
+  logger.info("VertexAI client initialized.");
+} catch (e) {
+  logger.error("Error initializing VertexAI client:", e);
+  // Re-throwing the error to ensure function initialization fails if VertexAI can't start
+  throw new Error("VertexAI client initialization failed.");
+}
+
+try {
+  visionClient = new ImageAnnotatorClient();
+  logger.info("ImageAnnotatorClient initialized.");
+} catch (e) {
+  logger.error("Error initializing ImageAnnotatorClient:", e);
+  // Re-throwing the error to ensure function initialization fails if Vision AI can't start
+  throw new Error("ImageAnnotatorClient initialization failed.");
+}
+
+const model = "gemini-2.5-pro"; // This remains a const as it's a fixed value
 
 const generativeModel = vertexAi.getGenerativeModel({
   model: model,
@@ -2275,5 +2295,371 @@ exports.getReelScript = onCall({ cors: true, timeoutSeconds: 120 }, async (reque
       throw error;
     }
     throw new HttpsError("internal", error.message || "An unexpected error occurred while generating the script.");
+  }
+});
+
+exports.submitAuctionPiece = onCall(corsOptions, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to submit an auction piece.");
+  }
+  const userId = request.auth.uid;
+  const userDoc = await admin.firestore().collection("users").doc(userId).get();
+  if (!userDoc.exists || userDoc.data().role !== "artisan") {
+    throw new HttpsError("permission-denied", "You must be an artisan to submit an auction piece.");
+  }
+
+  const { name, description, materials, dimensions, yearCreated, imageUrl, category, region, durationHours } = request.data;
+
+  if (!name || !description || !imageUrl || !category || !region || !durationHours) {
+    throw new HttpsError("invalid-argument", "Missing required auction piece information.");
+  }
+
+  const now = new Date();
+  const endTime = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
+
+  const newAuctionPiece = {
+    name,
+    description,
+    materials: materials || [],
+    dimensions: dimensions || '',
+    yearCreated: Number(yearCreated) || null,
+    imageUrl,
+    category: category.toLowerCase(),
+    region: region.toLowerCase(),
+    artisanId: userId,
+    artisanName: userDoc.data().displayName || userDoc.data().email,
+    status: 'pending_valuation',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    endTime: admin.firestore.Timestamp.fromDate(endTime),
+    reservePrice: null,
+    appraiserNote: null,
+  };
+
+  try {
+    const ref = await admin.firestore().collection("auctionPieces").add(newAuctionPiece);
+
+    // TODO: Trigger AI valuation here
+    logger.info(`Auction piece ${ref.id} submitted by ${userId} and is pending AI valuation.`);
+
+    return { success: true, auctionPieceId: ref.id };
+  } catch (error) {
+    logger.error("Error submitting auction piece:", error);
+    throw new HttpsError("internal", "Failed to submit auction piece.");
+  }
+});
+
+exports.evaluateAuctionPiece = onDocumentCreated(
+  {
+    document: "auctionPieces/{auctionPieceId}",
+    timeoutSeconds: 300, 
+  },
+  async (event) => {
+    const auctionPieceId = event.params.auctionPieceId;
+    const auctionPieceData = event.data.data();
+
+    if (!auctionPieceData) {
+      logger.error(`No data for auction piece ${auctionPieceId}.`);
+      return;
+    }
+    if (auctionPieceData.status !== 'pending_valuation') {
+      logger.info(`Auction piece ${auctionPieceId} is not pending valuation, skipping.`);
+      return;
+    }
+
+    // New check: Ensure critical data for valuation exists
+    if (!auctionPieceData.imageUrl || !auctionPieceData.description || !auctionPieceData.name) {
+      const missingFields = [];
+      if (!auctionPieceData.imageUrl) missingFields.push('imageUrl');
+      if (!auctionPieceData.description) missingFields.push('description');
+      if (!auctionPieceData.name) missingFields.push('name');
+      const errorMessage = `Missing critical data for AI valuation: ${missingFields.join(', ')}.`;
+      logger.error(`Error for auction piece ${auctionPieceId}: ${errorMessage}`);
+      await admin.firestore().collection("auctionPieces").doc(auctionPieceId).update({
+        status: 'valuation_failed',
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        errorMessage: errorMessage,
+      });
+      return;
+    }
+
+    logger.info(`Starting AI valuation for auction piece: ${auctionPieceId}`);
+
+    try {
+      const prompt = `You are an expert art appraiser from Sotheby's. Analyze the following masterpiece. Suggest a fair 'Reserve Price' for auction in Indian Rupees (e.g., ₹100000). Also, write an engaging 'Appraiser's Note' (2-3 paragraphs) that builds hype and highlights the uniqueness and value of the piece. The note should be written for potential bidders on a prestigious online auction platform.
+
+      Masterpiece Details:
+      - Name: ${auctionPieceData.name}
+      - Description: ${auctionPieceData.description}
+      - Category: ${auctionPieceData.category}
+      - Materials: ${auctionPieceData.materials.join(', ')}
+      - Dimensions: ${auctionPieceData.dimensions}
+      - Year Created: ${auctionPieceData.yearCreated}
+      - Artisan: ${auctionPieceData.artisanName}
+
+      Consider the craftsmanship, rarity, cultural significance, and market appeal. Provide your response as a single, raw JSON object with two keys: "reservePrice" (an integer) and "appraiserNote" (a string). Do not include any introductory text, greetings, explanations, or markdown formatting outside the JSON.
+      `;
+
+      const imageBuffer = await axios.get(auctionPieceData.imageUrl, { responseType: 'arraybuffer' });
+      const imageBase64 = Buffer.from(imageBuffer.data).toString('base64');
+      const contentType = imageBuffer.headers['content-type']; // Get content type from response headers
+
+      const imagePart = {
+        inlineData: {
+          mimeType: contentType, // Use dynamic content type
+          data: imageBase64,
+        },
+      };
+
+      logger.info(`Debug: Image URL: ${auctionPieceData.imageUrl}`);
+      logger.info(`Debug: Content Type: ${contentType}`);
+      logger.info(`Debug: Image Base64 length: ${imageBase64.length}`);
+      logger.info(`Debug: Prompt snippet: ${prompt.substring(0, 200)}...`);
+      logger.info(`Debug: Image Part (mimeType): ${imagePart.inlineData.mimeType}`);
+      logger.info(`Debug: Image Part (data snippet): ${imagePart.inlineData.data.substring(0, 100)}...`);
+
+      const requestContents = [
+        {
+          role: "user", // Explicitly set role for multimodal input
+          parts: [
+            { text: prompt },
+            imagePart
+          ]
+        }
+      ];
+
+      logger.info("Debug: Contents sent to generativeModel.generateContent:", JSON.stringify(requestContents));
+
+      const result = await generativeModel.generateContent({ contents: requestContents });
+      const responseText = result.response.candidates[0].content.parts[0].text;
+      
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        logger.error("AI appraisal failed to return valid JSON. Response:", responseText);
+        throw new Error("AI appraisal response was not in the expected format.");
+      }
+      const appraisal = JSON.parse(jsonMatch[0]);
+
+      const reservePrice = parseInt(appraisal.reservePrice, 10);
+      const appraiserNote = appraisal.appraiserNote;
+
+      await admin.firestore().collection("auctionPieces").doc(auctionPieceId).update({
+        status: 'appraised',
+        reservePrice: reservePrice,
+        appraiserNote: appraiserNote,
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      logger.info(`AI valuation complete for ${auctionPieceId}. Reserve price: ${reservePrice}`);
+    } catch (error) {
+      logger.error(`Error during AI valuation for ${auctionPieceId}:`, error);
+      await admin.firestore().collection("auctionPieces").doc(auctionPieceId).update({
+        status: 'valuation_failed',
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        errorMessage: error.message,
+      });
+    }
+  }
+);
+
+// ------------------ Place Bid on Auction Piece ----------------------
+exports.placeBid = onCall(corsOptions, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in to place a bid.");
+  }
+
+  const userId = request.auth.uid;
+  const { auctionPieceId, bidAmount } = request.data;
+
+  if (!auctionPieceId || !bidAmount || typeof bidAmount !== 'number' || bidAmount <= 0) {
+    throw new HttpsError("invalid-argument", "Invalid auction piece ID or bid amount.");
+  }
+
+  try {
+    const auctionPieceRef = admin.firestore().collection("auctionPieces").doc(auctionPieceId);
+    const auctionPieceDoc = await auctionPieceRef.get();
+
+    if (!auctionPieceDoc.exists) {
+      throw new HttpsError("not-found", "Auction piece not found.");
+    }
+
+    const auctionData = auctionPieceDoc.data();
+
+    // Prevent artisan from bidding on their own piece
+    if (auctionData.artisanId === userId) {
+      throw new HttpsError("permission-denied", "You cannot bid on your own masterpiece.");
+    }
+
+    // Check if auction has ended
+    if (auctionData.endTime && auctionData.endTime.toDate() < new Date()) {
+      throw new HttpsError("failed-precondition", "Auction has ended.");
+    }
+
+    // Check if bid is above the reserve price (if set and status is appraised)
+    if (auctionData.status === 'appraised' && auctionData.reservePrice && bidAmount < auctionData.reservePrice) {
+      throw new HttpsError("failed-precondition", "Bid must be at least the reserve price.");
+    }
+
+    // Check current highest bid to ensure new bid is higher
+    const bidsRef = auctionPieceRef.collection("bids");
+    const highestBidSnapshot = await bidsRef.orderBy("bidAmount", "desc").limit(1).get();
+    let currentHighestBid = 0;
+    if (!highestBidSnapshot.empty) {
+      currentHighestBid = highestBidSnapshot.docs[0].data().bidAmount;
+    }
+
+    if (bidAmount <= currentHighestBid) {
+      throw new HttpsError("failed-precondition", `Your bid must be higher than the current highest bid of ₹${currentHighestBid.toLocaleString()}.`);
+    }
+
+    // Store the new bid
+    await bidsRef.add({
+      userId,
+      bidAmount,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Optionally, update the auction piece with the new highest bid for quick lookup
+    await auctionPieceRef.update({
+      currentHighestBid: bidAmount,
+      highestBidderId: userId,
+      lastBidTime: admin.firestore.FieldValue.serverTimestamp(),
+      bidCount: admin.firestore.FieldValue.increment(1),
+      status: 'live', // Set status to 'live' after the first bid
+    });
+
+    return { success: true, message: "Bid placed successfully!" };
+  } catch (error) {
+    logger.error("Error placing bid:", error);
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    throw new HttpsError("internal", error.message || "An unexpected error occurred while placing your bid.");
+  }
+});
+
+// ------------------ Close Auctions and Determine Winners ----------------------
+exports.closeAuctions = onSchedule({
+  schedule: "0 * * * *", // Every hour at minute 0
+  timeZone: "UTC",
+}, async (event) => {
+  logger.info("Starting scheduled job to close auctions...");
+  const firestore = admin.firestore();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  try {
+    const liveAuctionsSnapshot = await firestore.collection("auctionPieces")
+      .where("status", "==", "live")
+      .where("endTime", "<=", now)
+      .get();
+
+    if (liveAuctionsSnapshot.empty) {
+      logger.info("No live auctions to close.");
+      return null;
+    }
+
+    const batch = firestore.batch();
+
+    liveAuctionsSnapshot.docs.forEach((doc) => {
+      const auctionData = doc.data();
+      const auctionPieceRef = doc.ref;
+
+      if (auctionData.currentHighestBidderId && auctionData.currentHighestBid >= auctionData.reservePrice) {
+        // Auction has a valid winner
+        batch.update(auctionPieceRef, {
+          status: 'closed',
+          winnerId: auctionData.currentHighestBidderId,
+          winningBid: auctionData.currentHighestBid,
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        logger.info(`Auction ${doc.id} closed. Winner: ${auctionData.currentHighestBidderName}, Bid: ₹${auctionData.currentHighestBid}`);
+
+        // TODO: Send notifications to winner and artisan
+      } else {
+        // Auction ended without meeting reserve or no bids
+        batch.update(auctionPieceRef, {
+          status: 'ended_unsold',
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        logger.info(`Auction ${doc.id} ended unsold.`);
+
+        // TODO: Notify artisan about unsold item
+      }
+    });
+
+    await batch.commit();
+    logger.info(`Finished closing ${liveAuctionsSnapshot.size} auctions.`);
+    return null;
+  } catch (error) {
+    logger.error("Error in closeAuctions scheduled function:", error);
+    throw new HttpsError("internal", "Failed to close auctions.");
+  }
+});
+
+// ------------------ Close Ended Auctions ------------------------
+exports.closeAuctions = onSchedule("every 1 hours", async (event) => {
+  logger.info("Running closeAuctions scheduled job.");
+
+  const now = admin.firestore.Timestamp.now();
+  const auctionPiecesRef = admin.firestore().collection("auctionPieces");
+
+  try {
+    const endedAuctionsSnapshot = await auctionPiecesRef
+      .where("endTime", "<=", now)
+      .where("status", "in", ['appraised', 'live'])
+      .get();
+
+    if (endedAuctionsSnapshot.empty) {
+      logger.info("No auctions to close.");
+      return null;
+    }
+
+    const updates = [];
+
+    for (const doc of endedAuctionsSnapshot.docs) {
+      const auctionPieceId = doc.id;
+      const auctionData = doc.data();
+
+      logger.info(`Processing ended auction: ${auctionPieceId}`);
+
+      const bidsRef = auctionPiecesRef.doc(auctionPieceId).collection("bids");
+      const highestBidSnapshot = await bidsRef.orderBy("bidAmount", "desc").limit(1).get();
+
+      let winningBidderId = null;
+      let winningBidAmount = null;
+      let newStatus = 'unsold';
+
+      if (!highestBidSnapshot.empty) {
+        const topBid = highestBidSnapshot.docs[0].data();
+        // Check if the highest bid meets the reserve price
+        if (auctionData.reservePrice && topBid.bidAmount >= auctionData.reservePrice) {
+          // winningBid = topBid; 
+          winningBidderId = topBid.userId;
+          winningBidAmount = topBid.bidAmount;
+          newStatus = 'sold';
+          logger.info(`Auction ${auctionPieceId} sold to ${winningBidderId} for ₹${winningBidAmount}`);
+        } else {
+          logger.info(`Auction ${auctionPieceId} ended, highest bid ₹${topBid.bidAmount} did not meet reserve price ₹${auctionData.reservePrice}.`);
+        }
+      } else {
+        logger.info(`Auction ${auctionPieceId} ended with no bids.`);
+      }
+
+      updates.push(auctionPiecesRef.doc(auctionPieceId).update({
+        status: newStatus,
+        winningBidderId: winningBidderId,
+        winningBidAmount: winningBidAmount,
+        closedAt: admin.firestore.FieldValue.serverTimestamp(),
+        // You might want to remove currentHighestBid/highestBidderId if it's no longer live
+        currentHighestBid: admin.firestore.FieldValue.delete(),
+        highestBidderId: admin.firestore.FieldValue.delete(),
+        lastBidTime: admin.firestore.FieldValue.delete(),
+      }));
+    }
+
+    await Promise.all(updates);
+    logger.info(`Successfully closed ${updates.length} auctions.`);
+    return null;
+  } catch (error) {
+    logger.error("Error closing auctions:", error);
+    return null;
   }
 });
