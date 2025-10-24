@@ -2581,62 +2581,7 @@ exports.placeBid = onCall(corsOptions, async (request) => {
 });
 
 // ------------------ Close Auctions and Determine Winners ----------------------
-exports.closeAuctions = onSchedule({
-  schedule: "0 * * * *", // Every hour at minute 0
-  timeZone: "UTC",
-}, async (event) => {
-  logger.info("Starting scheduled job to close auctions...");
-  const firestore = admin.firestore();
-  const now = admin.firestore.FieldValue.serverTimestamp();
 
-  try {
-    const liveAuctionsSnapshot = await firestore.collection("auctionPieces")
-      .where("status", "==", "live")
-      .where("endTime", "<=", now)
-      .get();
-
-    if (liveAuctionsSnapshot.empty) {
-      logger.info("No live auctions to close.");
-      return null;
-    }
-
-    const batch = firestore.batch();
-
-    liveAuctionsSnapshot.docs.forEach((doc) => {
-      const auctionData = doc.data();
-      const auctionPieceRef = doc.ref;
-
-      if (auctionData.currentHighestBidderId && auctionData.currentHighestBid >= auctionData.reservePrice) {
-        // Auction has a valid winner
-        batch.update(auctionPieceRef, {
-          status: 'closed',
-          winnerId: auctionData.currentHighestBidderId,
-          winningBid: auctionData.currentHighestBid,
-          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        logger.info(`Auction ${doc.id} closed. Winner: ${auctionData.currentHighestBidderName}, Bid: ₹${auctionData.currentHighestBid}`);
-
-        // TODO: Send notifications to winner and artisan
-      } else {
-        // Auction ended without meeting reserve or no bids
-        batch.update(auctionPieceRef, {
-          status: 'ended_unsold',
-          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        logger.info(`Auction ${doc.id} ended unsold.`);
-
-        // TODO: Notify artisan about unsold item
-      }
-    });
-
-    await batch.commit();
-    logger.info(`Finished closing ${liveAuctionsSnapshot.size} auctions.`);
-    return null;
-  } catch (error) {
-    logger.error("Error in closeAuctions scheduled function:", error);
-    throw new HttpsError("internal", "Failed to close auctions.");
-  }
-});
 
 // ------------------ Close Ended Auctions ------------------------
 exports.closeAuctions = onSchedule("every 1 hours", async (event) => {
@@ -2669,16 +2614,25 @@ exports.closeAuctions = onSchedule("every 1 hours", async (event) => {
 
       let winningBidderId = null;
       let winningBidAmount = null;
+      let winningBidderName = null;
       let newStatus = 'unsold';
 
       if (!highestBidSnapshot.empty) {
         const topBid = highestBidSnapshot.docs[0].data();
         // Check if the highest bid meets the reserve price
         if (auctionData.reservePrice && topBid.bidAmount >= auctionData.reservePrice) {
-          // winningBid = topBid; 
           winningBidderId = topBid.userId;
           winningBidAmount = topBid.bidAmount;
           newStatus = 'sold';
+          // Fetch winning bidder's name
+          try {
+            const userDoc = await admin.firestore().collection('users').doc(winningBidderId).get();
+            if (userDoc.exists) {
+              winningBidderName = userDoc.data().displayName || null; // Changed from userName to displayName
+            }
+          } catch (nameError) {
+            logger.error(`Error fetching winning bidder name for ${winningBidderId}:`, nameError);
+          }
           logger.info(`Auction ${auctionPieceId} sold to ${winningBidderId} for ₹${winningBidAmount}`);
         } else {
           logger.info(`Auction ${auctionPieceId} ended, highest bid ₹${topBid.bidAmount} did not meet reserve price ₹${auctionData.reservePrice}.`);
@@ -2687,16 +2641,21 @@ exports.closeAuctions = onSchedule("every 1 hours", async (event) => {
         logger.info(`Auction ${auctionPieceId} ended with no bids.`);
       }
 
-      updates.push(auctionPiecesRef.doc(auctionPieceId).update({
+      // Update the auction piece
+      const updateData = {
         status: newStatus,
-        winningBidderId: winningBidderId,
-        winningBidAmount: winningBidAmount,
-        closedAt: admin.firestore.FieldValue.serverTimestamp(),
-        // You might want to remove currentHighestBid/highestBidderId if it's no longer live
-        currentHighestBid: admin.firestore.FieldValue.delete(),
-        highestBidderId: admin.firestore.FieldValue.delete(),
-        lastBidTime: admin.firestore.FieldValue.delete(),
-      }));
+        closedAt: now,
+      };
+
+      if (newStatus === 'sold') {
+        updateData.winningBidderId = winningBidderId;
+        updateData.winningBidAmount = winningBidAmount;
+        updateData.winningBidderName = winningBidderName; // Add winningBidderName here
+      }
+
+      updates.push(auctionPiecesRef.doc(auctionPieceId).update(updateData));
+
+      logger.info(`Auction ${auctionPieceId} status updated to ${newStatus}.`);
     }
 
     await Promise.all(updates);

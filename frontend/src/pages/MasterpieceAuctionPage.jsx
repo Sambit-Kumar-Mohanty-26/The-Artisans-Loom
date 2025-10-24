@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db, functions } from '../firebaseConfig'; // Assuming firebaseConfig.js is in src
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc as firestoreDoc, getDoc } from "firebase/firestore";
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext'; // Import useAuth
 import './MasterpieceAuctionPage.css';
@@ -24,14 +24,7 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
       const querySnapshot = await getDocs(q);
       const pieces = await Promise.all(querySnapshot.docs.map(async doc => {
         const data = { id: doc.id, ...doc.data() };
-        if (data.status === 'sold' && data.winningBidderId) {
-          const userDoc = await getDoc(doc(db, 'users', data.winningBidderId));
-          if (userDoc.exists()) {
-            data.winningBidderName = userDoc.data().displayName || "A proud collector";
-          } else {
-            data.winningBidderName = "A proud collector";
-          }
-        }
+        console.log("Fetched auction piece data:", data); // Add this line for debugging
         return data;
       }));
       setAuctionPieces(pieces);
@@ -46,6 +39,9 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
 
   useEffect(() => {
     fetchAuctionPieces();
+    const intervalId = setInterval(fetchAuctionPieces, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(intervalId); // Clear interval on component unmount
   }, []);
 
   const handleBidAmountChange = (pieceId, amount) => {
