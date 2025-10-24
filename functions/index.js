@@ -2624,10 +2624,9 @@ exports.closeAuctions = onSchedule({
 
     if (!highestBidSnapshot.empty) {
       const topBid = highestBidSnapshot.docs[0].data();
-      winningBidderId = topBid.userId;
-      logger.info(`Processing auction ${auctionPieceId}. Highest bid by userId: ${winningBidderId}`);
       // Check if the highest bid meets the reserve price
       if (auctionData.reservePrice && topBid.bidAmount >= auctionData.reservePrice) {
+        winningBidderId = topBid.userId;
         winningBidAmount = topBid.bidAmount;
         newStatus = 'sold';
         // Fetch winning bidder's name
@@ -2635,14 +2634,10 @@ exports.closeAuctions = onSchedule({
           const userDoc = await db.collection('users').doc(winningBidderId).get();
           if (userDoc.exists) {
             winningBidderName = userDoc.data().displayName || null; // Changed from userName to displayName
-            logger.info(`User document found for ${winningBidderId}. Display name: ${winningBidderName}`);
-          } else {
-            logger.warn(`User document not found for winningBidderId: ${winningBidderId}`);
           }
         } catch (nameError) {
           logger.error(`Error fetching winning bidder name for ${winningBidderId}:`, nameError);
         }
-        logger.info(`Final winningBidderName for ${auctionPieceId} before update: ${winningBidderName}`);
         logger.info(`Auction ${auctionPieceId} sold to ${winningBidderId} for ₹${winningBidAmount}`);
       } else {
         logger.info(`Auction ${auctionPieceId} ended, highest bid ₹${topBid.bidAmount} did not meet reserve price ₹${auctionData.reservePrice}.`);
