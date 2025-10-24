@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db, functions } from '../firebaseConfig'; // Assuming firebaseConfig.js is in src
-import { collection, query, where, getDocs, doc as firestoreDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext'; // Import useAuth
 import './MasterpieceAuctionPage.css';
@@ -25,6 +25,14 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
       const pieces = await Promise.all(querySnapshot.docs.map(async doc => {
         const data = { id: doc.id, ...doc.data() };
         console.log("Fetched auction piece data:", data); // Add this line for debugging
+        if (data.status === 'sold' && data.winningBidderId) {
+          const userDoc = await getDoc(doc(db, 'users', data.winningBidderId));
+          if (userDoc.exists()) {
+            data.winningBidderName = userDoc.data().displayName || "A proud collector";
+          } else {
+            data.winningBidderName = "A proud collector";
+          }
+        }
         return data;
       }));
       setAuctionPieces(pieces);

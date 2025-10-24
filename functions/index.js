@@ -24,28 +24,24 @@ const textToSpeechClient = new TextToSpeechClient();
 const translate = new Translate();
 const corsOptions = { cors: true };
 
-let vertexAi; 
-let visionClient; // Declare these with 'let' so they can be initialized in try-catch
+let vertexAi;
+let visionClient; 
 
 try {
+  const { VertexAI } = require('@google-cloud/vertexai');
+  const { ImageAnnotatorClient } = require('@google-cloud/vision');
+
   vertexAi = new VertexAI({
     project: process.env.GCLOUD_PROJECT,
-    location: "us-central1",
+    location: 'asia-south1' // Specify your region, e.g., 'us-central1'
   });
-  logger.info("VertexAI client initialized.");
-} catch (e) {
-  logger.error("Error initializing VertexAI client:", e);
-  // Re-throwing the error to ensure function initialization fails if VertexAI can't start
-  throw new Error("VertexAI client initialization failed.");
-}
-
-try {
   visionClient = new ImageAnnotatorClient();
-  logger.info("ImageAnnotatorClient initialized.");
+  logger.info("VertexAI and ImageAnnotatorClient initialized.");
 } catch (e) {
-  logger.error("Error initializing ImageAnnotatorClient:", e);
-  // Re-throwing the error to ensure function initialization fails if Vision AI can't start
-  throw new Error("ImageAnnotatorClient initialization failed.");
+  logger.error("Error initializing VertexAI or ImageAnnotatorClient:", e);
+  // Depending on your application's needs, you might want to throw or handle gracefully
+  // For now, we'll log and continue, assuming these services might not be critical for all functions.
+  // throw new Error("AI/Vision client initialization failed.");
 }
 
 const model = "gemini-2.5-pro"; // This remains a const as it's a fixed value
@@ -1067,7 +1063,7 @@ const joinArtisanVerification = async (products) => {
 exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
   try {
     const productsRef = admin.firestore().collection("products");
-    const limitNum = 4; // Fetch 4 for a nice grid layout
+    const limitNum = 4;
     const randomId = productsRef.doc().id;
     const query1 = productsRef
       .where(admin.firestore.FieldPath.documentId(), '>=', randomId)
@@ -1265,6 +1261,7 @@ exports.getArtisanProfile = onCall(corsOptions, async (request) => {
         location: artisanData.location,
         specialization: artisanData.specialization,
         story: artisanData.story,
+        isVerified: artisanData.isVerified === true, 
       },
       products: products,
     };
@@ -2581,88 +2578,98 @@ exports.placeBid = onCall(corsOptions, async (request) => {
 });
 
 // ------------------ Close Auctions and Determine Winners ----------------------
-
-
-// ------------------ Close Ended Auctions ------------------------
-exports.closeAuctions = onSchedule("every 1 hours", async (event) => {
-  logger.info("Running closeAuctions scheduled job.");
+exports.closeAuctions = onSchedule({
+  schedule: "0 * * * *", // Every hour at minute 0
+  timeZone: "UTC",
+}, async (event) => {
+  logger.info("Starting scheduled job to close auctions...");
 
   const now = admin.firestore.Timestamp.now();
-  const auctionPiecesRef = admin.firestore().collection("auctionPieces");
+  const auctionPiecesRef = db.collection("auctionPieces");
+
+  // Query for live auctions that have ended
+  const endedLiveAuctionsQuery = auctionPiecesRef
+    .where("status", "==", "live")
+    .where("endTime", "<=", now);
+
+  // Query for appraised auctions that have ended (if they were supposed to go live but didn't due to some issue, or if we want to sweep up old appraised items)
+  const endedAppraisedAuctionsQuery = auctionPiecesRef
+    .where("status", "==", "appraised")
+    .where("endTime", "<=", now);
+
+  const [liveSnapshot, appraisedSnapshot] = await Promise.all([
+    endedLiveAuctionsQuery.get(),
+    endedAppraisedAuctionsQuery.get()
+  ]);
+
+  const auctionsToClose = [...liveSnapshot.docs, ...appraisedSnapshot.docs];
+
+  if (auctionsToClose.length === 0) {
+    logger.info("No auctions to close at this time.");
+    return null;
+  }
+
+  const updates = [];
+
+  for (const doc of auctionsToClose) {
+    const auctionPieceId = doc.id;
+    const auctionData = doc.data();
+
+    const bidsRef = auctionPiecesRef.doc(auctionPieceId).collection("bids");
+    const highestBidSnapshot = await bidsRef.orderBy("bidAmount", "desc").limit(1).get();
+
+    let winningBidderId = null;
+    let winningBidAmount = null;
+    let winningBidderName = null;
+    let newStatus = 'unsold';
+
+    if (!highestBidSnapshot.empty) {
+      const topBid = highestBidSnapshot.docs[0].data();
+      // Check if the highest bid meets the reserve price
+      if (auctionData.reservePrice && topBid.bidAmount >= auctionData.reservePrice) {
+        winningBidderId = topBid.userId;
+        winningBidAmount = topBid.bidAmount;
+        newStatus = 'sold';
+        // Fetch winning bidder's name
+        try {
+          const userDoc = await db.collection('users').doc(winningBidderId).get();
+          if (userDoc.exists) {
+            winningBidderName = userDoc.data().displayName || null; // Changed from userName to displayName
+          }
+        } catch (nameError) {
+          logger.error(`Error fetching winning bidder name for ${winningBidderId}:`, nameError);
+        }
+        logger.info(`Auction ${auctionPieceId} sold to ${winningBidderId} for ₹${winningBidAmount}`);
+      } else {
+        logger.info(`Auction ${auctionPieceId} ended, highest bid ₹${topBid.bidAmount} did not meet reserve price ₹${auctionData.reservePrice}.`);
+      }
+    } else {
+      logger.info(`Auction ${auctionPieceId} ended with no bids.`);
+    }
+
+    // Update the auction piece
+    const updateData = {
+      status: newStatus,
+      closedAt: now,
+      winningBidderId: winningBidderId || admin.firestore.FieldValue.delete(),
+      winningBidAmount: winningBidAmount || admin.firestore.FieldValue.delete(),
+      winningBidderName: winningBidderName || admin.firestore.FieldValue.delete(),
+      currentHighestBid: admin.firestore.FieldValue.delete(),
+      highestBidderId: admin.firestore.FieldValue.delete(),
+      lastBidTime: admin.firestore.FieldValue.delete(),
+    };
+
+    updates.push(auctionPiecesRef.doc(auctionPieceId).update(updateData));
+
+    logger.info(`Auction ${auctionPieceId} status updated to ${newStatus}.`);
+  }
 
   try {
-    const endedAuctionsSnapshot = await auctionPiecesRef
-      .where("endTime", "<=", now)
-      .where("status", "in", ['appraised', 'live'])
-      .get();
-
-    if (endedAuctionsSnapshot.empty) {
-      logger.info("No auctions to close.");
-      return null;
-    }
-
-    const updates = [];
-
-    for (const doc of endedAuctionsSnapshot.docs) {
-      const auctionPieceId = doc.id;
-      const auctionData = doc.data();
-
-      logger.info(`Processing ended auction: ${auctionPieceId}`);
-
-      const bidsRef = auctionPiecesRef.doc(auctionPieceId).collection("bids");
-      const highestBidSnapshot = await bidsRef.orderBy("bidAmount", "desc").limit(1).get();
-
-      let winningBidderId = null;
-      let winningBidAmount = null;
-      let winningBidderName = null;
-      let newStatus = 'unsold';
-
-      if (!highestBidSnapshot.empty) {
-        const topBid = highestBidSnapshot.docs[0].data();
-        // Check if the highest bid meets the reserve price
-        if (auctionData.reservePrice && topBid.bidAmount >= auctionData.reservePrice) {
-          winningBidderId = topBid.userId;
-          winningBidAmount = topBid.bidAmount;
-          newStatus = 'sold';
-          // Fetch winning bidder's name
-          try {
-            const userDoc = await admin.firestore().collection('users').doc(winningBidderId).get();
-            if (userDoc.exists) {
-              winningBidderName = userDoc.data().displayName || null; // Changed from userName to displayName
-            }
-          } catch (nameError) {
-            logger.error(`Error fetching winning bidder name for ${winningBidderId}:`, nameError);
-          }
-          logger.info(`Auction ${auctionPieceId} sold to ${winningBidderId} for ₹${winningBidAmount}`);
-        } else {
-          logger.info(`Auction ${auctionPieceId} ended, highest bid ₹${topBid.bidAmount} did not meet reserve price ₹${auctionData.reservePrice}.`);
-        }
-      } else {
-        logger.info(`Auction ${auctionPieceId} ended with no bids.`);
-      }
-
-      // Update the auction piece
-      const updateData = {
-        status: newStatus,
-        closedAt: now,
-      };
-
-      if (newStatus === 'sold') {
-        updateData.winningBidderId = winningBidderId;
-        updateData.winningBidAmount = winningBidAmount;
-        updateData.winningBidderName = winningBidderName; // Add winningBidderName here
-      }
-
-      updates.push(auctionPiecesRef.doc(auctionPieceId).update(updateData));
-
-      logger.info(`Auction ${auctionPieceId} status updated to ${newStatus}.`);
-    }
-
     await Promise.all(updates);
     logger.info(`Successfully closed ${updates.length} auctions.`);
     return null;
   } catch (error) {
-    logger.error("Error closing auctions:", error);
-    return null;
+    logger.error("Error in closeAuctions scheduled function:", error);
+    throw new HttpsError("internal", "Failed to close auctions.");
   }
 });

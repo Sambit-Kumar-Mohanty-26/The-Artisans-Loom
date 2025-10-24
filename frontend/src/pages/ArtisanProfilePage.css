@@ -2,6 +2,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 4rem 2rem;
+  background-color: #fdfbf8;
   transition: opacity 0.4s ease-in-out;
 }
 
@@ -36,6 +37,30 @@
   flex-shrink: 0;
 }
 
+.profile-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@media (min-width: 768px) {
+  .profile-header-info {
+    align-items: flex-start;
+  }
+}
+
+.name-and-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .name-and-badge {
+    justify-content: flex-start;
+  }
+}
+
 .artisan-name-title {
   font-family: 'Playfair Display', serif;
   font-size: 3rem;
@@ -44,13 +69,29 @@
   line-height: 1.1;
 }
 
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #e0f2f1;
+  color: #00796b;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+}
+.verified-badge svg {
+  width: 20px;
+  height: 20px;
+}
+
 .artisan-location {
   font-size: 1.1rem;
   color: #8a6e51;
   margin: 0.5rem 0;
 }
 
-.artisan-specialization {
+.specialization-tag {
   font-size: 1rem;
   font-weight: 500;
   color: #442c13;
@@ -225,30 +266,4 @@
 
 .star-rating span:hover {
   transform: scale(1.1);
-}
-
-/* ADD THESE STYLES to ArtisanProfilePage.css */
-
-.name-and-badge {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.verified-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #e0f2f1; /* A light teal/green */
-  color: #00796b; /* Dark teal/green */
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.4rem 1rem;
-  border-radius: 9999px;
-}
-
-.verified-badge svg {
-  width: 20px;
-  height: 20px;
 }
