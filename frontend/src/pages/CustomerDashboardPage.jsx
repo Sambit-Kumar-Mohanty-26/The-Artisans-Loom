@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { functions } from '../firebaseConfig';
+import { functions, db } from '../firebaseConfig'; // Import db
 import { httpsCallable } from 'firebase/functions';
+import { collection, query, where, getDocs } from "firebase/firestore"; // Import firestore functions
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 import ProductCard from '../components/ProductCard';
 import './CustomerDashboardPage.css';
 
@@ -25,6 +27,7 @@ const englishContent = {
   statusDelivered: "Delivered",
   loadingDashboard: "Loading Dashboard...",
   backToHome: "Back to Home",
+  myWinnings: "My Winnings", // Added new translation key
 };
 
 const BackButton = ({ onNavigate, text }) => {
@@ -38,11 +41,13 @@ const BackButton = ({ onNavigate, text }) => {
 
 const CustomerDashboardPage = ({ onNavigate }) => {
   const { currentLanguage } = useLanguage();
+  const { currentUser } = useAuth(); // Get currentUser
   const [content, setContent] = useState(englishContent);
   const [isTranslating, setIsTranslating] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [wonAuctions, setWonAuctions] = useState([]); // New state for won auctions
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,7 +63,27 @@ const CustomerDashboardPage = ({ onNavigate }) => {
     };
     fetchData();
   }, []);
-  
+
+  // New useEffect to fetch won auction pieces
+  useEffect(() => {
+    const fetchWonAuctions = async () => {
+      if (!currentUser || !currentUser.uid) return;
+      try {
+        const q = query(
+          collection(db, "auctionPieces"),
+          where("status", "==", "sold"),
+          where("winningBidderId", "==", currentUser.uid)
+        );
+        const querySnapshot = await getDocs(q);
+        const wonItems = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setWonAuctions(wonItems);
+      } catch (error) {
+        console.error("Error fetching won auctions:", error);
+      }
+    };
+    fetchWonAuctions();
+  }, [currentUser]); // Re-run when currentUser changes
+
   useEffect(() => {
     const translateContent = async () => {
         if (currentLanguage.code === 'en') {
@@ -80,6 +105,7 @@ const CustomerDashboardPage = ({ onNavigate }) => {
                 noRecentOrders: translations[9], emptyWishlist: translations[10],
                 statusShipped: translations[11], statusProcessing: translations[12],
                 statusDelivered: translations[13], loadingDashboard: translations[14], backToHome: translations[15],
+                myWinnings: translations[16], // Added new translation mapping
             });
         } catch (err) {
             console.error("Failed to translate CustomerDashboard content:", err);
@@ -128,6 +154,29 @@ const CustomerDashboardPage = ({ onNavigate }) => {
                     ))}
                 </div>
             ) : <p>{content.noRecentOrders}</p>}
+          </div>
+        );
+      case 'my-winnings': // New case for My Winnings
+        return (
+          <div className="dashboard-section animated-tab">
+            <h3 className="section-title">{content.myWinnings}</h3>
+            {wonAuctions.length > 0 ? (
+              <div className="won-auctions-grid">
+                {wonAuctions.map(item => (
+                  <div key={item.id} className="won-auction-card">
+                    <img src={item.imageUrl} alt={item.name} className="won-auction-image" />
+                    <div className="won-auction-details">
+                      <h4 className="won-auction-title">{item.name}</h4>
+                      <p className="won-auction-bid">Winning Bid: ₹{item.winningBidAmount ? item.winningBidAmount.toLocaleString() : 'N/A'}</p>
+                      <p className="won-auction-date">Closed: {item.closedAt ? new Date(item.closedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                      <button onClick={() => onNavigate(`masterpiece-auction/${item.id}`)} className="view-auction-button">View Auction</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>You haven't won any auctions yet. Keep bidding!</p>
+            )}
           </div>
         );
       case 'wishlist':
@@ -208,6 +257,7 @@ const CustomerDashboardPage = ({ onNavigate }) => {
               <button onClick={() => setActiveTab('dashboard')} className={activeTab === 'dashboard' ? 'active' : ''}>{content.dashboard}</button>
               <button onClick={() => setActiveTab('orders')} className={activeTab === 'orders' ? 'active' : ''}>{content.orders}</button>
               <button onClick={() => setActiveTab('wishlist')} className={activeTab === 'wishlist' ? 'active' : ''}>{content.wishlist}</button>
+              <button onClick={() => setActiveTab('my-winnings')} className={activeTab === 'my-winnings' ? 'active' : ''}>{content.myWinnings}</button> {/* New button for My Winnings */}
               <button onClick={() => onNavigate('edit-profile')} >{content.accountSettings}</button>
               <button>{content.help}</button>
             </nav>

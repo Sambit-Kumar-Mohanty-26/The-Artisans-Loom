@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { httpsCallable } from 'firebase/functions';
 import './ProductDetailPage.css';
+import ARViewer from '../components/ARViewer'; // Ensure this path is correct
 
 const translateProduct = httpsCallable(functions, 'translateProduct');
 const getTranslations = httpsCallable(functions, 'getTranslations');
@@ -40,6 +41,7 @@ const ProductDetailPage = ({ productId, onNavigate }) => {
   const { currentLanguage } = useLanguage();
   const [isAdding, setIsAdding] = useState(false);
   const [showLoginError, setShowLoginError] = useState(false);
+  const [showAR, setShowAR] = useState(false); // State to control AR viewer visibility
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -50,7 +52,13 @@ const ProductDetailPage = ({ productId, onNavigate }) => {
         const docRef = doc(db, 'products', productId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const productData = { id: docSnap.id, ...docSnap.data() };
+          const productData = {
+            id: docSnap.id,
+            ...docSnap.data(),
+            // IMPORTANT: Replace this with your actual GLTF model URL!
+            // This URL must be publicly accessible and have correct CORS headers.
+            gltfModelUrl: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
+          };
           setOriginalProduct(productData);
           setDisplayProduct(productData);
         } else {
@@ -134,6 +142,10 @@ const ProductDetailPage = ({ productId, onNavigate }) => {
     setTimeout(() => setIsAdding(false), 1500);
   };
 
+  const handleToggleAR = () => {
+    setShowAR(prev => !prev);
+  };
+
   if (loading) return <div className="page-loader">{content.loadingProduct}</div>;
   if (error) return <div className="page-error">{error}</div>;
   if (!displayProduct) return <div className="page-error">{content.productLoadError}</div>;
@@ -143,6 +155,10 @@ const ProductDetailPage = ({ productId, onNavigate }) => {
 
   return (
     <div className="product-detail-page">
+      {/* IMPORTANT: Only render ARViewer when showAR is true.
+          This ensures A-Frame/AR.js initializes and cleans up properly. */}
+      {showAR && <ARViewer modelUrl={displayProduct.gltfModelUrl} onClose={handleToggleAR} />}
+
       <div className="product-detail-image-container">
         <img src={displayProduct.imageUrl} alt={displayProduct.name} className="product-detail-image" />
       </div>
@@ -176,6 +192,12 @@ const ProductDetailPage = ({ productId, onNavigate }) => {
                 : isAdding
                 ? content.addingButton
                 : content.addToCartButton}
+          </button>
+          <button
+            className="view-in-ar-button"
+            onClick={handleToggleAR}
+          >
+            {showAR ? "Exit AR/VR" : "View in AR/VR"}
           </button>
            {showLoginError && (
             <div className="login-prompt-message">

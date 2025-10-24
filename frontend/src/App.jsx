@@ -41,6 +41,7 @@ import ContactUsPage from './pages/ContactUsPage';
 import FaqPage from './pages/FaqPage';
 import ReturnsPage from './pages/ReturnsPage';
 import ShippingPage from './pages/ShippingPage';
+import MasterpieceAuctionPage from './pages/MasterpieceAuctionPage';
 
 import Hero from './sections/Hero';
 import FeaturedArtisans from './sections/FeaturedArtisans';
@@ -64,7 +65,9 @@ const normalizePage = (page) => {
     'interactive-map': 'map.html', 'map.html': 'map.html', 'forum': 'forum', 'dashboard/forum': 'forum',
     'create-post': 'create-post', 'edit-profile': 'edit-profile', 'trending': 'trending',
     'stories': 'stories', 'about-us': 'about-us', 'contact-us': 'contact-us', 
-    'faq': 'faq', 'returns': 'returns', 'shipping': 'shipping'
+    'faq': 'faq', 'returns': 'returns', 'shipping': 'shipping',
+    'silent-auction': 'silent-auction',
+    'masterpiece-auction': 'silent-auction' // Add this alias
   };
 
   // Check for alias first
@@ -273,6 +276,7 @@ const AppContent = () => {
       case 'faq': return <FaqPage />;
       case 'returns': return <ReturnsPage />;
       case 'shipping': return <ShippingPage />;
+      case 'silent-auction': return <MasterpieceAuctionPage onNavigate={navigateTo} />;
       case 'home':
       default:
         return renderHomepage();

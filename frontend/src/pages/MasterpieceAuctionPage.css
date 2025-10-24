@@ -1,0 +1,492 @@
+/* General page container */
+.masterpiece-auction-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  background-color: var(--light-bg); /* Subtle background for elegance */
+  min-height: calc(100vh - var(--header-height) - var(--footer-height));
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-color-primary);
+}
+
+/* Page Title Section */
+.page-title-section {
+  width: 100%;
+  text-align: center;
+  padding: 4rem 1.5rem;
+  margin-bottom: 3rem; /* Ample bottom margin */
+}
+
+.page-title-section h1 {
+  font-family: 'Playfair Display', serif; /* Elegant serif font */
+  font-size: 4.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  line-height: 1.1;
+}
+
+.page-title-section p {
+  font-size: 1.25rem;
+  color: var(--text-color-secondary);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Filters and Sorting Controls (New Feature - Placeholder styles) */
+.auction-controls-section {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 2rem 2rem;
+  display: flex;
+  justify-content: flex-end; /* Align to right for now */
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.auction-control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.auction-control-group label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-color-primary);
+}
+
+.auction-control-group select {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border-color-light);
+  border-radius: 8px;
+  background-color: var(--white);
+  font-size: 0.95rem;
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-color-primary);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13.2-6.2H18.2c-4.1%200-7.9%201.5-10.9%204.6a17.6%2017.6%200%200%200-6.2%2013.2%2017.6%2017.6%200%200%200%206.2%2013.2l128%20127.9c3%203%206.8%204.6%2010.9%204.6s7.9-1.5%2010.9-4.6l128-127.9c3-3%204.6-6.8%204.6-10.9s-1.5-7.9-4.6-10.9z%22%2F%3E%3C%2Fsvg%3E'); /* Custom arrow */
+  background-repeat: no-repeat;
+  background-position: right 0.7em top 50%;
+  background-size: 0.65em auto;
+}
+
+
+/* Main Content Grid */
+.auction-pieces-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* Responsive grid */
+  gap: 2rem; /* Adjusted gap for more breathing room */
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 2rem;
+  margin-bottom: 4rem;
+}
+
+/* Individual Auction Card */
+.auction-card {
+  background-color: #ffffff; /* White background */
+  border: 1px solid #e5e5e5; /* A subtle border */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* A soft shadow to lift it off the page */
+  padding: 1rem; /* Adds space inside the card */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative; /* For badge positioning */
+  gap: 1rem; /* Space between elements inside the card */
+}
+
+.auction-card:hover {
+  transform: translateY(-5px); /* Lifted appearance on hover */
+  box-shadow: var(--shadow-large);
+}
+
+/* Fixed Image Area */
+.auction-image-container {
+  width: 100%; /* Take up the full width of the column */
+  height: 300px; /* Give all image containers a UNIFORM height */
+  background-color: #f8f8f8; /* A very light grey for the background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative; /* For badge positioning */
+}
+
+.artwork-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* THIS IS THE FIX. It ensures the whole image is visible. */
+  object-position: center; /* Center image */
+  transition: transform 0.5s ease;
+}
+
+.auction-card:hover .artwork-image {
+  transform: scale(1.03); /* Subtle zoom on hover */
+}
+
+/* Live Badge */
+.live-badge {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background-color: var(--accent-color); /* Brand-consistent color */
+  color: var(--white);
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px; /* Pill-shaped */
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-extra-small); /* Subtle shadow for depth */
+  z-index: 10;
+}
+
+/* Auction Card Content (Below the Image) */
+.card-content {
+  padding: 0; /* Remove padding here as it's now on the card itself */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Artwork Title */
+.artwork-title {
+  font-family: 'Playfair Display', serif; /* Bold, elegant serif font */
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+/* Artist Name */
+.artist-name {
+  font-size: 1rem;
+  font-weight: 400; /* Lighter weight sans-serif */
+  color: var(--text-color-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* Key Auction Details Block */
+.auction-details-block {
+  margin-bottom: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+  color: var(--text-color-primary);
+}
+
+.detail-row strong {
+  font-weight: 600;
+}
+
+.current-bid-amount {
+  font-size: 1.5rem; /* Make it bigger as specified */
+  font-weight: 700;
+  color: #E88425; /* Your brand's warm orange color (guess) */
+}
+
+.time-left {
+  font-size: 1.05rem; /* Distinct, slightly smaller */
+  font-weight: 500;
+  color: var(--secondary-dark); /* A different accent for time */
+}
+
+/* Appraiser's Note (Snippet & Link) */
+.appraiser-note-snippet {
+  background-color: var(--light-bg);
+  border-left: 4px solid var(--primary-color); /* Accent line */
+  padding: 1.2rem;
+  margin: 1.5rem 0;
+  border-radius: 6px;
+  font-style: italic;
+  color: var(--text-color-secondary);
+  line-height: 1.7;
+  flex-grow: 1; /* Pushes bidding area to bottom */
+}
+
+.appraiser-note-snippet p {
+  font-size: 0.9rem;
+  color: var(--text-color-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.view-details-link {
+  font-size: 0.9rem;
+  color: var(--link-color); /* Or a brand blue/purple */
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.view-details-link:hover {
+  color: var(--link-hover-color);
+}
+
+
+/* Interactive Bidding Area */
+.bidding-area {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bid-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0 0.75rem;
+}
+
+.bid-input-wrapper span {
+  font-size: 1.1rem;
+  color: #555;
+  padding-right: 0.5rem;
+}
+
+.bid-input-wrapper input {
+  border: none;
+  outline: none;
+  padding: 0.75rem 0;
+  width: 100%;
+  font-size: 1rem;
+}
+
+/* THE BUTTON STYLE - use your site's brand color! */
+.bid-button {
+  background-color: #E88425; /* Your warm orange brand color */
+  color: white;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.bid-button:hover {
+  background-color: #d1741e; /* A slightly darker orange for hover */
+}
+
+/* Style for the disabled message */
+.bidding-area-disabled p {
+  text-align: center;
+  color: #777;
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+/* Bid/Error/Success Messages */
+.bid-message {
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  border-radius: 6px;
+  font-weight: 500;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.bid-message.success {
+  background-color: var(--success-light);
+  color: var(--success-dark);
+  border: 1px solid var(--success-dark);
+}
+
+.bid-message.error {
+  background-color: var(--error-light);
+  color: var(--error-dark);
+  border: 1px solid var(--error-dark);
+}
+
+.login-to-bid-message {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--text-color-secondary);
+  text-align: center;
+}
+
+
+/* Auction Result Sections */
+.auction-result {
+  /* Removed border-top for softer separation */
+  padding-top: 1.8rem;
+  margin-top: 1.8rem; /* Rely on margin for separation */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.auction-result h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.auction-result.sold h3 {
+  color: var(--success-dark);
+}
+
+.auction-result.unsold h3 {
+  color: var(--error-dark);
+}
+
+.auction-result p {
+  font-size: 1rem;
+  margin-bottom: 0;
+  color: var(--text-color-primary);
+}
+
+.auction-result p strong {
+  color: var(--primary-dark);
+}
+
+
+/* Back to Home Button (Moved to Header/Footer as per spec, so less prominent here if kept) */
+.back-to-home-btn {
+  background-color: var(--secondary-color);
+  color: var(--white);
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: 3rem; /* Still keep some margin if it's explicitly rendered */
+}
+
+.back-to-home-btn:hover {
+  background-color: var(--secondary-dark);
+  transform: translateY(-2px);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .auction-pieces-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .page-title-section h1 {
+    font-size: 3.5rem;
+  }
+  .page-title-section p {
+    font-size: 1.3rem;
+  }
+  .auction-controls-section {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 1.5rem 1.5rem;
+  }
+  .auction-pieces-grid {
+    gap: 2rem;
+    padding: 0 1.5rem;
+  }
+  .auction-image-container {
+    height: 250px;
+  }
+  .artwork-title {
+    font-size: 1.8rem;
+  }
+  .artist-name {
+    font-size: 0.95rem;
+  }
+  .current-bid-amount {
+    font-size: 1.4rem;
+  }
+  .time-left {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title-section {
+    padding: 3rem 1rem;
+    margin-bottom: 2rem;
+  }
+  .page-title-section h1 {
+    font-size: 2.8rem;
+  }
+  .page-title-section p {
+    font-size: 1.1rem;
+  }
+  .auction-pieces-grid {
+    grid-template-columns: 1fr; /* Single column on tablet/mobile */
+    padding: 0 1rem;
+  }
+  .auction-image-container {
+    height: 220px;
+  }
+  .card-content {
+    padding: 1.5rem;
+  }
+  .artwork-title {
+    font-size: 1.6rem;
+  }
+  .appraiser-note-snippet {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+  .bidding-area {
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+    gap: 1rem;
+  }
+  .bid-input-wrapper input {
+    padding: 10px 12px;
+  }
+  .place-bid-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title-section h1 {
+    font-size: 2.2rem;
+  }
+  .page-title-section p {
+    font-size: 0.95rem;
+  }
+  .auction-pieces-grid {
+    gap: 1.5rem;
+  }
+  .auction-image-container {
+    height: 180px;
+  }
+  .artwork-title {
+    font-size: 1.4rem;
+  }
+  .current-bid-amount {
+    font-size: 1.2rem;
+  }
+  .appraiser-note-snippet p {
+    font-size: 0.85rem;
+  }
+  .place-bid-btn {
+    font-size: 0.9rem;
+    padding: 10px 18px;
+  }
+}

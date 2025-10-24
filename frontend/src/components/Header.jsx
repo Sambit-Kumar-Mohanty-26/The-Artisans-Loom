@@ -40,6 +40,7 @@ const englishContent = {
   signOut: "Sign Out",
   signIn: "Sign In",
   artisanCommunity: "Artisan Community", 
+  masterpieceAuction: "Masterpiece Auction",
 };
 
 const GlobeIcon = () => (
@@ -130,6 +131,7 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll, currentPage })
           signOut: translations[8],
           signIn: translations[9],
           artisanCommunity: translations[10],
+          masterpieceAuction: translations[11],
         });
       } catch (err) {
         console.error("Failed to translate Header content:", err);
@@ -173,6 +175,7 @@ const Header = ({ onSignInClick, onNavigate, onNavigateAndScroll, currentPage })
         <button onClick={() => onNavigate('all-states')} className="nav-link">{content.regions}</button>
         <button onClick={() => onNavigate('all-artisans')} className="nav-link">{content.artisans}</button>
         <button onClick={() => onNavigate('stories')} className="nav-link">{content.stories}</button>
+        <button onClick={() => onNavigate('masterpiece-auction')} className="nav-link">{content.masterpieceAuction}</button>
       </nav>
 
       <button className="mobile-menu-icon" onClick={toggleMobileMenu} ref={mobileMenuIconRef}>

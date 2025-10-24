@@ -1,0 +1,167 @@
+/* ARViewer Container: This is the full-screen overlay for AR/VR */
+.ar-viewer-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999; /* Ensure it's above all other page content */
+    background-color: black; /* Default background when scene is loading or in VR */
+    overflow: hidden; /* Prevent scrollbars if content slightly overflows */
+    display: flex; /* Use flex to center instructions */
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Instructions Panel */
+  .ar-instructions-panel {
+    position: absolute; /* Relative to .ar-viewer-container */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* Darker overlay for instructions */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 100000; /* Above the AR scene */
+    font-family: sans-serif; /* Use a basic, safe font */
+  }
+  
+  .ar-instructions-panel h2 {
+    font-size: 2.2rem;
+    margin-bottom: 15px;
+    color: #f0ebe5;
+  }
+  
+  .ar-instructions-panel p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 10px;
+    max-width: 600px;
+  }
+  
+  .ar-link {
+    color: #a0dfff;
+    text-decoration: underline;
+    transition: color 0.2s ease-in-out;
+  }
+  
+  .ar-link:hover {
+    color: #6caddf;
+  }
+  
+  .ar-permission-error-message {
+    color: #ffda6a; /* Warning color */
+    font-weight: bold;
+    margin-top: 15px;
+    padding: 10px;
+    border: 1px solid #ffda6a;
+    border-radius: 5px;
+    max-width: 80%;
+  }
+  
+  .ar-instruction-buttons {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+  }
+  
+  .ar-button {
+    padding: 12px 25px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+  }
+  
+  .ar-button.primary {
+    background-color: #442c13; /* Primary brand color */
+    color: white;
+  }
+  
+  .ar-button.primary:hover:not(:disabled) {
+    background-color: #33210f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .ar-button.secondary {
+    background-color: #c00; /* Red for exit */
+    color: white;
+  }
+  
+  .ar-button.secondary:hover:not(:disabled) {
+    background-color: #a00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  }
+  
+  .ar-button:disabled {
+    background-color: #666;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  
+  /* Exit Button that appears after instructions are dismissed */
+  .ar-exit-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    background-color: rgba(192, 0, 0, 0.8);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 100001; /* Ensure it's always on top */
+    transition: background-color 0.2s, transform 0.2s;
+  }
+  
+  .ar-exit-button:hover {
+    background-color: rgba(160, 0, 0, 0.9);
+    transform: scale(1.02);
+  }
+  
+  /* Ensure a-scene itself fills its container */
+  a-scene {
+    display: block; /* Essential for A-Frame */
+    width: 100%;
+    height: 100%;
+    position: absolute; /* Position relative to .ar-viewer-container */
+    top: 0;
+    left: 0;
+  }
+
+.ar-permission-info-message {
+  color: #a0dfff; /* Light blue for info */
+  font-weight: bold;
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #a0dfff;
+  border-radius: 5px;
+  max-width: 80%;
+}
+.ar-permission-error-message {
+  color: #ffda6a; /* Warning color */
+  font-weight: bold;
+  margin-top: 15px;
+  padding: 10px;
+  border: 1px solid #ffda6a;
+  border-radius: 5px;
+  max-width: 80%;
+}
+
+
+
+
+

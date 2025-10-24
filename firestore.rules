@@ -56,5 +56,16 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    match /auctionPieces/{auctionPieceId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.artisanId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.artisanId;
+
+      match /bids/{bidId} {
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        allow read, update, delete: if false;
+      }
+    }
   }
 }

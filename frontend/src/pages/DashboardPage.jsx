@@ -3,7 +3,9 @@ import StatCard from '../components/StatCard';
 import MarketingCopyGenerator from '../components/MarketingCopyGenerator';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ReelScriptModal from '../components/ReelScriptModal';
-import { functions } from '../firebaseConfig';
+import ArtisanAuctionSubmission from '../components/ArtisanAuctionSubmission';
+import { db, functions } from '../firebaseConfig'; // Import db here
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'; // Add Firestore imports
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -42,6 +44,7 @@ const englishContent = {
   cancel: "Cancel",
   backToHomeButton: "Back to Home",
   createReelScriptTooltip: "Create Reel Script",
+  submitMasterpieceButton: "Submit Masterpiece for Auction",
 };
 
 const CommunityIcon = () => ( <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962a3.75 3.75 0 015.962 0L14.25 6h5.25M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" /></svg> );
@@ -83,7 +86,7 @@ const DashboardBackButton = ({ onNavigate, text }) => {
 };
 
 const DashboardPage = ({ onNavigate }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
   const { currentLanguage } = useLanguage();
   const [summaryData, setSummaryData] = useState(null);
   const [products, setProducts] = useState([]);
@@ -97,6 +100,51 @@ const DashboardPage = ({ onNavigate }) => {
   const [isReelModalOpen, setIsReelModalOpen] = useState(false);
   const [loadingScript, setLoadingScript] = useState(false);
   const [activeProductForReel, setActiveProductForReel] = useState(null);
+  const [showAuctionSubmission, setShowAuctionSubmission] = useState(false);
+  const [artisanAuctionPieces, setArtisanAuctionPieces] = useState([]);
+  const [loadingAuctionPieces, setLoadingAuctionPieces] = useState(true);
+  const [auctionPiecesError, setAuctionPiecesError] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true); // Declare loadingSummary
+  const [summaryError, setSummaryError] = useState(null); // Declare summaryError
+  const [loadingProducts, setLoadingProducts] = useState(true); // Declare loadingProducts
+  const [productsError, setProductsError] = useState(null); // Declare productsError
+
+  const getDashboardSummary = httpsCallable(functions, 'getDashboardSummary');
+  const getArtisanProducts = httpsCallable(functions, 'getArtisanProducts');
+  const getArtisanOrders = httpsCallable(functions, 'getArtisanOrders');
+  const deleteProduct = httpsCallable(functions, 'deleteProduct');
+  const getReelScript = httpsCallable(functions, 'getReelScript');
+  const getTranslations = httpsCallable(functions, 'getTranslations');
+
+  // New function to fetch artisan's auction pieces
+  const fetchArtisanAuctionPieces = async () => {
+    if (!currentUser?.uid) return;
+    setLoadingAuctionPieces(true);
+    try {
+      const q = query(
+        collection(db, "auctionPieces"),
+        where("artisanId", "==", currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const pieces = await Promise.all(querySnapshot.docs.map(async auctionDoc => {
+        const data = { id: auctionDoc.id, ...auctionDoc.data() };
+        if (data.status === 'sold' && data.winningBidderId) {
+          const userDoc = await getDoc(doc(db, 'users', data.winningBidderId));
+          if (userDoc.exists()) {
+            data.winningBidderName = userDoc.data().displayName || "Collector";
+          }
+        }
+        return data;
+      }));
+      setArtisanAuctionPieces(pieces);
+      setAuctionPiecesError(null);
+    } catch (err) {
+      console.error("Error fetching artisan's auction pieces:", err);
+      setAuctionPiecesError("Failed to load your auction pieces.");
+    } finally {
+      setLoadingAuctionPieces(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -142,7 +190,7 @@ const DashboardPage = ({ onNavigate }) => {
           noOrdersMessage: translations[15], myProductsTitle: translations[16], noProductsMessage: translations[17],
           edit: translations[18], delete: translations[19], confirmDeleteTitle: translations[20], 
           confirmDeleteMessage: translations[21], cancel: translations[22], backToHomeButton: translations[23],
-          createReelScriptTooltip: translations[24],
+          createReelScriptTooltip: translations[24], submitMasterpieceButton: translations[25],
         });
       } catch (err) {
         console.error("Failed to translate DashboardPage content:", err);
@@ -153,6 +201,43 @@ const DashboardPage = ({ onNavigate }) => {
     };
     translateContent();
   }, [currentLanguage]);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      // Fetch dashboard summary
+      getDashboardSummary()
+        .then(result => {
+          setSummaryData(result.data.summaryStats);
+          setLoadingSummary(false);
+        })
+        .catch(err => {
+          console.error("Error fetching dashboard summary:", err);
+          setSummaryError("Failed to load summary.");
+          setLoadingSummary(false);
+        });
+
+      // Fetch artisan's products
+      getArtisanProducts()
+        .then(result => {
+          setProducts(result.data.products);
+          setLoadingProducts(false);
+        })
+        .catch(err => {
+          console.error("Error fetching artisan products:", err);
+          setProductsError("Failed to load your products.");
+          setLoadingProducts(false);
+        });
+
+      // Fetch artisan's auction pieces
+      fetchArtisanAuctionPieces(); // Call new fetch function
+
+    } else if (!currentUser && !userProfile) {
+      setLoadingSummary(false);
+      setLoadingProducts(false);
+      setLoadingAuctionPieces(false); // Set loading to false if no user
+      // Optionally redirect to auth or show a message
+    }
+  }, [currentUser, userProfile]);
 
   const handleDeleteRequest = (productId) => {
     setDeleteConfirmation({ isOpen: true, productId: productId });
@@ -197,6 +282,10 @@ const DashboardPage = ({ onNavigate }) => {
   if (isLoading) return <div className="page-loader">{content.loadingDashboard}</div>;
   if (error) return <div className="page-error">{error}</div>;
 
+  if (showAuctionSubmission) {
+    return <ArtisanAuctionSubmission />;
+  }
+
   return (
     <>
       <ReelScriptModal
@@ -226,6 +315,9 @@ const DashboardPage = ({ onNavigate }) => {
             </button>
             <button onClick={() => onNavigate('addProduct')} className="dashboard-btn">
               {content.addProductButton}
+            </button>
+            <button onClick={() => setShowAuctionSubmission(true)} className="dashboard-btn">
+              {content.submitMasterpieceButton}
             </button>
           </div>
         </div>
@@ -304,6 +396,42 @@ const DashboardPage = ({ onNavigate }) => {
             </div>
           ) : (
             <p>{content.noOrdersMessage}</p>
+          )}
+        </div>
+
+        <div className="dashboard-section">
+          <h2>{content.myAuctionPieces}</h2> {/* New title for auction pieces section */}
+          {loadingAuctionPieces ? (
+            <p>{content.loadingAuctionPieces}</p>
+          ) : auctionPiecesError ? (
+            <p className="error-message">{auctionPiecesError}</p>
+          ) : artisanAuctionPieces.length === 0 ? (
+            <p>{content.noAuctionPieces}</p>
+          ) : (
+            <div className="auction-pieces-list">
+              {artisanAuctionPieces.map(piece => (
+                <div key={piece.id} className="auction-piece-item">
+                  <h3>{piece.name}</h3>
+                  <p><strong>Status:</strong> {piece.status.toUpperCase()}</p>
+                  {piece.status === 'sold' && (
+                    <>
+                      <p><strong>Winning Bid:</strong> ₹{piece.winningBidAmount.toLocaleString()}</p>
+                      <p><strong>Winner:</strong> {piece.winningBidderName || 'N/A'}</p>
+                      <p>Closed on: {piece.closedAt ? new Date(piece.closedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                    </>
+                  )}
+                  {piece.status === 'unsold' && (
+                    <p>Closed on: {piece.closedAt ? new Date(piece.closedAt.toDate()).toLocaleDateString() : 'N/A'}. Did not meet reserve price.</p>
+                  )}
+                  {piece.status === 'live' && piece.currentHighestBid && (
+                    <p><strong>Current Highest Bid:</strong> ₹{piece.currentHighestBid.toLocaleString()}</p>
+                  )}
+                  {piece.status === 'appraised' && (
+                    <p><strong>Reserve Price:</strong> ₹{piece.reservePrice.toLocaleString()}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

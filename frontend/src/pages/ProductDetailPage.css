@@ -110,9 +110,12 @@
 
 .add-to-cart-container {
   position: relative;
+  display: flex; /* Make the container a flex container */
+  gap: 1rem; /* Add some space between buttons */
 }
 
-.add-to-cart-button {
+.add-to-cart-button,
+.view-in-ar-button {
   padding: 1rem 2rem;
   width: 100%;
   font-size: 1.1rem;
@@ -142,6 +145,29 @@
 }
 .add-to-cart-button.adding {
   background-color: #6d543b;
+}
+
+.view-in-ar-button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background-color: #6d543b; /* A slightly different color for distinction */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-in-ar-button:hover:not(:disabled) {
+  background-color: #5c4b38;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.view-in-ar-button:disabled {
+  background-color: #c9c9c9;
+  cursor: not-allowed;
 }
 
 .login-prompt-message {
@@ -192,4 +218,21 @@
   z-index: 10;
   border-radius: 8px;
   transition: opacity 0.3s ease;
+}
+
+/* Ensure the back-button-portal exists for the AR exit button */
+#back-button-portal {
+  /* It can be an empty div, but make sure it exists in index.html */
+  /* No specific styling needed here as ARViewer.css handles the button's position */
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }

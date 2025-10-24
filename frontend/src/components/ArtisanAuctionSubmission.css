@@ -1,0 +1,260 @@
+/* General Styling for the entire page */
+.artisan-auction-submission {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1.5rem;
+  background-color: var(--light-bg);
+  min-height: calc(100vh - var(--header-height) - var(--footer-height));
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-color-primary);
+}
+
+/* Header Section Styling */
+.submission-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+  max-width: 800px;
+}
+
+.submission-header h2 {
+  font-family: 'Playfair Display', serif; /* Elegant serif font */
+  font-size: 3.8rem; /* Larger and bolder */
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.submission-header p {
+  font-size: 1.25rem; /* Slightly larger subtitle */
+  color: var(--text-color-secondary);
+  line-height: 1.6;
+}
+
+/* Form Container Styling - Single Column Layout */
+.auction-submission-form {
+  background-color: var(--white);
+  padding: 3.5rem 3rem;
+  border-radius: 15px;
+  box-shadow: var(--shadow-medium);
+  text-align: left;
+  width: 100%;
+  max-width: 700px; /* Centered, single column with max width */
+  display: flex;
+  flex-direction: column;
+  gap: 2.2rem; /* Increased vertical spacing */
+}
+
+/* Form Group Styling */
+.form-group label {
+  display: block;
+  margin-bottom: 0.8rem;
+  font-weight: 600; /* Medium font weight for labels */
+  color: var(--text-color-primary);
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}
+
+/* Input Field Styling */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 15px 20px;
+  border: 1px solid black; /* Changed to black */
+  border-radius: 10px; /* Slightly rounded corners */
+  font-size: 1.05rem;
+  font-family: 'Poppins', sans-serif; /* Clean sans-serif font */
+  color: var(--text-color-primary);
+  background-color: var(--input-bg);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Focus State for Inputs */
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: black; /* Changed to black */
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.3); /* Adjusting shadow for black outline */
+  outline: none;
+}
+
+/* Description Textarea Specifics */
+.form-group textarea {
+  min-height: 180px; /* Enlarge description box */
+  resize: vertical;
+}
+
+/* Placeholder Text Styling */
+.form-group input::placeholder, .form-group textarea::placeholder {
+  color: var(--text-color-secondary); /* Lighter color for placeholders */
+  opacity: 0.7;
+}
+
+/* Redesigned Image Uploader */
+.image-uploader-area {
+  border: 2px dashed var(--border-color-medium); /* Dashed border */
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background-color: var(--input-bg);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.image-uploader-area:hover {
+  border-color: var(--accent-color);
+  background-color: rgba(var(--accent-rgb), 0.05);
+}
+
+.image-uploader-area input[type="file"] {
+  display: none; /* Hide default file input */
+}
+
+.upload-icon {
+  font-size: 3.5rem; /* Large icon */
+  color: var(--text-color-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.upload-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-color-primary);
+}
+
+.upload-subtext {
+  font-size: 0.95rem;
+  color: var(--text-color-secondary);
+}
+
+.image-preview-container {
+  margin-top: 2rem;
+  border: 1px solid var(--border-color-light);
+  border-radius: 12px;
+  padding: 1.5rem;
+  background-color: var(--white);
+  box-shadow: var(--shadow-extra-small);
+  text-align: center;
+}
+
+.image-preview-container p {
+  font-size: 1rem;
+  color: var(--text-color-primary);
+  margin-bottom: 1rem;
+}
+
+.image-preview {
+  max-width: 100%;
+  max-height: 300px; /* Larger preview */
+  border-radius: 8px;
+  object-fit: contain;
+  box-shadow: var(--shadow-extra-small);
+}
+
+/* Submit Button Styling - Strong Call-to-Action */
+.submit-btn {
+  background-color: var(--primary-dark); /* Darker primary color for strength */
+  color: var(--white);
+  padding: 18px 35px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.25rem;
+  font-weight: 700; /* Bolder text */
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  width: 100%; /* Full width button */
+  margin-top: 3rem; /* More space above button */
+  box-shadow: var(--shadow-medium);
+}
+
+.submit-btn:hover {
+  background-color: var(--primary-color);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-large);
+}
+
+.submit-btn:disabled {
+  background-color: var(--light-gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Status Messages */
+.status-message {
+  margin-top: 1.5rem;
+  padding: 1.2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.status-message.success {
+  background-color: var(--success-light);
+  color: var(--success-dark);
+  border: 1px solid var(--success-dark);
+}
+
+.status-message.error {
+  background-color: var(--error-light);
+  color: var(--error-dark);
+  border: 1px solid var(--error-dark);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .submission-header h2 {
+    font-size: 3rem;
+  }
+  .submission-header p {
+    font-size: 1.1rem;
+  }
+  .auction-submission-form {
+    padding: 2.5rem 2rem;
+  }
+  .form-group label {
+    font-size: 1rem;
+  }
+  .form-group input, .form-group textarea, .form-group select {
+    padding: 12px 15px;
+    font-size: 0.95rem;
+  }
+  .submit-btn {
+    font-size: 1.1rem;
+    padding: 15px 25px;
+  }
+}
+
+@media (max-width: 480px) {
+  .submission-header h2 {
+    font-size: 2.2rem;
+  }
+  .submission-header p {
+    font-size: 0.95rem;
+  }
+  .auction-submission-form {
+    padding: 2rem 1rem;
+    gap: 1.5rem;
+  }
+  .submit-btn {
+    font-size: 1rem;
+    padding: 12px 20px;
+  }
+}
+
+
+
