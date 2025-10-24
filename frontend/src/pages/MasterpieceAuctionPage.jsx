@@ -24,6 +24,7 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
       const querySnapshot = await getDocs(q);
       const pieces = await Promise.all(querySnapshot.docs.map(async doc => {
         const data = { id: doc.id, ...doc.data() };
+        console.log("Fetched auction piece data:", data); // Add this line for debugging
         if (data.status === 'sold' && data.winningBidderId) {
           const userDoc = await getDoc(doc(db, 'users', data.winningBidderId));
           if (userDoc.exists()) {
@@ -46,6 +47,9 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
 
   useEffect(() => {
     fetchAuctionPieces();
+    const intervalId = setInterval(fetchAuctionPieces, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(intervalId); // Clear interval on component unmount
   }, []);
 
   const handleBidAmountChange = (pieceId, amount) => {
