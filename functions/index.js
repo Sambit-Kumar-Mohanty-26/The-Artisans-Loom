@@ -13,7 +13,7 @@ const { defineSecret } = require('firebase-functions/params');
 const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
 const { FieldValue } = require("firebase-admin/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const axios = require('axios'); // Import axios
+const axios = require('axios');
 
 admin.initializeApp();
 
@@ -25,7 +25,7 @@ const translate = new Translate();
 const corsOptions = { cors: true };
 
 let vertexAi; 
-let visionClient; // Declare these with 'let' so they can be initialized in try-catch
+let visionClient;
 
 try {
   vertexAi = new VertexAI({
@@ -35,7 +35,6 @@ try {
   logger.info("VertexAI client initialized.");
 } catch (e) {
   logger.error("Error initializing VertexAI client:", e);
-  // Re-throwing the error to ensure function initialization fails if VertexAI can't start
   throw new Error("VertexAI client initialization failed.");
 }
 
@@ -44,11 +43,10 @@ try {
   logger.info("ImageAnnotatorClient initialized.");
 } catch (e) {
   logger.error("Error initializing ImageAnnotatorClient:", e);
-  // Re-throwing the error to ensure function initialization fails if Vision AI can't start
   throw new Error("ImageAnnotatorClient initialization failed.");
 }
 
-const model = "gemini-2.5-pro"; // This remains a const as it's a fixed value
+const model = "gemini-2.5-pro";
 
 const generativeModel = vertexAi.getGenerativeModel({
   model: model,
@@ -1067,7 +1065,7 @@ const joinArtisanVerification = async (products) => {
 exports.getFeaturedProducts = onCall({ cors: true }, async (request) => {
   try {
     const productsRef = admin.firestore().collection("products");
-    const limitNum = 4; // Fetch 4 for a nice grid layout
+    const limitNum = 4;
     const randomId = productsRef.doc().id;
     const query1 = productsRef
       .where(admin.firestore.FieldPath.documentId(), '>=', randomId)
@@ -1265,6 +1263,7 @@ exports.getArtisanProfile = onCall(corsOptions, async (request) => {
         location: artisanData.location,
         specialization: artisanData.specialization,
         story: artisanData.story,
+        isVerified: artisanData.isVerified === true, 
       },
       products: products,
     };
