@@ -2,10 +2,23 @@
   {
     "origin": [
       "http://localhost:5173",
+      "http://localhost:5174",
+      "http://127.0.0.1:5173",
       "https://annular-climate-469215-m0.web.app"
     ],
-    "method": ["GET", "POST", "PUT", "OPTIONS"],
-    "responseHeader": ["Content-Type", "Authorization"],
+    "method": [
+      "GET",
+      "POST",
+      "PUT",
+      "DELETE",
+      "OPTIONS"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Access-Control-Allow-Origin",
+      "x-goog-resumable"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

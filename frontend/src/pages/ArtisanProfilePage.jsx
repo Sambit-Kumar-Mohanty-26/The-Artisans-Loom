@@ -25,6 +25,7 @@ const englishContent = {
   reviewPlaceholder: "Share your thoughts about the artisan's craft...",
   submitButton: "Submit Review",
   submittingButton: "Submitting...",
+  verifiedArtisan: "Verified Artisan",
 };
 
 const ArtisanProfilePage = ({ artisanId, onNavigate }) => {
@@ -95,7 +96,7 @@ const ArtisanProfilePage = ({ artisanId, onNavigate }) => {
           noProducts: translations[6], reviewsTitle: translations[7],
           noReviews: translations[8], leaveReviewTitle: translations[9],
           reviewPlaceholder: translations[10], submitButton: translations[11],
-          submittingButton: translations[12],
+          submittingButton: translations[12], verifiedArtisan: translations[13],
         });
       } catch (err) {
         console.error("Failed to translate ArtisanProfilePage content:", err);
@@ -136,7 +137,15 @@ const ArtisanProfilePage = ({ artisanId, onNavigate }) => {
       <div className="profile-header">
         <img src={artisan.photoURL || `https://ui-avatars.com/api/?name=${artisan.displayName.replace(' ', '+')}`} alt={artisan.displayName} className="profile-avatar" />
         <div className="profile-header-info">
-          <h1 className="artisan-name-title">{artisan.displayName}</h1>
+          <div className="name-and-badge">
+            <h1 className="artisan-name-title">{artisan.displayName}</h1>
+            {artisan.isVerified && (
+              <span className="verified-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.06 0l4-5.5z" clipRule="evenodd" /></svg>
+                {content.verifiedArtisan}
+              </span>
+            )}
+          </div>
           <p className="artisan-location">{artisan.location}</p>
           <p className="artisan-specialization">{artisan.specialization}</p>
         </div>

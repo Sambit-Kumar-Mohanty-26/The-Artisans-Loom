@@ -226,3 +226,29 @@
 .star-rating span:hover {
   transform: scale(1.1);
 }
+
+/* ADD THESE STYLES to ArtisanProfilePage.css */
+
+.name-and-badge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #e0f2f1; /* A light teal/green */
+  color: #00796b; /* Dark teal/green */
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+}
+
+.verified-badge svg {
+  width: 20px;
+  height: 20px;
+}

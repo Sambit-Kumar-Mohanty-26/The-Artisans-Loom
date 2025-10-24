@@ -246,3 +246,42 @@
 .favorite-button.wishlisted {
   color: #e53935; 
 }
+
+.artisan-info-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.verified-badge-small {
+  display: inline-flex;
+  color: #00796b; 
+  position: relative; 
+}
+
+.verified-badge-small svg {
+  width: 18px;
+  height: 18px;
+}
+
+.verified-badge-small::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #33210f;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.verified-badge-small:hover::after {
+  opacity: 1;
+}

@@ -2,20 +2,24 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-  
-    // Your existing, correct rule for product images
     match /products/{userId}/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // --- ADD THIS NEW RULE BLOCK FOR AVATARS ---
-    // This allows users to upload their own profile pictures during onboarding
     match /avatars/{userId}/{allPaths=**} {
-      // Allow anyone to read avatar images (for profile pages, etc.)
       allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /verification-submissions/{userId}/{allPaths=**} {
+      allow read: if false; 
       
-      // Allow an authenticated user to WRITE to their own avatar folder
+      // Allow an authenticated user to WRITE (upload) to their own verification folder.
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /auction_pieces/{userId}/{allPaths=**} {
+      allow read: if true;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     

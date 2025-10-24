@@ -33,10 +33,18 @@ const englishContent = {
   confirmDeletePrompt: "To confirm, please type DELETE in the box below.",
   deleteConfirmationText: "DELETE",
   cancelLabel: "Cancel",
+  verificationTitle: "Artisan Verification",
+  verifiedStatus: "✅ You are a Verified Artisan.",
+  pendingStatus: "Your verification submission is pending review.",
+  notVerifiedStatus: "Verify your profile to increase customer trust. Upload a short video (max 15s) of you in your workshop.",
+  videoLabel: "Verification Video",
+  submitVerification: "Submit for Verification",
+  uploadingVerification: "Uploading...",
+  loadingProfile: "Loading Profile...",
 };
 
 const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
-  const { userProfile, logout } = useAuth();
+  const { userProfile, logout, refetchUserProfile } = useAuth();
   const { currentLanguage } = useLanguage();
   
   const [formData, setFormData] = useState({
@@ -51,6 +59,8 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
   const [success, setSuccess] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [verificationVideo, setVerificationVideo] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
@@ -88,7 +98,10 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
           errorMessage: translations[12], authError: translations[13], dangerZoneTitle: translations[14],
           deleteAccountButton: translations[15], deleteAccountWarning: translations[16],
           confirmDeleteTitle: translations[17], confirmDeletePrompt: translations[18],
-          deleteConfirmationText: translations[19], cancelLabel: translations[20],
+          deleteConfirmationText: translations[19], cancelLabel: translations[20], verificationTitle: translations[21],
+          verifiedStatus: translations[22], pendingStatus: translations[23], notVerifiedStatus: translations[24],
+          videoLabel: translations[25], submitVerification: translations[26], uploadingVerification: translations[27],
+          loadingProfile: translations[28],
         });
       } catch (err) {
         console.error("Failed to translate EditProfilePage content:", err);
@@ -113,6 +126,36 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
     }
   };
 
+  const handleVerificationVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('video/')) {
+      setVerificationVideo(file);
+    } else {
+      alert("Please select a valid video file.");
+      e.target.value = null;
+    }
+  };
+
+  const handleVerificationSubmit = async () => {
+    if (!verificationVideo || !userProfile) return;
+    setUploading(true);
+    try {
+      const filePath = `verification-submissions/${userProfile.uid}/${Date.now()}_${verificationVideo.name}`;
+      const videoRef = ref(storage, filePath);
+      await uploadBytes(videoRef, videoRef);
+      const userDocRef = doc(db, 'users', userProfile.uid);
+      await updateDoc(userDocRef, {
+        verificationSubmissionPath: videoRef.fullPath
+      });
+      await refetchUserProfile();
+    } catch (error) {
+      console.error("Error submitting verification video:", error);
+      setError("Failed to upload video. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!userProfile) {
@@ -122,25 +165,21 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
     setLoading(true);
     setError('');
     setSuccess('');
-
     try {
       let photoURL = userProfile.photoURL || '';
       if (imageFile) {
-        const imageRef = ref(storage, `avatars/${userProfile.uid}/${imageFile.name}`);
-        const snapshot = await uploadBytes(imageRef, imageFile);
-        photoURL = await getDownloadURL(snapshot.ref);
+        const imageRef = ref(storage, `avatars/${userProfile.uid}/${Date.now()}_${imageFile.name}`);
+        await uploadBytes(imageRef, imageFile);
+        photoURL = await getDownloadURL(imageRef);
       }
-
       const updateData = { ...formData, photoURL };
       const userDocRef = doc(db, 'users', userProfile.uid);
       await updateDoc(userDocRef, updateData);
-      
       if (typeof onProfileUpdate === 'function') {
         await onProfileUpdate();
       }
-
+      await refetchUserProfile();
       setSuccess(content.successMessage);
-      
     } catch (err) {
       setError(content.errorMessage);
       console.error("Profile update error:", err);
@@ -167,7 +206,7 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
   const isArtisan = userProfile?.role === 'artisan';
   
   if (!userProfile) {
-    return <div className="page-loader">Loading Profile...</div>;
+    return <div className="page-loader">{content.loadingProfile}</div>;
   }
 
   return (
@@ -190,7 +229,6 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
           onChange={(e) => setDeleteConfirmText(e.target.value)}
         />
       </ConfirmationModal>
-
       <div className="edit-profile-page">
         <div className={`edit-profile-container ${isTranslating ? 'translating' : ''}`}>
           <h1 className="edit-profile-title">{content.title}</h1>
@@ -232,10 +270,8 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
                 </div>
               </>
             )}
-            
             {error && <p className="error-message">{error}</p>}
             {success && <p className="success-message">{success}</p>}
-            
             <div className="form-actions">
               <button type="button" className="cancel-button" onClick={() => onNavigate(isArtisan ? 'dashboard' : 'home')}>
                 {content.backButton}
@@ -245,6 +281,28 @@ const EditProfilePage = ({ onProfileUpdate, onNavigate }) => {
               </button>
             </div>
           </form>
+
+          {isArtisan && (
+            <div className="verification-zone">
+              <h3>{content.verificationTitle}</h3>
+              {userProfile.isVerified === true ? (
+                <p className="status-verified">{content.verifiedStatus}</p>
+              ) : userProfile.verificationSubmissionPath ? (
+                <p className="status-pending">{content.pendingStatus}</p>
+              ) : (
+                <>
+                  <p>{content.notVerifiedStatus}</p>
+                  <div className="form-group">
+                    <label htmlFor="verificationVideo">{content.videoLabel}</label>
+                    <input id="verificationVideo" name="verificationVideo" type="file" onChange={handleVerificationVideoChange} accept="video/*" />
+                  </div>
+                  <button className="submit-verification-btn" onClick={handleVerificationSubmit} disabled={uploading || !verificationVideo}>
+                    {uploading ? content.uploadingVerification : content.submitVerification}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="danger-zone">
             <h3>{content.dangerZoneTitle}</h3>
