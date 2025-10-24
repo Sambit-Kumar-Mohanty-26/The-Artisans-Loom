@@ -24,15 +24,6 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
       const querySnapshot = await getDocs(q);
       const pieces = await Promise.all(querySnapshot.docs.map(async doc => {
         const data = { id: doc.id, ...doc.data() };
-        console.log("Fetched auction piece data:", data); // Add this line for debugging
-        if (data.status === 'sold' && data.winningBidderId) {
-          const userDoc = await getDoc(doc(db, 'users', data.winningBidderId));
-          if (userDoc.exists()) {
-            data.winningBidderName = userDoc.data().displayName || "A proud collector";
-          } else {
-            data.winningBidderName = "A proud collector";
-          }
-        }
         return data;
       }));
       setAuctionPieces(pieces);
@@ -88,7 +79,10 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
 
   // Helper to format auction end time
   const formatAuctionTimeLeft = (endTime) => {
-    if (!endTime) return 'N/A';
+    // Robust check to ensure endTime is a Firestore Timestamp with a toDate method
+    if (!endTime || typeof endTime !== 'object' || typeof endTime.toDate !== 'function') {
+      return 'N/A';
+    }
     const now = new Date();
     const end = endTime.toDate(); // Convert Firebase Timestamp to JS Date
     const diff = end.getTime() - now.getTime();

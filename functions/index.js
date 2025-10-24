@@ -5,8 +5,6 @@ const admin = require("firebase-admin");
 const sgMail = require('@sendgrid/mail');
 const { SpeechClient } = require("@google-cloud/speech");
 const { TextToSpeechClient } = require("@google-cloud/text-to-speech");
-const { VertexAI } = require("@google-cloud/vertexai");
-const { ImageAnnotatorClient } = require('@google-cloud/vision');
 const {Translate} = require('@google-cloud/translate').v2;
 const cors = require("cors")({ origin: true });
 const { defineSecret } = require('firebase-functions/params');
@@ -16,6 +14,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const axios = require('axios'); // Import axios
 
 admin.initializeApp();
+const db = admin.firestore();
 
 const FROM_EMAIL = "contact.artisans.loom@gmail.com";
 
@@ -2579,7 +2578,7 @@ exports.placeBid = onCall(corsOptions, async (request) => {
 
 // ------------------ Close Auctions and Determine Winners ----------------------
 exports.closeAuctions = onSchedule({
-  schedule: "0 * * * *", // Every hour at minute 0
+  schedule: "every 1 minutes", // Temporarily changed for testing
   timeZone: "UTC",
 }, async (event) => {
   logger.info("Starting scheduled job to close auctions...");
@@ -2625,9 +2624,10 @@ exports.closeAuctions = onSchedule({
 
     if (!highestBidSnapshot.empty) {
       const topBid = highestBidSnapshot.docs[0].data();
+      winningBidderId = topBid.userId;
+      logger.info(`Processing auction ${auctionPieceId}. Highest bid by userId: ${winningBidderId}`);
       // Check if the highest bid meets the reserve price
       if (auctionData.reservePrice && topBid.bidAmount >= auctionData.reservePrice) {
-        winningBidderId = topBid.userId;
         winningBidAmount = topBid.bidAmount;
         newStatus = 'sold';
         // Fetch winning bidder's name
@@ -2635,10 +2635,14 @@ exports.closeAuctions = onSchedule({
           const userDoc = await db.collection('users').doc(winningBidderId).get();
           if (userDoc.exists) {
             winningBidderName = userDoc.data().displayName || null; // Changed from userName to displayName
+            logger.info(`User document found for ${winningBidderId}. Display name: ${winningBidderName}`);
+          } else {
+            logger.warn(`User document not found for winningBidderId: ${winningBidderId}`);
           }
         } catch (nameError) {
           logger.error(`Error fetching winning bidder name for ${winningBidderId}:`, nameError);
         }
+        logger.info(`Final winningBidderName for ${auctionPieceId} before update: ${winningBidderName}`);
         logger.info(`Auction ${auctionPieceId} sold to ${winningBidderId} for ₹${winningBidAmount}`);
       } else {
         logger.info(`Auction ${auctionPieceId} ended, highest bid ₹${topBid.bidAmount} did not meet reserve price ₹${auctionData.reservePrice}.`);
