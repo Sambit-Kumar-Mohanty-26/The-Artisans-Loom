@@ -88,7 +88,10 @@ const MasterpieceAuctionPage = ({ onNavigate }) => {
 
   // Helper to format auction end time
   const formatAuctionTimeLeft = (endTime) => {
-    if (!endTime) return 'N/A';
+    // Robust check to ensure endTime is a Firestore Timestamp with a toDate method
+    if (!endTime || typeof endTime !== 'object' || typeof endTime.toDate !== 'function') {
+      return 'N/A';
+    }
     const now = new Date();
     const end = endTime.toDate(); // Convert Firebase Timestamp to JS Date
     const diff = end.getTime() - now.getTime();
