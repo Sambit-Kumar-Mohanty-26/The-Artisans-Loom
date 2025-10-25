@@ -29,6 +29,7 @@ import OrderSuccessPage from './pages/OrderSuccessPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import OnboardingPage from './pages/OnboardingPage';
 import EditProfilePage from './pages/EditProfilePage';
+import EditProductPage from './pages/EditProductPage';
 import CustomerDashboardPage from './pages/CustomerDashboardPage';
 import ForumPage from './pages/ForumPage';
 import CreatePostPage from './pages/CreatePostPage';
