@@ -4,6 +4,7 @@ import MarketingCopyGenerator from '../components/MarketingCopyGenerator';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ReelScriptModal from '../components/ReelScriptModal';
 import ArtisanAuctionSubmission from '../components/ArtisanAuctionSubmission';
+import OracleInsightWidget from '../components/OracleInsightWidget';
 import { db, functions } from '../firebaseConfig'; // Import db here
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'; // Add Firestore imports
 import { httpsCallable } from 'firebase/functions';
@@ -306,6 +307,7 @@ const DashboardPage = ({ onNavigate }) => {
       />
       <div className={`dashboard-page ${isTranslating ? 'translating' : ''}`}>
         <DashboardBackButton onNavigate={onNavigate} text={content.backToHomeButton} />
+        <OracleInsightWidget />
         <div className="dashboard-header">
           <h1>{content.dashboardTitle}</h1>
           <div className="dashboard-actions">

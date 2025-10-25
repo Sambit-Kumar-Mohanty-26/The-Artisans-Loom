@@ -11,7 +11,9 @@ const { defineSecret } = require('firebase-functions/params');
 const SENDGRID_API_KEY = defineSecret('SENDGRID_API_KEY');
 const { FieldValue } = require("firebase-admin/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const axios = require('axios'); // Import axios
+const axios = require('axios');
+const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY'); 
+const SEARCH_ENGINE_ID = "b777f8ba04d3c400f";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -32,18 +34,15 @@ try {
 
   vertexAi = new VertexAI({
     project: process.env.GCLOUD_PROJECT,
-    location: 'asia-south1' // Specify your region, e.g., 'us-central1'
+    location: 'asia-south1'
   });
   visionClient = new ImageAnnotatorClient();
   logger.info("VertexAI and ImageAnnotatorClient initialized.");
 } catch (e) {
   logger.error("Error initializing VertexAI or ImageAnnotatorClient:", e);
-  // Depending on your application's needs, you might want to throw or handle gracefully
-  // For now, we'll log and continue, assuming these services might not be critical for all functions.
-  // throw new Error("AI/Vision client initialization failed.");
 }
 
-const model = "gemini-2.5-pro"; // This remains a const as it's a fixed value
+const model = "gemini-2.5-flash"; 
 
 const generativeModel = vertexAi.getGenerativeModel({
   model: model,
@@ -493,6 +492,17 @@ exports.createProduct = onCall(corsOptions, async (request) => {
 // -------------------- Product Search ------------------------
 exports.searchProducts = onCall({ cors: true }, async (request) => {
   const { q, category, region, minPrice, maxPrice, sortBy, materials } = request.data;
+  if (q && q.trim().length > 2) {
+    const searchTerm = q.toLowerCase().trim();
+    try {
+      await admin.firestore().collection('searchHistory').add({
+        term: searchTerm,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (logError) {
+      logger.error("Failed to log search term:", logError);
+    }
+  }
   
   let query = admin.firestore().collection("products");
 
@@ -2672,3 +2682,115 @@ exports.closeAuctions = onSchedule({
     throw new HttpsError("internal", "Failed to close auctions.");
   }
 });
+
+// ------------------ Artisan Oracle Insights ----------------------
+exports.getArtisanOracleInsights = onCall(
+  { 
+    cors: true,
+    secrets: [GEMINI_API_KEY],
+    timeoutSeconds: 120,
+  }, 
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "You must be logged in to view insights.");
+    }
+    
+    const { language } = request.data;
+    if (!language) {
+      throw new HttpsError("invalid-argument", "A 'language' must be provided.");
+    }
+    
+    const firestore = admin.firestore();
+    const now = new Date();
+    const oneMonthAgo = new Date(new Date(now).setMonth(now.getMonth() - 1));
+
+    try {
+      const ordersSnapshot = await firestore.collection('orders').where('createdAt', '>=', oneMonthAgo).get();
+      const salesCounts = new Map();
+      ordersSnapshot.forEach((doc) => {
+        const orderItems = doc.data().items;
+        if (orderItems && Array.isArray(orderItems)) {
+          orderItems.forEach((item) => {
+            if (item && item.category) {
+              const category = item.category.toLowerCase();
+              salesCounts.set(category, (salesCounts.get(category) || 0) + item.quantity);
+            }
+          });
+        }
+      });
+      const topSellingCategories = Array.from(salesCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map((e) => e[0]);
+      const wishlistSnapshot = await firestore.collectionGroup('wishlist').get();
+      const wishlistProductIds = wishlistSnapshot.docs.map((doc) => doc.id);
+      const wishlistCounts = new Map();
+      if (wishlistProductIds.length > 0) {
+        const productsSnapshot = await firestore.collection('products').where(admin.firestore.FieldPath.documentId(), 'in', wishlistProductIds).get();
+        productsSnapshot.forEach((doc) => {
+          const productData = doc.data();
+          if (productData && productData.category) {
+            const category = productData.category.toLowerCase();
+            wishlistCounts.set(category, (wishlistCounts.get(category) || 0) + 1);
+          }
+        });
+      }
+      const topWishlistedCategories = Array.from(wishlistCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map((e) => e[0]);
+
+      const searchSnapshot = await firestore.collection('searchHistory').where('timestamp', '>=', oneMonthAgo).get();
+      const searchCounts = new Map();
+      searchSnapshot.forEach((doc) => {
+        const term = doc.data().term;
+        searchCounts.set(term, (searchCounts.get(term) || 0) + 1);
+      });
+      const topSearchTerms = Array.from(searchCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map((e) => e[0]);
+
+      const dataSummary = `
+        - Top Selling Categories (last 30 days): ${topSellingCategories.join(', ') || 'N/A'}
+        - Most Wishlisted Categories: ${topWishlistedCategories.join(', ') || 'N/A'}
+        - Top Search Keywords: ${topSearchTerms.join(', ') || 'N/A'}
+      `;
+      logger.info("Fetching external trend data via Custom Search API...");
+      const searchQuery = `"indian handicraft trends" OR "ethnic decor styles 2025" OR "sustainable textiles forecast"`;
+      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${GEMINI_API_KEY.value()}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(searchQuery)}`;
+      
+      let externalInsights = "No external trends found.";
+      try {
+          const searchResponse = await axios.get(searchUrl);
+          if (searchResponse.data && searchResponse.data.items) {
+            const snippets = searchResponse.data.items.slice(0, 3).map((item) => item.snippet || item.title).join(' ... ');
+            externalInsights = snippets;
+          }
+      } catch (searchError) {
+          logger.error("Failed to fetch external Google Search results:", searchError.message);
+      }
+      logger.info("Synthesizing data with Gemini AI...");
+      const forecasterPrompt = `
+        You are a world-class market trend forecaster for 'The Artisan's Loom'. Your task is to provide 3 short, actionable insights for our artisans based on both our internal platform data and real-time external trends. The entire response must be in the ${language} language.
+
+        **Internal Platform Data Summary:**
+        ${dataSummary}
+
+        **External Trend Data (from fashion/decor blogs):**
+        "${externalInsights}"
+
+        **Your Instructions:**
+        Synthesize ALL of this information to generate a JSON object with a single key, "insights", which is an array of 3 unique, predictive, and actionable strings of advice.
+        - Insight 1 (Trend Forecast): Identify a rising trend.
+        - Insight 2 (Design Prompt): Suggest a new product idea.
+        - Insight 3 (Marketing Tip): Provide a marketing suggestion.
+      `;
+      
+      const result = await generativeModel.generateContent(forecasterPrompt);
+      const responseText = result.response.candidates[0].content.parts[0].text;
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+          throw new Error("AI response did not contain a valid JSON object.");
+      }
+      const finalInsights = JSON.parse(jsonMatch[0]);
+
+      return finalInsights;
+
+    } catch (error) {
+      logger.error("Error in getArtisanOracleInsights:", error);
+      throw new HttpsError("internal", "Failed to generate oracle insights.");
+    }
+  }
+);
